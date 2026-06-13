@@ -121,8 +121,11 @@
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf
 } from './pricing.js';
-import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries } from './eloverblik.js';
+import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates } from './gamify.js';
+import {
+  dayProfile, weekdayProfile, periodTotals, pctChange, toCSV
+} from './forbrug-analyse.js';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -178,7 +181,8 @@ const app={
     dso:'n1',
     customTariff:{ winter:{lav:11,hoej:33,spids:99}, summer:{lav:11,hoej:17,spids:43} },
     eloverblik:{ refreshToken:'', meteringPointId:'', accessToken:'', accessTokenExp:0 },
-    wizardStep:0, wizardMsg:'', meteringPoints:[], forbrugDay:null },
+    wizardStep:0, wizardMsg:'', meteringPoints:[], forbrugDay:null,
+    view:'forside', analyse:{ periodeType:'maaned', fromKey:null, toKey:null }, analyseTip:null, analyseLoading:false },
   raw:[], loading:true, error:null
 };
 function currentTariff(){
@@ -195,6 +199,10 @@ function loadState(){
   app.state.wizardMsg='';
   app.state.meteringPoints=[];
   app.state.forbrugDay=null;
+  app.state.view='forside';
+  app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
+  app.state.analyseTip=null;
+  app.state.analyseLoading=false;
 }
 function saveState(){
   const {theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
@@ -259,6 +267,10 @@ function loadConsumption(){ try{ return JSON.parse(localStorage.getItem('elprise
 function saveConsumption(o){ try{ localStorage.setItem('elpriser_consumption', JSON.stringify(o)); }catch(e){} }
 function loadDayPrices(){ try{ return JSON.parse(localStorage.getItem('elpriser_dayprices')||'{}'); }catch(e){ return {}; } }
 function saveDayPrices(o){ try{ localStorage.setItem('elpriser_dayprices', JSON.stringify(o)); }catch(e){} }
+function loadDailyConsumption(){ try{ return JSON.parse(localStorage.getItem('elpriser_consumption_daily')||'{}'); }catch(e){ return {}; } }
+function saveDailyConsumption(o){ try{ localStorage.setItem('elpriser_consumption_daily', JSON.stringify(o)); }catch(e){} }
+function loadMonthlyConsumption(){ try{ return JSON.parse(localStorage.getItem('elpriser_consumption_monthly')||'{}'); }catch(e){ return {}; } }
+function saveMonthlyConsumption(o){ try{ localStorage.setItem('elpriser_consumption_monthly', JSON.stringify(o)); }catch(e){} }
 function loadGamify(){ try{ return JSON.parse(localStorage.getItem('elpriser_gamify')||'{}'); }catch(e){ return {}; } }
 function saveGamify(g){ try{ localStorage.setItem('elpriser_gamify', JSON.stringify(g)); }catch(e){} }
 function dateFromKey(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
@@ -318,6 +330,153 @@ async function fetchRecentConsumption(){
     saveDayPrices(dp);
     render();
   }catch(e){ /* non-blocking */ }
+}
+
+/* ===================== FORBRUGS-ANALYSE ===================== */
+const MONTHS_DK=['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
+function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function addMonths(d,n){ return new Date(d.getFullYear(),d.getMonth()+n,1); }
+function monthKey(d){ return `${d.getFullYear()}-${d.getMonth()+1}`; }
+function dataLatest(){ const d=new Date(); d.setDate(d.getDate()-1); return startOfDay(d); } // Eloverblik ~1-2 dage forsinket
+
+// Beregn [from,to]-interval (Date, til er eksklusiv-grænse-dag inkl.) for en periodetype + offset.
+function periodRange(type, fromKey, toKey){
+  const today=dataLatest();
+  if(type==='custom' && fromKey && toKey){
+    return { from:dateFromKey(fromKey), to:dateFromKey(toKey) };
+  }
+  // fromKey bruges som anker (start på den valgte periode) ved navigation
+  if(type==='dag'){ const a=fromKey?dateFromKey(fromKey):today; return { from:a, to:a }; }
+  if(type==='uge'){
+    const a=fromKey?dateFromKey(fromKey):today;
+    const mon=new Date(a); const dow=(mon.getDay()+6)%7; mon.setDate(mon.getDate()-dow); // mandag
+    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    return { from:startOfDay(mon), to:startOfDay(sun) };
+  }
+  if(type==='maaned'){
+    const a=fromKey?dateFromKey(fromKey):today;
+    const f=new Date(a.getFullYear(),a.getMonth(),1);
+    const t=new Date(a.getFullYear(),a.getMonth()+1,0);
+    return { from:f, to:t };
+  }
+  if(type==='kvartal'){
+    const a=fromKey?dateFromKey(fromKey):today;
+    const q=Math.floor(a.getMonth()/3);
+    const f=new Date(a.getFullYear(),q*3,1);
+    const t=new Date(a.getFullYear(),q*3+3,0);
+    return { from:f, to:t };
+  }
+  if(type==='aar'){
+    const a=fromKey?dateFromKey(fromKey):today;
+    return { from:new Date(a.getFullYear(),0,1), to:new Date(a.getFullYear(),11,31) };
+  }
+  return { from:today, to:today };
+}
+// Vælg aggregering efter periodelængde: dag→Hour, uge/måned→Day, kvartal/år→Month.
+function aggForType(type){
+  if(type==='dag') return 'Hour';
+  if(type==='uge'||type==='maaned'||type==='custom') return 'Day';
+  return 'Month';
+}
+function rangeLabel(type, range){
+  const f=range.from, t=range.to;
+  if(type==='dag') return f.toLocaleDateString('da-DK',{weekday:'long',day:'numeric',month:'long'});
+  if(type==='maaned') return `${MONTHS_DK[f.getMonth()]} ${f.getFullYear()}`;
+  if(type==='aar') return String(f.getFullYear());
+  if(type==='kvartal') return `K${Math.floor(f.getMonth()/3)+1} ${f.getFullYear()}`;
+  const fmt=d=>d.toLocaleDateString('da-DK',{day:'numeric',month:'short'});
+  return `${fmt(f)} – ${fmt(t)}`;
+}
+
+// Hent forbrug for et interval i den givne aggregering. Returnerer cache-objektet (mutér ikke kalderen).
+async function ensureAccess(){
+  const ev=app.state.eloverblik;
+  let access=ev.accessToken;
+  if(!access || Date.now()>ev.accessTokenExp){
+    access=await getAccessToken(ev.refreshToken);
+    ev.accessToken=access; ev.accessTokenExp=Date.now()+23*3600*1000; saveState();
+  }
+  return access;
+}
+
+// Henter data for et interval i nødvendig opløsning. Cacher i passende store. Returnerer evt. fejl-tekst.
+async function fetchRange(range, agg){
+  const ev=app.state.eloverblik;
+  if(!ev.refreshToken || !ev.meteringPointId) return 'Forbind Eloverblik først.';
+  const from=isoDate(range.from), to=isoDate(addDays(range.to,1)); // til eksklusiv → +1 dag
+  try{
+    const access=await ensureAccess();
+    const json=await getTimeSeries(access, ev.meteringPointId, from, to, agg);
+    if(agg==='Hour'){
+      const parsed=parseTimeSeries(json);
+      const cons=loadConsumption(); Object.assign(cons,parsed); saveConsumption(cons);
+    } else if(agg==='Day'){
+      const parsed=parseBuckets(json,'Day');
+      const dc=loadDailyConsumption(); Object.assign(dc,parsed); saveDailyConsumption(dc);
+    } else {
+      const parsed=parseBuckets(json,'Month');
+      const mc=loadMonthlyConsumption(); Object.assign(mc,parsed); saveMonthlyConsumption(mc);
+    }
+    return null;
+  }catch(e){ return 'Kunne ikke hente forbrug ('+e.message+'). Prøv igen.'; }
+}
+
+// Indlæs data for den valgte periode + samme periode sidste år (år-over-år). Non-blocking.
+async function loadAnalyseData(){
+  const ev=app.state.eloverblik;
+  if(!ev.refreshToken || !ev.meteringPointId) return;
+  const a=app.state.analyse;
+  const range=periodRange(a.periodeType, a.fromKey, a.toKey);
+  const agg=aggForType(a.periodeType);
+  app.state.analyseLoading=true; app.state.analyseTip=null; renderForbrug();
+  // sidste år (samme interval, et år tilbage)
+  const lastYear={ from:new Date(range.from.getFullYear()-1,range.from.getMonth(),range.from.getDate()),
+                   to:new Date(range.to.getFullYear()-1,range.to.getMonth(),range.to.getDate()) };
+  const e1=await fetchRange(range, agg);
+  const e2=await fetchRange(lastYear, agg);   // YoY — fejler stille hvis ingen historik
+  app.state.analyseLoading=false;
+  app.state.analyseTip = e1 || null;          // vis kun primær-periodens fejl
+  // hent dag-priser til tier-farvning når perioden er en enkelt dag (Hour)
+  if(agg==='Hour' && !e1){ await ensureDayPrice(isoDate(range.from)); }
+  renderForbrug();
+}
+
+async function ensureDayPrice(dayKey){
+  const dp=loadDayPrices();
+  if(dp[dayKey]) return;
+  try{
+    const recs=await fetchDay(dateFromKey(dayKey));
+    const list=seriesForDay(recs, dayKey, cfg());
+    if(list.length){ const arr=Array(24).fill(0); list.forEach(x=>{arr[x.h]=x.total;}); dp[dayKey]=arr; saveDayPrices(dp); }
+  }catch(e){}
+}
+
+// Saml de relevante buckets for en periode fra cache → {key: kWh} i kronologisk orden.
+function bucketsForPeriod(type, range){
+  const agg=aggForType(type);
+  const out=[];
+  if(agg==='Hour'){
+    const cons=loadConsumption();
+    const dk=keyOf(range.from);
+    const arr=cons[dk]||null;
+    if(arr){ for(let h=0;h<24;h++) out.push({ key:pad(h), kwh:arr[h]||0, hour:h }); }
+    return { rows:out, agg, hourArr:arr };
+  }
+  if(agg==='Day'){
+    const dc=loadDailyConsumption();
+    for(let d=new Date(range.from); d<=range.to; d=addDays(d,1)){
+      const dk=keyOf(d);
+      out.push({ key:dk, kwh:dc[dk]!=null?dc[dk]:null, date:new Date(d) });
+    }
+    return { rows:out, agg };
+  }
+  // Month
+  const mc=loadMonthlyConsumption();
+  for(let m=new Date(range.from.getFullYear(),range.from.getMonth(),1); m<=range.to; m=addMonths(m,1)){
+    const mk=monthKey(m);
+    out.push({ key:mk, kwh:mc[mk]!=null?mc[mk]:null, date:new Date(m) });
+  }
+  return { rows:out, agg };
 }
 
 function verifyPending(){
@@ -400,6 +559,7 @@ function forbrugHTML(th){
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis||th.muted};"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
     ${prices?`<div style="font-size:11.5px;color:${th.muted};margin-top:10px;">Søjlerne er farvet efter prisen den time — grøn = billig, rød = dyr. Brugte du strøm i de grønne timer? 💡</div>`:''}
     <div style="display:flex;justify-content:space-between;margin-top:12px;">${navBtn('← Dagen før',days[idx-1]||day,idx<=0)}${navBtn('Dagen efter →',days[idx+1]||day,idx>=days.length-1)}</div>
+    <button onclick="openForbrug()" style="width:100%;margin-top:12px;padding:11px;border:none;border-radius:13px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:13.5px;cursor:pointer;">Se hele dit forbrug →</button>
   </div>`;
 }
 
@@ -537,8 +697,12 @@ function tabsHTML(th){
       return `<button onclick="setChartTab('${k}')" style="flex:1;padding:8px 0;border:none;border-radius:99px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;transition:all .15s;background:${on?t.on:'transparent'};color:${on?t.onText:t.off};">${l}</button>`;}).join('')+`</div>`;
 }
 function header(brandHTML,regionPill,gearBg,gearRadius){
+  const ev=app.state.eloverblik;
+  const forbrugBtn=(ev.refreshToken && ev.meteringPointId)
+    ? `<button onclick="openForbrug()" aria-label="Forbrugs-analyse" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">📊</button>`
+    : '';
   return `<div style="display:flex;align-items:center;gap:9px;padding:6px 0 16px;">${brandHTML}
-    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${regionPill}
+    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${regionPill}${forbrugBtn}
     <button onclick="openSettings()" aria-label="Indstillinger" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">⚙️</button>
     <button onclick="doRefresh(this)" aria-label="Opdatér" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">↻</button>
     </span></div>`;
@@ -810,8 +974,215 @@ function sheetHTML(){
     <button onclick="closeSettings()" style="width:100%;margin-top:22px;padding:14px;border:none;border-radius:16px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:15px;cursor:pointer;">Gem &amp; luk</button>`;
 }
 
+/* ===================== FORBRUGS-ANALYSE VIEW ===================== */
+function miniBars(rows, th, opts){
+  opts=opts||{};
+  const vals=rows.map(r=>r.kwh==null?0:r.kwh);
+  const max=Math.max(...vals,0.001);
+  const colorByTier=opts.tier && opts.prices;
+  let lo=0,hi=1;
+  if(colorByTier){ [lo,hi]=loHi(opts.prices); }
+  const H=opts.h||120;
+  const bars=rows.map((r,i)=>{
+    const k=r.kwh==null?0:r.kwh;
+    const ht=r.kwh==null?2:Math.max(3,Math.round(k/max*100));
+    let col=th.accent;
+    if(r.kwh==null) col=th.border;
+    else if(colorByTier && opts.prices[i]!=null) col=th.pal[tierOf(opts.prices[i],lo,hi)];
+    else if(opts.compare) col=th.muted;
+    const tip=opts.tip?opts.tip(r):`${r.key}: ${k.toFixed(2)} kWh`;
+    return `<div title="${esc(tip)}" style="flex:1 1 0;min-width:0;height:${ht}%;background:${col};border-radius:4px 4px 2px 2px;opacity:${r.kwh==null?0.4:1};"></div>`;
+  }).join('');
+  return `<div style="display:flex;align-items:flex-end;gap:2px;height:${H}px;">${bars}</div>`;
+}
+
+function profileBars(values, th, labels){
+  const max=Math.max(...values,0.001);
+  const bars=values.map((v,i)=>{
+    const ht=Math.max(3,Math.round(v/max*100));
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div title="${esc(labels[i])}: ${v.toFixed(2)} kWh" style="width:100%;height:${ht}%;background:${th.accent};border-radius:3px 3px 1px 1px;"></div>
+    </div>`;
+  }).join('');
+  return `<div style="display:flex;align-items:flex-end;gap:3px;height:90px;">${bars}</div>`;
+}
+
+function statCard(th,label,value,sub){
+  return `<div style="flex:1;min-width:0;background:${th.surface};border:1px solid ${th.border};border-radius:14px;padding:11px 12px;">
+    <div style="font-size:10.5px;font-weight:800;letter-spacing:.06em;color:${th.muted};text-transform:uppercase;">${label}</div>
+    <div style="font-weight:800;font-size:19px;color:${th.text};margin-top:5px;line-height:1.1;">${value}</div>
+    ${sub?`<div style="font-size:11px;color:${th.muted};margin-top:2px;">${sub}</div>`:''}</div>`;
+}
+
+function forbrugView(){
+  const th=THEMES[app.state.theme];
+  const ev=app.state.eloverblik;
+  const back=`<button onclick="closeForbrug()" style="border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-weight:700;font-size:14px;border-radius:12px;padding:9px 14px;cursor:pointer;">← Tilbage</button>`;
+  const head=`<div style="display:flex;align-items:center;gap:10px;padding:6px 0 16px;">
+    ${back}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;color:${th.text};">Dit forbrug</span></div>`;
+
+  if(!ev.refreshToken || !ev.meteringPointId){
+    return `<div class="pane">${head}
+      <div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:28px 20px;text-align:center;margin-top:30px;">
+        <div style="font-size:40px;margin-bottom:12px;">🔌</div>
+        <p style="color:${th.text};font-size:15px;font-weight:700;margin:0 0 6px;">Forbind Eloverblik først</p>
+        <p style="color:${th.muted};font-size:13px;line-height:1.5;margin:0 0 18px;">For at se din forbrugs-analyse skal du forbinde din Eloverblik-konto. Det tager ca. 1 minut.</p>
+        <button onclick="closeForbrug();openSettings()" style="border:none;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:14px;border-radius:14px;padding:12px 22px;cursor:pointer;">Forbind nu</button>
+      </div></div>`;
+  }
+
+  const a=app.state.analyse;
+  const range=periodRange(a.periodeType, a.fromKey, a.toKey);
+  const agg=aggForType(a.periodeType);
+  const { rows } = bucketsForPeriod(a.periodeType, range);
+
+  // periodevælger — hurtigvalg
+  const quick=[['dag','I dag'],['uge','Uge'],['maaned','Måned'],['kvartal','Kvartal'],['aar','År']];
+  const qbtns=quick.map(([k,l])=>{const on=a.periodeType===k;
+    return `<button onclick="setPeriode('${k}')" style="flex:1;padding:8px 0;border:none;border-radius:99px;font:inherit;font-weight:800;font-size:12px;cursor:pointer;background:${on?th.tab.on:'transparent'};color:${on?th.tab.onText:th.tab.off};">${l}</button>`;
+  }).join('');
+  const picker=`<div style="display:flex;gap:3px;padding:4px;background:${th.tab.track};border-radius:99px;">${qbtns}</div>`;
+
+  // prev/next + label
+  const navBtn=(sym,fn)=>`<button onclick="${fn}" style="width:34px;height:34px;border-radius:10px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:16px;font-weight:700;cursor:pointer;">${sym}</button>`;
+  const nav=`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+    ${a.periodeType==='custom'?'<span></span>':navBtn('‹','navPeriode(-1)')}
+    <span style="font-weight:800;font-size:15px;color:${th.text};text-transform:capitalize;text-align:center;flex:1;">${rangeLabel(a.periodeType,range)}</span>
+    ${a.periodeType==='custom'?'<span></span>':navBtn('›','navPeriode(1)')}</div>`;
+
+  // custom interval
+  const fromVal=isoDate(range.from), toVal=isoDate(range.to);
+  const custom=`<div style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:12px;color:${th.muted};">
+    <span>Frit interval:</span>
+    <input type="date" value="${fromVal}" onchange="setCustomFrom(this.value)" style="flex:1;min-width:0;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:12px;border-radius:10px;padding:7px 8px;">
+    <span>→</span>
+    <input type="date" value="${toVal}" onchange="setCustomTo(this.value)" style="flex:1;min-width:0;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:12px;border-radius:10px;padding:7px 8px;"></div>`;
+
+  if(app.state.analyseLoading){
+    return `<div class="pane">${head}${picker}${nav}${custom}
+      <div class="skel" style="padding:40px 0;">${voltSVG('charge',56,th.text)}<div style="margin-top:12px;">Henter dit forbrug…</div></div></div>`;
+  }
+
+  const hasData=rows.some(r=>r.kwh!=null);
+  if(app.state.analyseTip || !hasData){
+    const msg=app.state.analyseTip || 'Ingen forbrugsdata for denne periode endnu (data er typisk 1-2 dage forsinket).';
+    return `<div class="pane">${head}${picker}${nav}${custom}
+      <div style="background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:22px 18px;margin-top:18px;text-align:center;color:${th.muted};font-size:13.5px;line-height:1.5;">${esc(msg)}</div></div>`;
+  }
+
+  // nøgletal — periodTotals over de udfyldte buckets (time/dag/måned)
+  const hourArr=(agg==='Hour'?(loadConsumption()[keyOf(range.from)]||null):null);
+  const bucketMap={};
+  for(const r of rows){ if(r.kwh!=null) bucketMap[r.key]=r.kwh; }
+  const totals=periodTotals(bucketMap);
+  const total=totals.total;
+  const maxRow=rows.find(r=>r.key===totals.maxKey)||null;
+
+  // tier-farvning for enkelt-dag
+  const prices=(agg==='Hour')?(loadDayPrices()[keyOf(range.from)]||null):null;
+  const graph=miniBars(rows, th, {
+    h:140, tier:!!prices, prices,
+    tip:r=> agg==='Hour' ? `kl ${r.key}: ${(r.kwh||0).toFixed(2)} kWh`
+          : agg==='Month' ? `${MONTHS_DK[r.date.getMonth()]}: ${(r.kwh||0).toFixed(1)} kWh`
+          : `${r.date.toLocaleDateString('da-DK',{day:'numeric',month:'short'})}: ${(r.kwh||0).toFixed(2)} kWh`
+  });
+  const axisLbl=(agg==='Hour')
+    ? `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;font-weight:600;color:${th.axis};"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>`
+    : `<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;font-weight:600;color:${th.axis};"><span>${esc(rangeLabel(a.periodeType,range))}</span></div>`;
+
+  const maxLabel = maxRow ? (agg==='Hour'?`kl ${maxRow.key}`:(agg==='Month'?MONTHS_DK[maxRow.date.getMonth()]:maxRow.date.toLocaleDateString('da-DK',{day:'numeric',month:'short'}))) : '—';
+  const unitName = agg==='Hour'?'time':(agg==='Month'?'måned':'dag');
+  const countLabel = agg==='Hour'?'Timer m. data':(agg==='Month'?'Mdr. m. data':'Dage m. data');
+  const stats=`<div style="display:flex;gap:8px;margin-top:16px;">
+    ${statCard(th,'Total',`${total.toFixed(total<100?1:0)} kWh`)}
+    ${statCard(th,'Snit/'+unitName,`${totals.avgPerDay.toFixed(totals.avgPerDay<10?2:1)} kWh`)}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    ${statCard(th,'Højeste '+unitName,maxRow?`${maxRow.kwh.toFixed(agg==='Month'?0:1)} kWh`:'—',maxLabel)}
+    ${statCard(th,countLabel,`${totals.days}`)}
+  </div>`;
+
+  // år-over-år
+  const lyRange={ from:new Date(range.from.getFullYear()-1,range.from.getMonth(),range.from.getDate()),
+                  to:new Date(range.to.getFullYear()-1,range.to.getMonth(),range.to.getDate()) };
+  const ly=bucketsForPeriod(a.periodeType, lyRange);
+  const lyTotal=ly.rows.filter(r=>r.kwh!=null).reduce((x,y)=>x+y.kwh,0);
+  const lyHas=ly.rows.some(r=>r.kwh!=null);
+  let yoy='';
+  if(lyHas){
+    const pc=pctChange(total, lyTotal);
+    const diff=total-lyTotal;
+    const up=diff>0;
+    const col=up?th.pal[2]:th.pal[0];
+    const arrow=up?'▲':'▼';
+    yoy=`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:8px;">SAMME PERIODE SIDSTE ÅR</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;">
+        <span style="font-size:13px;color:${th.text};">Sidste år: <strong>${lyTotal.toFixed(lyTotal<100?1:0)} kWh</strong></span>
+        <span style="font-weight:800;font-size:15px;color:${col};">${arrow} ${pc==null?'—':(Math.abs(pc).toFixed(0)+' %')}</span>
+      </div>
+      <div style="font-size:12px;color:${th.muted};margin-top:4px;">${up?'+':''}${diff.toFixed(diff<10&&diff>-10?1:0)} kWh vs. sidste år</div>
+    </div>`;
+  } else {
+    yoy=`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;font-size:12.5px;color:${th.muted};">Ingen data for samme periode sidste år (endnu).</div>`;
+  }
+
+  // profiler — kun meningsfulde for flere dage (Day-aggregering)
+  let profiles='';
+  if(agg==='Day'){
+    const dc=loadDailyConsumption();
+    const periodDayMap={};
+    for(const r of rows){ if(r.kwh!=null) periodDayMap[r.key]=r.kwh; }
+    const wp=weekdayProfile(periodDayMap);
+    const wdLbl=['Søn','Man','Tir','Ons','Tor','Fre','Lør'];
+    // reorder man-søn for visning
+    const order=[1,2,3,4,5,6,0];
+    const wpVals=order.map(i=>wp[i]), wpLabels=order.map(i=>wdLbl[i]);
+    profiles=`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:10px;">UGEDAGSPROFIL (snit pr. ugedag)</div>
+      ${profileBars(wpVals,th,wpLabels)}
+      <div style="display:flex;gap:3px;margin-top:5px;">${wpLabels.map(l=>`<span style="flex:1;text-align:center;font-size:9.5px;font-weight:600;color:${th.axis};">${l}</span>`).join('')}</div>
+    </div>`;
+  } else if(agg==='Hour' && hourArr){
+    const dp=dayProfile([hourArr]);
+    profiles=`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:10px;">DØGNPROFIL (kWh pr. time)</div>
+      ${profileBars(dp,th,Array.from({length:24},(_,i)=>'kl '+pad(i)))}
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9.5px;font-weight:600;color:${th.axis};"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+    </div>`;
+  }
+
+  // klimaaftryk — udskudt (ingen fabrikerede tal)
+  const klima=`<div style="background:${th.surface};border:1px dashed ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;opacity:.8;">
+    <div style="font-size:13px;font-weight:700;color:${th.text};">🌱 Klimaaftryk (kommer snart)</div>
+    <div style="font-size:12px;color:${th.muted};margin-top:4px;line-height:1.45;">CO₂-aftryk pr. kWh varierer over døgnet. Datakilden er under afklaring — vi viser ikke tal vi ikke kan stå inde for.</div></div>`;
+
+  const csvBtn=`<button onclick="exportForbrugCSV()" style="width:100%;margin-top:18px;padding:13px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-weight:800;font-size:14px;border-radius:14px;cursor:pointer;">⬇︎ Download som CSV</button>`;
+
+  const legendRow = prices ? `<div style="display:flex;gap:14px;margin-top:10px;font-size:11px;font-weight:600;color:${th.muted};">
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[0]};"></span>Billig</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[1]};"></span>Middel</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[2]};"></span>Dyr</span></div>` : '';
+
+  return `<div class="pane">${head}
+    ${picker}${nav}${custom}
+    <div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:16px;margin-top:16px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-weight:800;font-size:14px;color:${th.text};">Forbrug</span>
+        <span style="font-weight:800;font-size:16px;color:${th.accent};">${total.toFixed(total<100?1:0)} kWh</span></div>
+      ${graph}${axisLbl}${legendRow}
+    </div>
+    ${stats}
+    ${yoy}
+    ${profiles}
+    ${klima}
+    ${csvBtn}
+  </div>`;
+}
+
 /* ===================== RENDER ===================== */
 function render(){
+  if(app.state.view==='forbrug'){ renderForbrug(); return; }
   const th=THEMES[app.state.theme];
   document.body.style.background=th.bg;
   document.getElementById('theme-color').setAttribute('content',th.bg);
@@ -832,7 +1203,77 @@ function render(){
   else sr.classList.remove('open');
 }
 
+function renderForbrug(){
+  const th=THEMES[app.state.theme];
+  document.body.style.background=th.bg;
+  document.getElementById('theme-color').setAttribute('content',th.bg);
+  document.getElementById('app').innerHTML=forbrugView();
+}
+
 /* ===================== ACTIONS (global) ===================== */
+function openForbrug(){
+  app.state.view='forbrug';
+  app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
+  render();
+  loadAnalyseData();
+}
+function closeForbrug(){ app.state.view='forside'; render(); }
+function setPeriode(type){
+  app.state.analyse.periodeType=type;
+  app.state.analyse.fromKey=null; app.state.analyse.toKey=null;
+  render(); loadAnalyseData();
+}
+function navPeriode(dir){
+  const a=app.state.analyse;
+  const range=periodRange(a.periodeType, a.fromKey, a.toKey);
+  let anchor;
+  if(a.periodeType==='dag') anchor=addDays(range.from, dir);
+  else if(a.periodeType==='uge') anchor=addDays(range.from, dir*7);
+  else if(a.periodeType==='maaned') anchor=new Date(range.from.getFullYear(),range.from.getMonth()+dir,1);
+  else if(a.periodeType==='kvartal') anchor=new Date(range.from.getFullYear(),range.from.getMonth()+dir*3,1);
+  else if(a.periodeType==='aar') anchor=new Date(range.from.getFullYear()+dir,0,1);
+  else return;
+  a.fromKey=keyOf(anchor); a.toKey=null;
+  render(); loadAnalyseData();
+}
+function setCustomFrom(v){
+  if(!v) return;
+  const a=app.state.analyse; a.periodeType='custom';
+  a.fromKey=keyOf(new Date(v)); if(!a.toKey) a.toKey=a.fromKey;
+  render(); loadAnalyseData();
+}
+function setCustomTo(v){
+  if(!v) return;
+  const a=app.state.analyse; a.periodeType='custom';
+  a.toKey=keyOf(new Date(v)); if(!a.fromKey) a.fromKey=a.toKey;
+  render(); loadAnalyseData();
+}
+function exportForbrugCSV(){
+  const a=app.state.analyse;
+  const range=periodRange(a.periodeType, a.fromKey, a.toKey);
+  const agg=aggForType(a.periodeType);
+  const { rows }=bucketsForPeriod(a.periodeType, range);
+  let csvRows;
+  if(agg==='Hour'){
+    const dk=keyOf(range.from);
+    const prices=loadDayPrices()[dk]||null;
+    csvRows=rows.filter(r=>r.kwh!=null).map(r=>{
+      const o={ dato:isoDate(range.from), time:r.hour, kwh:Number(r.kwh.toFixed(3)) };
+      if(prices && prices[r.hour]!=null) o.kr=Number((prices[r.hour]/100*r.kwh).toFixed(2));
+      return o;
+    });
+  } else {
+    csvRows=rows.filter(r=>r.kwh!=null).map(r=>({ dato:r.key, kwh:Number(r.kwh.toFixed(3)) }));
+  }
+  const csv=toCSV(csvRows);
+  const blob=new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8;' });
+  const url=URL.createObjectURL(blob);
+  const aEl=document.createElement('a');
+  aEl.href=url; aEl.download=`forbrug-${isoDate(range.from)}_${isoDate(range.to)}.csv`;
+  document.body.appendChild(aEl); aEl.click(); document.body.removeChild(aEl);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
 function openSettings(){app.state.settingsOpen=true;render();}
 function closeSettings(){app.state.settingsOpen=false;render();}
 function setTheme(t){app.state.theme=t;saveState();render();}
@@ -904,6 +1345,10 @@ window.setForbrugDay=setForbrugDay;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
+window.openForbrug=openForbrug;window.closeForbrug=closeForbrug;
+window.setPeriode=setPeriode;window.navPeriode=navPeriode;
+window.setCustomFrom=setCustomFrom;window.setCustomTo=setCustomTo;
+window.exportForbrugCSV=exportForbrugCSV;
 
 /* ===================== INIT ===================== */
 loadState();
