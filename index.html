@@ -126,11 +126,6 @@ async function load(){
 }
 
 function keyOf(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
-function seriesFor(dayKey){
-  const arr=new Array(24).fill(null);
-  app.raw.forEach(r=>{const t=parseDK(r.time_start); if(t.dayKey===dayKey) arr[t.h]=totalOf(r,cfg());});
-  return arr;
-}
 
 /* ===================== BEREGNINGER ===================== */
 function futurePool(){
@@ -161,25 +156,27 @@ function bumpStreak(){
 
 function computeView(){
   const now=new Date(), nowH=now.getHours();
-  const todayArr=seriesFor(keyOf(now));
+  const todayList=seriesForDay(app.raw, keyOf(now), cfg());
   const tmr=new Date(); tmr.setDate(tmr.getDate()+1);
-  const tmrArr=seriesFor(keyOf(tmr));
-  const hasToday=todayArr.some(x=>x!=null), hasTmr=tmrArr.some(x=>x!=null);
-  const [loT,hiT]=hasToday?loHi(todayArr):[0,1];
+  const tmrList=seriesForDay(app.raw, keyOf(tmr), cfg());
+  const hasToday=todayList.length>0, hasTmr=tmrList.length>0;
+  const todayVals=todayList.map(x=>x.total);
+  const [loT,hiT]=hasToday?loHi(todayVals):[0,1];
 
-  const nowTotal=todayArr[nowH]!=null?todayArr[nowH]:(todayArr.find(x=>x!=null)??0);
+  const byHour=h=>todayList.find(x=>x.h===h);
+  const nowEntry=byHour(nowH);
+  const nowTotal=nowEntry?nowEntry.total:(todayVals[0]??0);
   const nowTier=tierOf(nowTotal,loT,hiT);
-  const peak=hasToday?Math.max(...todayArr.filter(x=>x!=null)):0;
+  const peak=hasToday?Math.max(...todayVals):0;
 
-  let ce=nowH; while(ce<24 && todayArr[ce]!=null && tierOf(todayArr[ce],loT,hiT)===0) ce++;
+  let ce=nowH; while(ce<24 && byHour(ce) && tierOf(byHour(ce).total,loT,hiT)===0) ce++;
   const cheapEnd=pad(Math.min(ce,24))+':00';
-  let nc=-1; for(let h=nowH;h<24;h++){if(todayArr[h]!=null && tierOf(todayArr[h],loT,hiT)===0){nc=h;break;}}
+  let nc=-1; for(let h=nowH;h<24;h++){const e=byHour(h); if(e && tierOf(e.total,loT,hiT)===0){nc=h;break;}}
   const nextCheap=nc>=0?pad(nc)+':00':'i morgen';
   const cheapUntil = nowTier===0?cheapEnd:nextCheap;
 
   const pool=futurePool();
-  const tv=todayArr.filter(x=>x!=null);
-  const dayAvg=tv.length?tv.reduce((a,b)=>a+b,0)/tv.length:0;
+  const dayAvg=todayVals.length?todayVals.reduce((a,b)=>a+b,0)/todayVals.length:0;
   const mkAp=(emoji,name,verb,len,kwh)=>{const w=bestWindow(pool,len);
     const saveKr=Math.max(0,(dayAvg-(w?w.avg:dayAvg))/100*kwh);
     return {emoji,name,sub:len+' timers '+verb,win:winStr(w),when:whenText(w),price:kr(w?w.avg:0),save:saveKr.toFixed(0)};};
@@ -194,43 +191,42 @@ function computeView(){
   const showToday=app.state.chartTab==='today';
   return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapEnd,nextCheap,
     appliances,savedToday,score,streak:STREAK,
-    todayArr,tmrArr,hasToday,hasTmr,
-    chartArr:showToday?todayArr:tmrArr,chartNowH:showToday?nowH:-1,
+    todayList,tmrList,hasToday,hasTmr,
+    chartList:showToday?todayList:tmrList,chartNowH:showToday?nowH:-1,
     regionLabel:app.state.region==='DK1'?'DK1 · VEST':'DK2 · ØST',regionShort:app.state.region,
     nowKr:kr(nowTotal),peakKr:kr(peak)};
 }
 
 /* ===================== CHART ===================== */
-function chartHTML(arr,th,nowH,opts){
+function chartHTML(list,th,nowH,opts){
   opts=opts||{};
-  const vals=arr.filter(x=>x!=null);
-  if(!vals.length) return `<div style="padding:28px 6px;text-align:center;color:${th.muted};font-size:13px;line-height:1.6;">Morgendagens priser kommer typisk efter kl. 13.<br>Kig forbi igen senere 🙂</div>`;
+  if(!list.length) return `<div style="padding:28px 6px;text-align:center;color:${th.muted};font-size:13px;line-height:1.6;">Morgendagens priser kommer typisk efter kl. 13.<br>Kig forbi igen senere 🙂</div>`;
+  const vals=list.map(x=>x.total);
   const [lo,hi]=[Math.min(...vals),Math.max(...vals)];
   const max=hi, H=opts.h||128, gap=opts.gap||2.5;
-  let bars='';
-  for(let i=0;i<24;i++){
-    const p=arr[i];
-    if(p==null){bars+=`<div style="flex:1 1 0;min-width:0;"></div>`;continue;}
+  const bars=list.map(({h:hr,total:p})=>{
     const h=Math.max(7,Math.round(p/max*100));
     const col=th.pal[tierOf(p,lo,hi)];
-    const isNow=i===nowH;
-    bars+=`<div class="bar" title="kl ${pad(i)}:00 · ${kr(p)} kr" style="flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</div>`;
-  }
+    const isNow=hr===nowH;
+    return `<div class="bar" title="kl ${pad(hr)}:00 · ${kr(p)} kr" style="flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</div>`;
+  }).join('');
   return `<div><div style="display:flex;align-items:flex-end;gap:${gap}px;height:${H}px;padding-top:14px;">${bars}</div>
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis};">
     <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>`;
 }
-function ringHTML(arr,th,nowH){
-  const vals=arr.filter(x=>x!=null);
-  if(!vals.length) return `<div style="padding:40px 6px;text-align:center;color:${th.muted};font-size:13px;">Morgendagens priser kommer efter kl. 13 🙂</div>`;
+function ringHTML(list,th,nowH){
+  if(!list.length) return `<div style="padding:40px 6px;text-align:center;color:${th.muted};font-size:13px;">Morgendagens priser kommer efter kl. 13 🙂</div>`;
+  const byH=h=>list.find(x=>x.h===h);
+  const vals=list.map(x=>x.total);
   const [lo,hi]=[Math.min(...vals),Math.max(...vals)];
   const pal=['#2BC48A','#FFB020','#FF5470'];
   const segs=[];
-  for(let i=0;i<24;i++){const p=arr[i]!=null?arr[i]:lo;segs.push(pal[tierOf(p,lo,hi)]+' '+(i*15)+'deg '+((i+1)*15)+'deg');}
+  for(let i=0;i<24;i++){const e=byH(i);const p=e?e.total:lo;segs.push(pal[tierOf(p,lo,hi)]+' '+(i*15)+'deg '+((i+1)*15)+'deg');}
   let dot='';
   if(nowH>=0){const a=(nowH*15+7.5)*Math.PI/180,r=92,c=115;const x=c+r*Math.sin(a),y=c-r*Math.cos(a);
     dot=`<div style="position:absolute;left:${x-9}px;top:${y-9}px;width:18px;height:18px;border-radius:50%;background:#2a2140;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div>`;}
-  const centerVal=arr[nowH>=0?nowH:0]??vals[0];
+  const centerEntry=byH(nowH>=0?nowH:list[0].h)||list[0];
+  const centerVal=centerEntry.total;
   return `<div style="position:relative;width:230px;height:230px;margin:0 auto;">
     <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(${segs.join(',')});-webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);"></div>
     ${dot}
@@ -294,7 +290,7 @@ function viewSoft(V){
     <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px 16px 14px;margin-top:20px;">
       <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin-bottom:12px;">Pris pr. time</div>
       <div style="max-width:180px;margin-bottom:14px;">${tabsHTML(th)}</div>
-      ${chartHTML(V.chartArr,th,V.chartNowH)}
+      ${chartHTML(V.chartList,th,V.chartNowH)}
       ${legend(th)}
     </div>
     <div style="background:#11352b;border-radius:22px;padding:18px;margin-top:16px;color:#eafff4;">
@@ -331,7 +327,7 @@ function viewBold(V){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#7E8C99;letter-spacing:.12em;">24 TIMER</span>
         <div style="width:160px;">${tabsHTML(th)}</div></div>
-      ${chartHTML(V.chartArr,th,V.chartNowH,{h:150,gap:3})}
+      ${chartHTML(V.chartList,th,V.chartNowH,{h:150,gap:3})}
     </div>
     <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#7E8C99;letter-spacing:.14em;margin:24px 0 12px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
     <div style="display:flex;flex-direction:column;gap:8px;">${aps}</div>
@@ -369,8 +365,8 @@ function viewPlay(V){
     </div>
     <div style="background:#fff;border:1.5px solid #efe4f8;border-radius:26px;padding:20px 16px 8px;box-shadow:0 14px 34px -22px rgba(108,75,216,.6);">
       <div style="max-width:170px;margin:0 auto 14px;">${tabsHTML(th)}</div>
-      <div style="position:relative;">${ringHTML(V.chartArr,th,V.chartNowH)}
-        ${V.chartArr.some(x=>x!=null)?`<svg viewBox="0 0 120 120" width="58" height="58" style="position:absolute;left:50%;top:26px;transform:translateX(-50%);animation:voltbob 3s ease-in-out infinite;">
+      <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
+        ${V.chartList.length?`<svg viewBox="0 0 120 120" width="58" height="58" style="position:absolute;left:50%;top:26px;transform:translateX(-50%);animation:voltbob 3s ease-in-out infinite;">
           <path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="#2a2140" stroke-width="5" stroke-linejoin="round"></path>
           <circle cx="55" cy="44" r="8" fill="#fff" stroke="#2a2140" stroke-width="2"></circle><circle cx="73" cy="44" r="8" fill="#fff" stroke="#2a2140" stroke-width="2"></circle>
           <circle cx="57" cy="46" r="3.4" fill="#2a2140"></circle><circle cx="75" cy="46" r="3.4" fill="#2a2140"></circle>
