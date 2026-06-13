@@ -56,10 +56,27 @@ rsync -avz --exclude='.git' --exclude='docs' --exclude='node_modules' \
   alfanova@107.6.136.42:public_html/elpriser.damsgaard-bruhn.dk/
 ```
 
+### Cloudflare cacher .js i 1 år — HARD RULE ved JS-ændringer
+
+Serveren sætter `cache-control: public, max-age=31536000` på `.js`, og Cloudflare
+cacher dem (`cf-cache-status: HIT`). **`index.html` caches IKKE** (frisk ved hver load),
+men en opdateret `.js` serveres STALE i op til et år. Symptom: frisk `index.html`
+importerer en gammel cachet `.js` → `does not provide an export named …` → appen
+hænger i "Henter elpriser…".
+
+**Reglen:** Når du ændrer en `.js`-modulfil, SKAL du cache-buste importen.
+Modul-importerne i `index.html` har en `?v=N`-query (pricing/eloverblik/gamify/
+forbrug-analyse). **Bump N i ALLE fire imports ved enhver `.js`-ændring** før deploy —
+da `index.html` er frisk, henter den nye `?v=N`-URL en frisk fil fra origin (CF-MISS).
+
+Alternativ/supplement: purge Cloudflare-cachen (token i `~/.claude/CLAUDE.local.md`,
+1Password "Cloudflare API Token - UG3" — bekræft at den dækker damsgaard-bruhn.dk-zonen
+før du regner med den; ellers er `?v=N`-bump den pålidelige vej).
+
 **HARD RULE — verificér live efter deploy** (jf. global CLAUDE.md): åbn
-`https://elpriser.damsgaard-bruhn.dk` i browser, hard-reload (cmd+shift+R, omgå
-Cloudflare-cache), inspicér visuelt desktop + 390px, tjek console. Tag screenshot OG
-læs det. Husk evt. Cloudflare cache-purge hvis gamle assets serveres.
+`https://elpriser.damsgaard-bruhn.dk` i en FRISK browser med cache-bust (`?cb=<ts>`),
+bekræft at appen loader (ikke hænger i "Henter elpriser…"), tjek console for
+import-fejl, inspicér visuelt desktop + 390px. Tag screenshot OG læs det.
 
 Credentials (SSH-nøgle/password, Eloverblik-token) ligger IKKE her — de hører i
 `~/.claude/CLAUDE.local.md` (gitignored) eller gives ad hoc.
