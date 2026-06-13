@@ -317,6 +317,7 @@ function verifyPending(){
     if(JSON.stringify(g.badges)!==badgesBefore){
       // a badge flipped — celebrate
       app.cheerUntil=Date.now()+4000;
+      setTimeout(()=>{ render(); }, 4100);
     }
     render();
   }
@@ -446,14 +447,15 @@ function detailHTML(V,th){
   const [lo,hi]=loHi(V.chartList.map(x=>x.total));
   const tier=tierOf(c.total,lo,hi);
   const tierTxt=['Billig','Middel','Dyr'][tier];
-  const row=(label,val)=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:${th.muted};padding:3px 0;"><span>${label}</span><span style="color:${th.text};font-weight:600;">${kr(val)} kr</span></div>`;
+  const row=(label,val)=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:${th.muted};padding:3px 0;"><span>${label}</span><span style="color:${th.text};font-weight:600;">${kr(Math.round(val))} kr</span></div>`;
+  const shownTotalOre = Math.round(c.spot)+Math.round(c.elafgift)+Math.round(c.energinet)+Math.round(c.nettarif)+Math.round(c.markup);
   return `<div class="pane" style="margin-top:14px;background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:16px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
       <div><span style="font-weight:800;font-size:15px;color:${th.text};">kl ${pad(h)}:00–${pad((h+1)%24)}:00</span>
         <span style="margin-left:8px;font-size:11px;font-weight:800;color:${th.pal[tier]};">${tierTxt}</span></div>
       <button onclick="selectHour(null)" aria-label="Luk" style="border:none;background:transparent;color:${th.muted};font-size:16px;cursor:pointer;padding:0;">✕</button>
     </div>
-    <div style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:30px;color:${th.text};margin-bottom:10px;">${kr(c.total)} <span style="font-size:13px;font-weight:700;color:${th.muted};">kr/kWh</span></div>
+    <div style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:30px;color:${th.text};margin-bottom:10px;">${kr(shownTotalOre)} <span style="font-size:13px;font-weight:700;color:${th.muted};">kr/kWh</span></div>
     ${row('Spotpris (inkl. moms)',c.spot)}
     ${row('Elafgift',c.elafgift)}
     ${row('Energinet-tarif',c.energinet)}
@@ -764,7 +766,6 @@ function adjCustom(seasonKey,band,d){
   app.state.customTariff[seasonKey][band]=Math.max(0,Math.min(400,v+d));
   saveState(); render();
 }
-function startWizard(){ app.state.wizardStep=0; app.state.wizardMsg=''; render(); }
 function wizardNext(){ app.state.wizardStep=Math.min(3, app.state.wizardStep+1); app.state.wizardMsg=''; render(); }
 async function testEloverblik(){
   const ta=document.getElementById('ev-token');
@@ -821,7 +822,7 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTh
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
-window.startWizard=startWizard; window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
+window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
 
