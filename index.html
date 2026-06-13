@@ -386,6 +386,24 @@ function viewPlay(V){
 }
 
 /* ===================== SETTINGS SHEET ===================== */
+function customTariffHTML(th){
+  const ct=app.state.customTariff;
+  const cell=(seasonKey,band)=>`<div style="display:flex;align-items:center;gap:6px;">
+    <button onclick="adjCustom('${seasonKey}','${band}',-1)" style="width:30px;height:30px;border-radius:9px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:17px;font-weight:700;cursor:pointer;">−</button>
+    <span style="min-width:34px;text-align:center;font-weight:800;font-size:14px;">${ct[seasonKey][band]}</span>
+    <button onclick="adjCustom('${seasonKey}','${band}',1)" style="width:30px;height:30px;border-radius:9px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:17px;font-weight:700;cursor:pointer;">+</button>
+  </div>`;
+  const col=(seasonKey,title)=>`<div style="flex:1;">
+    <div style="font-size:11px;font-weight:800;color:${th.muted};margin-bottom:8px;">${title} (øre/kWh)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:${th.muted};">Lav</span>${cell(seasonKey,'lav')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:${th.muted};">Høj</span>${cell(seasonKey,'hoej')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:${th.muted};">Spids</span>${cell(seasonKey,'spids')}</div>
+    </div></div>`;
+  return `<div style="display:flex;gap:16px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px;margin-bottom:24px;">
+    ${col('winter','Vinter')}${col('summer','Sommer')}</div>`;
+}
+
 function sheetHTML(){
   const th=THEMES[app.state.theme];
   const card=(key,name,desc,swatches)=>{const sel=app.state.theme===key;
@@ -414,6 +432,16 @@ function sheetHTML(){
     </div>
     ${lbl('PRISOMRÅDE')}
     <div style="display:flex;gap:9px;margin-bottom:24px;">${pill('DK1','DK1 · Vest')}${pill('DK2','DK2 · Øst')}</div>
+    ${lbl('NETSELSKAB')}
+    <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:${app.state.dso==='custom'?'14px':'24px'};">
+      ${Object.entries(DSO_TARIFFS).map(([key,d])=>{
+        const a=app.state.dso===key;
+        return `<button onclick="setDso('${key}')" style="flex:1 1 30%;padding:11px 0;border-radius:14px;border:2px solid ${a?th.accent:th.border};background:${a?th.accentSoft:th.surface};color:${th.text};font:inherit;font-weight:700;font-size:13px;cursor:pointer;">${d.navn}</button>`;
+      }).join('')}
+      ${(()=>{const a=app.state.dso==='custom';
+        return `<button onclick="setDso('custom')" style="flex:1 1 30%;padding:11px 0;border-radius:14px;border:2px solid ${a?th.accent:th.border};background:${a?th.accentSoft:th.surface};color:${th.text};font:inherit;font-weight:700;font-size:13px;cursor:pointer;">Andet</button>`;})()}
+    </div>
+    ${app.state.dso==='custom' ? customTariffHTML(th) : ''}
     ${lbl('ELHANDLER-TILLÆG')}
     <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
       <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Tillæg pr. kWh</div><div style="font-size:12px;color:${th.muted};">Inkl. moms</div></div>
@@ -453,6 +481,12 @@ function openSettings(){app.state.settingsOpen=true;render();}
 function closeSettings(){app.state.settingsOpen=false;render();}
 function setTheme(t){app.state.theme=t;saveState();render();}
 function setRegion(r){app.state.region=r;saveState();load();}
+function setDso(key){ app.state.dso=key; saveState(); render(); }
+function adjCustom(seasonKey,band,d){
+  const v=app.state.customTariff[seasonKey][band];
+  app.state.customTariff[seasonKey][band]=Math.max(0,Math.min(400,v+d));
+  saveState(); render();
+}
 function setChartTab(t){app.state.chartTab=t;render();}
 function adjMarkup(d){app.state.markup=Math.max(0,Math.min(60,app.state.markup+d));saveState();render();}
 function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
@@ -460,6 +494,7 @@ function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
 function doRefresh(btn){if(btn){btn.classList.add('spin');setTimeout(()=>btn.classList.remove('spin'),700);}load();}
 window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTheme=setTheme;
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
+window.setDso=setDso;window.adjCustom=adjCustom;
 window.doRefresh=doRefresh;window.load=load;
 
 /* ===================== INIT ===================== */
