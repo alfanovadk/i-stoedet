@@ -1,4 +1,4 @@
-// pricing.js — ren pris-motor for Elpriser-PWA. Ingen DOM, ingen global state.
+// pricing.js — ren pris-motor for «I stødet»-PWA. Ingen DOM, ingen global state.
 // Alle beløb i øre/kWh inkl. moms, medmindre andet er nævnt.
 
 export const ELAFGIFT = 1.0;     // 0,8 øre ekskl. moms × 1,25 (Skat, midlertidig nedsættelse 2026–2027)
@@ -51,7 +51,7 @@ export function tierOf(p, lo, hi){
   return f < .34 ? 0 : (f < .67 ? 1 : 2);
 }
 
-// Pris-tier (0=billig,1=middel,2=dyr) → Volt-maskottens tilstandsklasse.
+// Pris-tier (0=billig,1=middel,2=dyr) → Elly-maskottens tilstandsklasse.
 export function tierClass(tier){
   return tier === 0 ? 'cheap' : (tier === 2 ? 'expensive' : 'mid');
 }

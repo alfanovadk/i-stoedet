@@ -111,7 +111,7 @@ test('tierOf: tre niveauer ud fra position i lo–hi', () => {
   assert.equal(tierOf(110, 10, 110), 2);
 });
 
-test('tierClass: mapper pris-tier til Volt-tilstandsklasse', () => {
+test('tierClass: mapper pris-tier til Elly-tilstandsklasse', () => {
   assert.equal(tierClass(0), 'cheap');
   assert.equal(tierClass(1), 'mid');
   assert.equal(tierClass(2), 'expensive');

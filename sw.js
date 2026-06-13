@@ -1,5 +1,5 @@
-// Service worker til Elpriser-PWA
-const CACHE = 'elpriser-v8';
+// Service worker til «I stødet»-PWA
+const CACHE = 'istoedet-v9';
 const SHELL = [
   'index.html',
   'pricing.js',
