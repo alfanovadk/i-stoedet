@@ -133,13 +133,13 @@
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf
-} from './pricing.js?v=6';
-import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=6';
-import { verifyClaim, pointsFor, smartScore, badgeUpdates } from './gamify.js?v=6';
+} from './pricing.js?v=7';
+import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
+import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
   dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily
-} from './forbrug-analyse.js?v=6';
-import { fetchCO2, dailyAvgCO2 } from './co2.js?v=6';
+} from './forbrug-analyse.js?v=7';
+import { fetchCO2, dailyAvgCO2 } from './co2.js?v=7';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -224,7 +224,7 @@ function ellyState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'c
 
 /* ===================== APP STATE ===================== */
 const app={
-  state:{ theme:'soft', region:'DK1', markup:8, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', settingsOpen:false,
+  state:{ theme:'soft', region:'DK1', markup:8, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', sheet:null,
     tab:'nu', showProfiles:false,
     selectedHour:null,
     dso:'n1',
@@ -243,7 +243,7 @@ function currentTariff(){
 function cfg(){ return { markup: app.state.markup, tariff: currentTariff() }; }
 function loadState(){
   try{ const s=JSON.parse(localStorage.getItem('elpriser_state')||'{}'); Object.assign(app.state,s);}catch(e){}
-  app.state.settingsOpen=false;
+  app.state.sheet=null;
   app.state.selectedHour=null;
   app.state.wizardStep=0;
   app.state.wizardMsg='';
@@ -694,19 +694,25 @@ function claimsHTML(th){
 // Er apparatet allerede sat i gang i DENNE time i dag? (samme id-skema som logClaim).
 function isClaimedNow(apparatKey){
   const now=new Date();
-  return loadClaims().some(c=>c.apparat===apparatKey && c.dato===keyOf(now) && c.startHour===now.getHours());
+  return loadClaims().some(c=>c.apparat===apparatKey && claimActiveAt(c, keyOf(now), now.getHours()));
 }
 // Stateful pære-knap → «Tænd nu» (slukket/muted pære) skifter til «Tændt» (accent-pære der lyser) når
 // en markering findes. Strøm-metafor: brugeren «tænder» for forbruget. Toggler via logClaim ved tryk,
 // så knappen giver øjeblikkelig feedback. tema-styling via radius.
 function claimBtn(th, apKey, radius){
-  const on=isClaimedNow(apKey);
+  const now=new Date();
+  const claim=loadClaims().find(c=>c.apparat===apKey && claimActiveAt(c, keyOf(now), now.getHours()));
+  const on=!!claim;
   const col=on?th.accent:th.muted;
   const style=on
     ? `border:1px solid ${th.accent};background:${th.accentSoft};color:${th.accent};`
     : `border:1px solid ${th.border};background:${th.surface};color:${th.muted};`;
   const icon=fa('lightbulb', col, 15, on?'fa-beat':'');
-  return `<button onclick="logClaim('${apKey}')" style="${style}display:inline-flex;align-items:center;gap:5px;font:inherit;font-weight:700;font-size:11px;border-radius:${radius};padding:5px 10px;cursor:pointer;white-space:nowrap;">${icon}<span>${on?'Tændt':'Tænd nu'}</span></button>`;
+  // Slut-tid: heltime vises som tal, halvtime som «X:30». Svarer på «hvornår slår Tændt fra».
+  const end=on?claimEndHour(claim):0;
+  const label=on?`Tændt · til ${end%1?`${Math.floor(end)}:30`:end}`:'Tænd nu';
+  // Fast min-width + centrering → knappen ændrer ikke bredde mellem tilstande (intet layout-hop).
+  return `<button onclick="logClaim('${apKey}')" style="${style}display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:108px;font:inherit;font-weight:700;font-size:11px;border-radius:${radius};padding:5px 10px;cursor:pointer;white-space:nowrap;">${icon}<span>${label}</span></button>`;
 }
 
 function computeView(){
@@ -875,6 +881,11 @@ function nowCopy(V){
 }
 function badgeFor(V,th){return [['● BILLIG LIGE NU',th.pal[0]],['○ MIDDEL PRIS',th.pal[1]],['▲ DYR LIGE NU',th.pal[2]]][V.nowTier];}
 
+// Diskret teaser under apparat-overskriften — forklarer point + link til «Sådan virker det»-modal.
+function pointTeaser(th){
+  return `<p style="margin:-3px 0 10px;font-size:11.5px;line-height:1.45;color:${th.muted};">Tryk «Tænd nu» når du starter et apparat — så tjekker vi dit forbrug og giver point. <button onclick="openPointInfo()" style="background:none;border:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:${th.accent};cursor:pointer;text-decoration:underline;">Sådan virker det</button></p>`;
+}
+
 /* ===================== TEMA-LAYOUTS ===================== */
 function viewSoft(V){
   const th=THEMES.soft;
@@ -897,6 +908,7 @@ function viewSoft(V){
       </div>${ellySVG(ellyState(V),66,'#11352b')}
     </div>
     <h3 style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin:16px 0 9px;">Hvornår skal vi tænde for…</h3>
+    ${pointTeaser(th)}
     <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div>
     <div style="background:#fff;border:1px solid #e3ede8;border-radius:18px;padding:13px 14px 11px;margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -930,6 +942,7 @@ function viewBold(V){
         <span style="font-weight:800;font-size:11px;color:#0C1117;background:#C6FF3D;padding:3px 8px;border-radius:6px;white-space:nowrap;">${cheapTag}</span></div>
     </div>
     <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:11px;color:#7E8C99;letter-spacing:.14em;margin:14px 0 9px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
+    ${pointTeaser(th)}
     <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div>
     <div style="margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -961,6 +974,7 @@ function viewPlay(V){
       ${detailHTML(V,th)}
     </div>
     <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;margin:14px 0 9px;">Dagens opgaver 🎯</h3>
+    ${pointTeaser(th)}
     <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div></div>`;
 }
 
@@ -986,6 +1000,8 @@ function pointView(V){
       ${stat('fire',(g.streak||STREAK||0),'DAGES STIME',null,th.pal[2])}
       ${stat('gauge',smart,'SMART-SCORE',null,th.accent)}
     </div>
+    <button onclick="openPointInfo()" style="width:100%;margin-top:10px;padding:11px 14px;border:1px solid ${th.border};background:${th.surface};border-radius:14px;font:inherit;cursor:pointer;color:${th.text};display:flex;align-items:center;gap:10px;text-align:left;">
+      ${fa('lightbulb',th.accent,16)}<span style="flex:1;font-weight:700;font-size:13px;">Sådan virker point</span><span style="color:${th.accent};font-weight:800;">→</span></button>
     <div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:12px;">
       <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:6px;">SPAR I DAG</div>
       <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-weight:800;font-size:24px;color:${th.accent};">op til ${V.savedToday} kr</span></div>
@@ -1078,6 +1094,27 @@ function wizardHTML(th){
     body=`<p style="margin:0 0 12px;font-size:13.5px;line-height:1.55;color:${th.text};">Vælg det målepunkt du vil bruge.</p>${items}`;
   }
   return card(indicator+body);
+}
+
+// «Sådan virker point»-modal — genbruger sheet-overlayet (app.state.sheet==='pointInfo').
+// Åbnes fra teaser-linjen under apparaterne OG fra Point-siden.
+function pointInfoHTML(){
+  const th=THEMES[app.state.theme];
+  const sh=document.getElementById('sheet'); sh.style.background=th.sheetBg; sh.style.color=th.text;
+  const step=(n,title,body)=>`<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;">
+    <span style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:${th.accent};color:${th.accentText};font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;">${n}</span>
+    <div><div style="font-weight:800;font-size:14.5px;margin-bottom:2px;">${title}</div><div style="font-size:13px;line-height:1.5;color:${th.muted};">${body}</div></div></div>`;
+  return `
+    <div style="width:40px;height:5px;border-radius:99px;background:${th.border};margin:6px auto 16px;"></div>
+    <div style="display:flex;align-items:center;margin-bottom:6px;">${fa('lightbulb',th.accent,22)}<span style="font-weight:800;font-size:20px;margin-left:8px;">Sådan virker point</span>
+      <button onclick="closeSettings()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;border:none;background:${th.surface};color:${th.text};font-size:15px;cursor:pointer;">✕</button></div>
+    <p style="margin:0 0 18px;font-size:13.5px;line-height:1.5;color:${th.muted};">Flyt dit forbrug til de billige timer — og få lidt sjov og point ud af det.</p>
+    ${step(1,'Tryk «Tænd nu»','Når du starter et apparat i en billig time — fx vaskemaskinen eller elbilen.')}
+    ${step(2,'«Tændt» kører af sig selv','Den varer apparatets varighed (sæt timer i indstillinger) og slår selv fra. Du skal ikke gøre noget.')}
+    ${step(3,'Vi tjekker dit forbrug','Dit faktiske forbrug hentes fra Eloverblik (1-2 dage efter) og bekræfter markeringen → point og badges. Snydesikkert.')}
+    <div style="background:${th.accentSoft};border-radius:14px;padding:13px 15px;margin-top:6px;font-size:12.5px;line-height:1.55;color:${th.text};">
+      <strong>PS:</strong> Vi ved godt, det ikke er præcist på øre og watt — og det er heller ikke meningen. Det handler om at få lidt sjov ud af at bruge strømmen, når den er billigst. ⚡</div>
+    <button onclick="closeSettings()" style="width:100%;margin-top:22px;padding:14px;border:none;border-radius:16px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:15px;cursor:pointer;">Godt, forstået</button>`;
 }
 
 function sheetHTML(){
@@ -1472,7 +1509,7 @@ function render(){
   const root=document.getElementById('app');
   root.innerHTML=`<div class="tabcontent">${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
   const sr=document.getElementById('sheet-root');
-  if(app.state.settingsOpen){ document.getElementById('sheet').innerHTML=sheetHTML(); sr.classList.add('open'); }
+  if(app.state.sheet){ document.getElementById('sheet').innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():sheetHTML()); sr.classList.add('open'); }
   else sr.classList.remove('open');
 }
 
@@ -1480,7 +1517,7 @@ function render(){
 function setTab(t){
   app.state.tab=t;
   app.state.selectedHour=null;
-  app.state.settingsOpen=false;
+  app.state.sheet=null;
   if(t==='forbrug'){
     app.state.showProfiles=false;
     app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
@@ -1547,8 +1584,9 @@ function exportForbrugCSV(){
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
-function openSettings(){app.state.settingsOpen=true;render();}
-function closeSettings(){app.state.settingsOpen=false;render();}
+function openSettings(){app.state.sheet='settings';render();}
+function openPointInfo(){app.state.sheet='pointInfo';render();}
+function closeSettings(){app.state.sheet=null;render();}
 function setTheme(t){app.state.theme=t;saveState();render();}
 function setRegion(r){app.state.region=r;saveState();load();}
 function setDso(key){ app.state.dso=key; saveState(); render(); }
@@ -1625,7 +1663,7 @@ function logClaim(apparat){
   app.toastTimer=setTimeout(()=>{ app.state.toast=''; render(); }, 3000);
 }
 window.logClaim=logClaim;
-window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTheme=setTheme;
+window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
