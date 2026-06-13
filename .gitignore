@@ -3,6 +3,12 @@ elpriser-pwa.zip
 .DS_Store
 node_modules
 
+# Capacitor
+www/
+ios/App/Pods/
+ios/App/App/public/
+DerivedData/
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
