@@ -23,8 +23,9 @@ export async function getMeteringPoints(accessToken){
   }));
 }
 
-export async function getTimeSeries(accessToken, mpId, fromISO, toISO){
-  return call(`${BASE}/meterdata/gettimeseries/${fromISO}/${toISO}/Hour`, {
+// aggregation: 'Hour' | 'Day' | 'Month' (Eloverblik gettimeseries-segment).
+export async function getTimeSeries(accessToken, mpId, fromISO, toISO, aggregation='Hour'){
+  return call(`${BASE}/meterdata/gettimeseries/${fromISO}/${toISO}/${aggregation}`, {
     method:'POST',
     headers:{ Authorization:`Bearer ${accessToken}`, 'Content-Type':'application/json' },
     body: JSON.stringify({ meteringPoints:{ meteringPoint:[mpId] } })
@@ -52,6 +53,40 @@ export function parseTimeSeries(json){
             if(idx>=0 && idx<24) arr[idx] = +p['out_Quantity.quantity'] || 0;
           }
           out[dayKey] = arr;
+        }
+      }
+    }
+  } catch(e){ return out; }
+  return out;
+}
+
+// Map CIM-dokument med Day/Month-opløsning → { bucketKey: total }.
+// Day → dayKey `${y}-${m}-${d}`, Month → monthKey `${y}-${m}`.
+// Hvert Point er ét bucket (én dag hhv. én måned); position er offset fra periodestart.
+export function parseBuckets(json, aggregation){
+  const out = {};
+  try {
+    const docs = (json && json.result) || [];
+    for(const d of docs){
+      const series = (d.MyEnergyData_MarketDocument && d.MyEnergyData_MarketDocument.TimeSeries) || [];
+      for(const ts of series){
+        for(const per of (ts.Period || [])){
+          const start = new Date(per.timeInterval.start);
+          for(const p of (per.Point || [])){
+            const off = (+p.position) - 1;
+            // VERIFICÉR mod rigtigt kald: tidszone + dag/måned-grænse for Day/Month-aggregering.
+            // Day-vinduet starter aftenen før (22:00Z/23:00Z) = lokal midnat; nudge 2t ind i lokal dag.
+            const base = new Date(start.getTime() + 2*3600*1000);
+            let key;
+            if(aggregation === 'Month'){
+              const dt = new Date(base.getUTCFullYear(), base.getUTCMonth() + off, 1);
+              key = `${dt.getFullYear()}-${dt.getMonth()+1}`;
+            } else {
+              const dt = new Date(base.getTime() + off*24*3600*1000);
+              key = `${dt.getUTCFullYear()}-${dt.getUTCMonth()+1}-${dt.getUTCDate()}`;
+            }
+            out[key] = (out[key] || 0) + (+p['out_Quantity.quantity'] || 0);
+          }
         }
       }
     }
