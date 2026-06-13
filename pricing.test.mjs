@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, ENERGINET, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay,
+  tierOf, loHi, bestWindow, seriesForDay, tierClass,
 } from './pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -109,6 +109,13 @@ test('tierOf: tre niveauer ud fra position i lo–hi', () => {
   assert.equal(tierOf(10, 10, 110), 0);
   assert.equal(tierOf(60, 10, 110), 1);
   assert.equal(tierOf(110, 10, 110), 2);
+});
+
+test('tierClass: mapper pris-tier til Volt-tilstandsklasse', () => {
+  assert.equal(tierClass(0), 'cheap');
+  assert.equal(tierClass(1), 'mid');
+  assert.equal(tierClass(2), 'expensive');
+  assert.equal(tierClass(99), 'mid');
 });
 
 test('loHi: min og max af værdier', () => {
