@@ -115,6 +115,14 @@ test('loHi: min og max af værdier', () => {
   assert.deepEqual(loHi([30, 10, 20]), [10, 30]);
 });
 
+test('loHi: filtrerer null/undefined fra', () => {
+  assert.deepEqual(loHi([10, null, 20, undefined]), [10, 20]);
+});
+
+test('loHi: tom serie giver [0,1] (ingen Infinity)', () => {
+  assert.deepEqual(loHi([]), [0, 1]);
+});
+
 test('bestWindow: finder billigste sammenhængende vindue', () => {
   const pool = [10,9,8,50,60].map((total,i)=>({ total, h:i }));
   const w = bestWindow(pool, 2);

@@ -52,7 +52,9 @@ export function tierOf(p, lo, hi){
 }
 
 export function loHi(values){
-  return [Math.min(...values), Math.max(...values)];
+  const v = values.filter(x => x != null);
+  if (!v.length) return [0, 1];
+  return [Math.min(...v), Math.max(...v)];
 }
 
 export function bestWindow(pool, len){
