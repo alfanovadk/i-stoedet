@@ -231,6 +231,64 @@ Når Eloverblik-data for claim'ens dato er hentet:
 
 ---
 
+# Del C — Volt-maskot (animeret tilstandsmaskine)
+
+**Kilde:** `docs/superpowers/specs/assets/volt-animationer.html` (kopieret ind i
+repoet fra `~/Desktop/volt-animationer.html`) — en færdig samling SVG + CSS-animationer
+for maskotten "Volt". Denne fil er den autoritative kilde til markup og keyframes;
+SVG'en og CSS'en kopieres (inlines) ind i `index.html` jf. single-file-arkitekturen.
+
+### Problem
+Den nuværende `volt(size, stroke, withFace)` (`index.html:78–87`) tegner en statisk
+figur med kun én animation (`voltbob`, `index.html:26`). Den afspejler ikke
+pris-tilstanden og reagerer ikke på app-events.
+
+### Løsning
+Erstat `volt()` med den rigere SVG fra kildefilen (én `voltSVG(stateClass, size,
+stroke)`-funktion) der bærer en `class` som vælger tilstand. Tilstandene fra
+kildefilen mappes til app-state:
+
+| Volt-tilstand | CSS-klasse | Udløses af |
+|---|---|---|
+| Billig (glad hop + ✨ + grønt glow) | `cheap` | `V.nowTier === 0` |
+| Middel (rolig svæv + blink) | `mid` | `V.nowTier === 1` |
+| Dyr (arrig, ryster, gnister) | `expensive` | `V.nowTier === 2` |
+| Charge (loading) | `charge` | `app.loading === true` |
+| Cheer (spin) | `cheer` | Badge låst op (B3) |
+| Wink (legende) | `wink` | Play-temaets hero (valgfri accent) |
+| Idle / blink | `idle` | Fallback når tier ukendt |
+
+### Integration
+- **Alle tre temaer:** `viewSoft`/`viewBold`/`viewPlay` (`index.html:280–393`) kalder
+  i dag `volt(...)`. De skiftes til `voltSVG(tierClass, ...)` hvor `tierClass`
+  udledes af `V.nowTier`. Bold-temaet bruger lys stroke (`#0C1117` på neon) — `stroke`
+  bevares som parameter; bolt-farven overstyres i `cheap`/`expensive` via CSS som i
+  kildefilen.
+- **Loading:** render-grenen `if(app.loading)` (`index.html:444`) viser `charge`-Volt
+  i stedet for ren tekst-skeleton.
+- **Badge-unlock (B3):** når en ny badge optjenes, vis `cheer`-Volt kortvarigt.
+- **Farve-tokens:** kildefilens hardcodede farver (`#34B27B` grøn, `#E5604D`/`#FF2F52`
+  rød, `#FFD23F` gul) holdes som maskottens egne signatur-farver på tværs af temaer —
+  de er bevidst tema-uafhængige, så Volt ser konsistent ud. (Verificeres visuelt mod
+  hvert temas baggrund.)
+
+### prefers-reduced-motion (sammenhæng med analyse #7)
+Disse animationer er mere intense end den nuværende bob. Hele Volt-animationssættet
+(og de øvrige `@keyframes`) wrappes i
+`@media (prefers-reduced-motion: no-preference){ … }`, så brugere med reduceret
+bevægelse får en **statisk** Volt i korrekt tilstands-farve/-ansigt (glad/neutral/
+arrig) uden bevægelse. Tilstanden (farve, ansigtsudtryk, gnister) er informativ og
+beholdes; kun bevægelsen fjernes.
+
+### Test / visuel verifikation
+Efter integration: åbn appen i browser, hard-reload, og verificér visuelt på desktop
++ 390px at Volt skifter korrekt mellem glad/neutral/arrig efter prisniveau i **alle
+tre temaer**, at `charge` vises under load, og at `cheer` fyrer ved badge-unlock.
+Test også med OS-indstillingen "reducér bevægelse" slået til (statisk men korrekt
+tilstand). Screenshot tages OG læses tilbage før "verificeret" siges.
+
+---
+
 # Delte refaktorer (krydsafhængigheder mellem A og B)
 
 Disse tre stykker kode røres af både A og B. De skal laves **én gang** og genbruges.
@@ -297,11 +355,15 @@ features ovenpå):
 1. **A2** — komponent-refaktor af `totalOf` + afgifts-kommentarer (fundament for A1 og B1).
 2. **A1** — netselskab-tabel, `nettarif`-lookup, state, settings-sektion.
 3. **A3** — data-drevet `seriesFor`/`chartHTML`.
-4. **B1** — klik-på-time + detalje-panel (bygger på A2-komponenter + A3-graf).
-5. **B2** — Eloverblik token-flow + setup-wizard.
-6. **B3** — selvrapportering, verificering, point/streak/badges (bygger på B2).
+4. **C** — Volt animeret tilstandsmaskine (erstat `volt()`, map til tier/loading) +
+   `prefers-reduced-motion`. Uafhængig af A/B-logik; kan laves når som helst efter A1
+   (bruger `nowTier`).
+5. **B1** — klik-på-time + detalje-panel (bygger på A2-komponenter + A3-graf).
+6. **B2** — Eloverblik token-flow + setup-wizard.
+7. **B3** — selvrapportering, verificering, point/streak/badges (bygger på B2);
+   badge-unlock udløser Volt `cheer` (C).
 
-A1–A3 + B1 er rent client-side og kan leveres uafhængigt af Eloverblik. B2–B3
+A1–A3 + C + B1 er rent client-side og kan leveres uafhængigt af Eloverblik. B2–B3
 afhænger af verifikation mod live Eloverblik-API.
 
 # Risici / åbne punkter
@@ -319,5 +381,6 @@ afhænger af verifikation mod live Eloverblik-API.
 - Ingen historik-grafer ud over det gamification kræver.
 - Ingen notifikationer/push i denne omgang.
 - Ingen DST-korrekt ring-geometri i play-temaet (kosmetisk, 2 dage/år).
-- Forbedring #4–#10 fra app-analysen (manifest-farver, debounce, a11y,
-  prefers-reduced-motion, fonts, SEO/PWA) behandles separat.
+- Forbedring #4–#10 fra app-analysen (manifest-farver, debounce, a11y, fonts,
+  SEO/PWA) behandles separat. (`prefers-reduced-motion` indgår dog i Del C, da
+  Volt-animationerne gør det relevant nu.)
