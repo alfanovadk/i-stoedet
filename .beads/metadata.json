@@ -1,0 +1,9 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_server_host": "100.64.0.1",
+  "dolt_server_user": "root",
+  "dolt_database": "elpriser",
+  "project_id": "7c198be8-11a2-4e3c-9e66-dc2f03848e29"
+}
