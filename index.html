@@ -19,9 +19,18 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:#11352b;
-    background:#F3FAF6;transition:background .25s;min-height:100vh;
+    background:#F3FAF6;transition:background .25s;min-height:100dvh;
     -webkit-font-smoothing:antialiased}
-  #app{max-width:430px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 32px);position:relative;min-height:100vh}
+  #app{max-width:430px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;position:relative}
+  /* indholds-område: scroll-frit pr. fane; padding-bottom = fanelinje + safe-area */
+  .tabcontent{flex:1;min-height:0;padding:calc(env(safe-area-inset-top) + 8px) 20px calc(64px + env(safe-area-inset-bottom) + 8px);}
+  /* fast bund-fanelinje */
+  .tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;z-index:40;
+    display:flex;padding:6px 8px calc(env(safe-area-inset-bottom));
+    border-top:1px solid var(--tb-border);background:var(--tb-bg);backdrop-filter:saturate(1.2) blur(8px);}
+  .tabbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 5px;border:none;background:transparent;
+    font:inherit;font-weight:700;font-size:10.5px;cursor:pointer;border-radius:13px;transition:color .15s,background .15s;}
+  .tabbtn .ic{font-size:20px;line-height:1;}
   button{font-family:inherit}
   @keyframes slideup{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
   @keyframes fadein{0%{opacity:0}100%{opacity:1}}
@@ -177,12 +186,13 @@ function voltState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'c
 /* ===================== APP STATE ===================== */
 const app={
   state:{ theme:'soft', region:'DK1', markup:8, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', settingsOpen:false,
+    tab:'nu', showProfiles:false,
     selectedHour:null,
     dso:'n1',
     customTariff:{ winter:{lav:11,hoej:33,spids:99}, summer:{lav:11,hoej:17,spids:43} },
     eloverblik:{ refreshToken:'', meteringPointId:'', accessToken:'', accessTokenExp:0 },
-    wizardStep:0, wizardMsg:'', meteringPoints:[], forbrugDay:null,
-    view:'forside', analyse:{ periodeType:'maaned', fromKey:null, toKey:null }, analyseTip:null, analyseLoading:false },
+    wizardStep:0, wizardMsg:'', meteringPoints:[],
+    analyse:{ periodeType:'maaned', fromKey:null, toKey:null }, analyseTip:null, analyseLoading:false },
   raw:[], loading:true, error:null
 };
 function currentTariff(){
@@ -198,8 +208,8 @@ function loadState(){
   app.state.wizardStep=0;
   app.state.wizardMsg='';
   app.state.meteringPoints=[];
-  app.state.forbrugDay=null;
-  app.state.view='forside';
+  app.state.tab='nu';
+  app.state.showProfiles=false;
   app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
   app.state.analyseTip=null;
   app.state.analyseLoading=false;
@@ -428,7 +438,7 @@ async function loadAnalyseData(){
   const a=app.state.analyse;
   const range=periodRange(a.periodeType, a.fromKey, a.toKey);
   const agg=aggForType(a.periodeType);
-  app.state.analyseLoading=true; app.state.analyseTip=null; renderForbrug();
+  app.state.analyseLoading=true; app.state.analyseTip=null; render();
   // sidste år (samme interval, et år tilbage)
   const lastYear={ from:new Date(range.from.getFullYear()-1,range.from.getMonth(),range.from.getDate()),
                    to:new Date(range.to.getFullYear()-1,range.to.getMonth(),range.to.getDate()) };
@@ -438,7 +448,7 @@ async function loadAnalyseData(){
   app.state.analyseTip = e1 || null;          // vis kun primær-periodens fejl
   // hent dag-priser til tier-farvning når perioden er en enkelt dag (Hour)
   if(agg==='Hour' && !e1){ await ensureDayPrice(isoDate(range.from)); }
-  renderForbrug();
+  render();
 }
 
 async function ensureDayPrice(dayKey){
@@ -526,41 +536,6 @@ function claimsHTML(th){
     <span>${emo[c.apparat]||'⚡'}</span><span style="flex:1;color:${th.text};">kl ${pad(c.startHour)}</span>${chip(c.status)}</div>`).join('');
   return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-top:12px;">
     <div style="font-weight:800;font-size:12px;letter-spacing:.06em;color:${th.muted};margin-bottom:6px;">DINE MARKERINGER I DAG</div>${rows}</div>`;
-}
-
-function forbrugHTML(th){
-  const ev=app.state.eloverblik;
-  if(!ev.refreshToken || !ev.meteringPointId) return '';   // only when connected
-  const cons=loadConsumption();
-  const days=Object.keys(cons).sort((a,b)=>dateFromKey(a)-dateFromKey(b));
-  if(!days.length) return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:16px;margin-top:16px;font-size:13px;color:${th.muted};">Henter dit forbrug fra Eloverblik… (data er typisk 1-2 dage forsinket)</div>`;
-  const day = (app.state.forbrugDay && cons[app.state.forbrugDay]) ? app.state.forbrugDay : days[days.length-1];
-  const kwh = cons[day];
-  const prices = loadDayPrices()[day] || null;
-  const idx = days.indexOf(day);
-  const maxK = Math.max(...kwh, 0.001);
-  const total = kwh.reduce((a,b)=>a+b,0);
-  const [lo,hi] = prices ? loHi(prices) : [0,1];
-  let bars='';
-  for(let h=0;h<24;h++){
-    const k=kwh[h]||0;
-    const ht=Math.max(2,Math.round(k/maxK*100));
-    const col = prices ? th.pal[tierOf(prices[h],lo,hi)] : th.accent;
-    bars+=`<div title="kl ${pad(h)}: ${k.toFixed(2)} kWh" style="flex:1 1 0;min-width:0;height:${ht}%;background:${col};border-radius:4px 4px 2px 2px;"></div>`;
-  }
-  const dato = dateFromKey(day).toLocaleDateString('da-DK',{weekday:'long',day:'numeric',month:'long'});
-  const navBtn=(label,toDay,disabled)=>`<button ${disabled?'disabled':''} onclick="setForbrugDay('${toDay}')" style="border:1px solid ${th.border};background:${th.surface};color:${disabled?th.muted:th.text};font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:6px 12px;cursor:${disabled?'default':'pointer'};opacity:${disabled?0.4:1};">${label}</button>`;
-  return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:16px;margin-top:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <span style="font-weight:800;font-size:15px;color:${th.text};">Dit forbrug</span>
-      <span style="font-weight:800;font-size:15px;color:${th.accent};">${total.toFixed(1)} kWh</span></div>
-    <div style="font-size:12.5px;color:${th.muted};text-transform:capitalize;margin-bottom:12px;">${dato}</div>
-    <div style="display:flex;align-items:flex-end;gap:2.5px;height:120px;">${bars}</div>
-    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis||th.muted};"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
-    ${prices?`<div style="font-size:11.5px;color:${th.muted};margin-top:10px;">Søjlerne er farvet efter prisen den time — grøn = billig, rød = dyr. Brugte du strøm i de grønne timer? 💡</div>`:''}
-    <div style="display:flex;justify-content:space-between;margin-top:12px;">${navBtn('← Dagen før',days[idx-1]||day,idx<=0)}${navBtn('Dagen efter →',days[idx+1]||day,idx>=days.length-1)}</div>
-    <button onclick="openForbrug()" style="width:100%;margin-top:12px;padding:11px;border:none;border-radius:13px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:13.5px;cursor:pointer;">Se hele dit forbrug →</button>
-  </div>`;
 }
 
 function computeView(){
@@ -696,26 +671,30 @@ function tabsHTML(th){
     [['today','I dag'],['tomorrow','I morgen']].map(([k,l])=>{const on=app.state.chartTab===k;
       return `<button onclick="setChartTab('${k}')" style="flex:1;padding:8px 0;border:none;border-radius:99px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;transition:all .15s;background:${on?t.on:'transparent'};color:${on?t.onText:t.off};">${l}</button>`;}).join('')+`</div>`;
 }
-function header(brandHTML,regionPill,gearBg,gearRadius){
-  const ev=app.state.eloverblik;
-  const forbrugBtn=(ev.refreshToken && ev.meteringPointId)
-    ? `<button onclick="openForbrug()" aria-label="Forbrugs-analyse" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">📊</button>`
-    : '';
-  return `<div style="display:flex;align-items:center;gap:9px;padding:6px 0 16px;">${brandHTML}
-    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${regionPill}${forbrugBtn}
-    <button onclick="openSettings()" aria-label="Indstillinger" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">⚙️</button>
-    <button onclick="doRefresh(this)" aria-label="Opdatér" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">↻</button>
-    </span></div>`;
+/* ===================== TAB-SKAL ===================== */
+const TABS=[['nu','⚡','Nu'],['forbrug','📊','Forbrug'],['point','🏆','Point'],['mere','⋯','Mere']];
+function tabBar(th){
+  const t=th.tab;
+  const btns=TABS.map(([k,ic,lbl])=>{const on=app.state.tab===k;
+    return `<button class="tabbtn" onclick="setTab('${k}')" aria-label="${lbl}" style="color:${on?th.accent:t.off};background:${on?th.accentSoft:'transparent'};">
+      <span class="ic">${ic}</span><span>${lbl}</span></button>`;}).join('');
+  return `<nav class="tabbar" style="--tb-bg:${th.sheetBg};--tb-border:${th.border};">${btns}</nav>`;
 }
-function legend(th){return `<div style="display:flex;gap:14px;margin-top:14px;font-size:11px;font-weight:600;color:${th.muted};">
-  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[0]};"></span>Billig</span>
-  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[1]};"></span>Middel</span>
-  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[2]};"></span>Dyr</span></div>`;}
-function footer(th){
-  const now=new Date();
-  return `<div style="text-align:center;color:${th.muted};font-size:11px;line-height:1.6;margin-top:22px;">
-    <a href="https://elforbrug.nu/elpriser-og-elprisprognose-for-de-kommende-dage/" target="_blank" rel="noopener" style="color:${th.accent};font-weight:700;text-decoration:none;">📈 Ugeprognose på elforbrug.nu →</a><br>
-    Opdateret ${now.toLocaleString('da-DK',{weekday:'short',hour:'2-digit',minute:'2-digit'})} · spotpris fra elprisenligenu.dk</div>`;
+// kompakt header pr. fane — brand + valgfri højre-knapper
+function compactHeader(th,brandHTML,rightHTML){
+  return `<div style="display:flex;align-items:center;gap:9px;padding:4px 0 12px;">${brandHTML}
+    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${rightHTML||''}</span></div>`;
+}
+function gearBtn(th,bg,radius){
+  return `<button onclick="openSettings()" aria-label="Indstillinger" style="width:32px;height:32px;border-radius:${radius};background:${bg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">⚙️</button>`;
+}
+function refreshBtn(th,bg,radius){
+  return `<button onclick="doRefresh(this)" aria-label="Opdatér" style="width:32px;height:32px;border-radius:${radius};background:${bg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">↻</button>`;
+}
+function regionPillFor(th,V,style){
+  if(style==='bold') return `<span style="font-size:11px;font-weight:800;color:${th.accent};border:1px solid #2c3a2a;padding:5px 10px;border-radius:8px;">${V.regionShort}</span>`;
+  const bg=app.state.theme==='play'?'#EDE7FB':'#DDEFE6';
+  return `<span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:${th.text};background:${bg};padding:5px 10px;border-radius:99px;">${V.regionLabel}</span>`;
 }
 function nowCopy(V){
   if(V.nowTier===0)return `Billig indtil <strong>kl. ${V.cheapUntil}</strong> — kør endelig de store apparater nu.`;
@@ -728,128 +707,142 @@ function badgeFor(V,th){return [['● BILLIG LIGE NU',th.pal[0]],['○ MIDDEL PR
 function viewSoft(V){
   const th=THEMES.soft;
   const [btxt,bcol]=badgeFor(V,th);
-  const brand=`<span style="font-size:20px;">⚡</span><span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;color:#11352b;">Elpriser</span>`;
-  const pill=`<span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:#11352b;background:#DDEFE6;padding:6px 11px;border-radius:99px;">${V.regionLabel}</span>`;
+  const brand=`<span style="font-size:18px;">⚡</span><span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:#11352b;">Elpriser</span>`;
   const aps=V.appliances.map(ap=>`
-    <div style="display:flex;align-items:center;gap:13px;background:#fff;border:1px solid #e3ede8;border-radius:18px;padding:13px 15px;">
-      <span style="width:42px;height:42px;border-radius:13px;background:#EAF6F0;display:flex;align-items:center;justify-content:center;font-size:21px;">${ap.emoji}</span>
-      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#11352b;">${ap.name}</div><div style="font-size:12px;color:#7c8a83;">${ap.when}</div>
-        <button onclick="logClaim('${ap.key}')" style="margin-top:6px;border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:99px;padding:5px 10px;cursor:pointer;">Kør nu</button></div>
-      <div style="text-align:right;"><div style="font-weight:800;font-size:14px;color:#1c7a4d;background:#E3F7EC;padding:4px 10px;border-radius:99px;">${ap.win}</div><div style="font-size:11px;color:#7c8a83;margin-top:3px;">≈ ${ap.price} kr/kWh</div></div>
+    <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #e3ede8;border-radius:14px;padding:9px 12px;">
+      <span style="font-size:19px;">${ap.emoji}</span>
+      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#11352b;">${ap.name}</div><div style="font-size:11.5px;color:#7c8a83;">${ap.when}</div></div>
+      <button onclick="logClaim('${ap.key}')" style="border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:99px;padding:5px 11px;cursor:pointer;">Kør nu</button>
+      <div style="text-align:right;"><div style="font-weight:800;font-size:13px;color:#1c7a4d;background:#E3F7EC;padding:3px 9px;border-radius:99px;">${ap.win}</div></div>
     </div>`).join('');
   return `<div class="pane">
-    ${header(brand,pill,'#fff','50%')}
-    <div style="background:#fff;border:1px solid #e3ede8;border-radius:24px;padding:20px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px -16px rgba(17,53,43,.4);">
+    ${compactHeader(th,brand,regionPillFor(th,V)+gearBtn(th,'#fff','50%'))}
+    <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px -16px rgba(17,53,43,.4);">
       <div style="flex:1;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:${bcol};font-weight:800;font-size:12px;letter-spacing:.04em;padding:5px 11px;border-radius:99px;">${btxt}</div>
-        <div style="display:flex;align-items:baseline;gap:6px;margin-top:12px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:52px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:15px;color:#6b7d74;">kr/kWh</span></div>
-        <p style="margin:12px 0 0;font-size:13.5px;line-height:1.5;color:#46554d;">${nowCopy(V)}</p>
-      </div>${voltSVG(voltState(V),78,'#11352b')}
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:${bcol};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;">${btxt}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:#6b7d74;">kr/kWh</span></div>
+        <p style="margin:8px 0 0;font-size:12.5px;line-height:1.45;color:#46554d;">${nowCopy(V)}</p>
+      </div>${voltSVG(voltState(V),66,'#11352b')}
     </div>
-    <h3 style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:17px;color:#11352b;margin:24px 0 12px;">Hvornår skal vi tænde for…</h3>
-    <div style="display:flex;flex-direction:column;gap:9px;">${aps}</div>
-    ${claimsHTML(th)}
-    <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px 16px 14px;margin-top:20px;">
-      <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin-bottom:12px;">Pris pr. time</div>
-      <div style="max-width:180px;margin-bottom:14px;">${tabsHTML(th)}</div>
-      ${chartHTML(V.chartList,th,V.chartNowH)}
-      ${legend(th)}
+    <h3 style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin:16px 0 9px;">Hvornår skal vi tænde for…</h3>
+    <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div>
+    <div style="background:#fff;border:1px solid #e3ede8;border-radius:18px;padding:13px 14px 11px;margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;color:#11352b;">Pris pr. time</span>
+        <div style="width:150px;">${tabsHTML(th)}</div></div>
+      ${chartHTML(V.chartList,th,V.chartNowH,{h:100})}
       ${detailHTML(V,th)}
-    </div>
-    ${forbrugHTML(th)}
-    <div style="background:#11352b;border-radius:22px;padding:18px;margin-top:16px;color:#eafff4;">
-      <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:26px;">🔥</span>
-        <div><div style="font-weight:800;font-size:15px;">${V.streak} dages stime</div>
-        <div style="font-size:12.5px;color:#9fc7b6;">Du kan spare <strong style="color:#C6FF3D;">op til ${V.savedToday} kr i dag</strong> ved at vente på de billige timer.</div></div></div>
-    </div>
-    ${footer(th)}</div>`;
+    </div></div>`;
 }
 
 function viewBold(V){
   const th=THEMES.bold;
-  const brand=`${voltSVG(voltState(V),26,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:16px;color:#EAF2E9;letter-spacing:-.01em;">ELPRISER</span>`;
-  const pill=`<span style="font-size:11px;font-weight:800;color:#C6FF3D;border:1px solid #2c3a2a;padding:6px 11px;border-radius:8px;">${V.regionShort}</span>`;
+  const brand=`${voltSVG(voltState(V),24,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:#EAF2E9;letter-spacing:-.01em;">ELPRISER</span>`;
   const aps=V.appliances.map(ap=>`
-    <div style="display:flex;align-items:center;gap:13px;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:13px 15px;">
-      <span style="font-size:22px;">${ap.emoji}</span>
-      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#EAF2E9;">${ap.name}</div><div style="font-size:12px;color:#6b7785;">${ap.when}</div>
-        <button onclick="logClaim('${ap.key}')" style="margin-top:6px;border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:8px;padding:5px 10px;cursor:pointer;">Kør nu</button></div>
-      <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#C6FF3D;">${ap.win}</div><div style="font-size:11px;color:#6b7785;">${ap.price} kr</div></div>
+    <div style="display:flex;align-items:center;gap:11px;background:#131A22;border:1px solid #222e38;border-radius:12px;padding:9px 12px;">
+      <span style="font-size:19px;">${ap.emoji}</span>
+      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#EAF2E9;">${ap.name}</div><div style="font-size:11.5px;color:#6b7785;">${ap.when}</div></div>
+      <button onclick="logClaim('${ap.key}')" style="border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:8px;padding:5px 10px;cursor:pointer;">Kør nu</button>
+      <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#C6FF3D;">${ap.win}</div></div>
     </div>`).join('');
   const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapUntil}`;
   return `<div class="pane">
-    ${header(brand,pill,'#131A22','10px')}
-    <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:26px;padding:22px 20px 20px;">
+    ${compactHeader(th,brand,regionPillFor(th,V,'bold')+gearBtn(th,'#131A22','10px'))}
+    <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:22px;padding:16px 18px 15px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:13px;color:#C6FF3D;letter-spacing:.1em;">${V.nowTier===0?'BILLIGT NU':(V.nowTier===1?'MIDDEL NU':'DYRT NU')}</span>
-        ${voltSVG(voltState(V),46,'#0C1117')}
+        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:12px;color:#C6FF3D;letter-spacing:.1em;">${V.nowTier===0?'BILLIGT NU':(V.nowTier===1?'MIDDEL NU':'DYRT NU')}</span>
+        ${voltSVG(voltState(V),40,'#0C1117')}
       </div>
-      <div style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:76px;line-height:.82;color:#EAF2E9;margin:14px 0 0;letter-spacing:-.04em;">${V.nowKr}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-weight:800;font-size:14px;color:#7E8C99;">kr / kWh</span>
-        <span style="font-weight:800;font-size:12px;color:#0C1117;background:#C6FF3D;padding:3px 9px;border-radius:6px;white-space:nowrap;">${cheapTag}</span></div>
+      <div style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:60px;line-height:.82;color:#EAF2E9;margin:10px 0 0;letter-spacing:-.04em;">${V.nowKr}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-weight:800;font-size:13px;color:#7E8C99;">kr / kWh</span>
+        <span style="font-weight:800;font-size:11px;color:#0C1117;background:#C6FF3D;padding:3px 8px;border-radius:6px;white-space:nowrap;">${cheapTag}</span></div>
     </div>
-    <div style="margin-top:18px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#7E8C99;letter-spacing:.12em;">24 TIMER</span>
-        <div style="width:160px;">${tabsHTML(th)}</div></div>
-      ${chartHTML(V.chartList,th,V.chartNowH,{h:150,gap:3})}
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:11px;color:#7E8C99;letter-spacing:.14em;margin:14px 0 9px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
+    <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div>
+    <div style="margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#7E8C99;letter-spacing:.12em;">24 TIMER</span>
+        <div style="width:150px;">${tabsHTML(th)}</div></div>
+      ${chartHTML(V.chartList,th,V.chartNowH,{h:108,gap:3})}
       ${detailHTML(V,th)}
-    </div>
-    ${forbrugHTML(th)}
-    <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#7E8C99;letter-spacing:.14em;margin:24px 0 12px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
-    <div style="display:flex;flex-direction:column;gap:8px;">${aps}</div>
-    ${claimsHTML(th)}
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <div style="flex:1;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:14px;">
-        <div style="font-size:11px;font-weight:700;color:#7E8C99;letter-spacing:.08em;">SPAR I DAG</div>
-        <div style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:24px;color:#C6FF3D;margin-top:6px;">${V.savedToday} kr</div></div>
-      <div style="flex:1;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:14px;">
-        <div style="font-size:11px;font-weight:700;color:#7E8C99;letter-spacing:.08em;">DYREST I DAG</div>
-        <div style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:24px;color:#FF5C7A;margin-top:6px;">${V.peakKr}</div></div>
-    </div>
-    ${footer(th)}</div>`;
+    </div></div>`;
 }
 
 function viewPlay(V){
   const th=THEMES.play;
-  const g=loadGamify();
-  const brand=`<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:20px;color:#2a2140;">⚡ Elpriser</span>`;
-  const pill=`<span style="font-size:11px;font-weight:800;color:#6C4BD8;background:#EDE7FB;padding:6px 11px;border-radius:99px;">${V.regionLabel}</span>`;
+  const brand=`<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:#2a2140;">⚡ Elpriser</span>`;
   const aps=V.appliances.map(ap=>`
-    <div style="display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid #efe4f8;border-radius:18px;padding:12px 14px;">
-      <span style="width:44px;height:44px;border-radius:14px;background:#F3ECFF;display:flex;align-items:center;justify-content:center;font-size:22px;">${ap.emoji}</span>
-      <div style="flex:1;"><div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;">${ap.name}</div><div style="font-size:12px;color:#948aa8;">${ap.when}</div>
-        <button onclick="logClaim('${ap.key}')" style="margin-top:6px;border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:99px;padding:5px 10px;cursor:pointer;">Kør nu</button></div>
-      <div style="text-align:right;"><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#fff;background:#2BC48A;padding:5px 11px;border-radius:99px;">${ap.win}</div><div style="font-size:11px;color:#948aa8;margin-top:3px;">spar ~${ap.save} kr</div></div>
+    <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid #efe4f8;border-radius:14px;padding:8px 12px;">
+      <span style="font-size:20px;">${ap.emoji}</span>
+      <div style="flex:1;min-width:0;"><div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;color:#2a2140;">${ap.name}</div><div style="font-size:11.5px;color:#948aa8;">${ap.when}</div></div>
+      <button onclick="logClaim('${ap.key}')" style="border:1px solid ${th.border};background:${th.surface};color:${th.accent};font:inherit;font-weight:700;font-size:11px;border-radius:99px;padding:5px 11px;cursor:pointer;">Kør nu</button>
+      <div style="text-align:right;"><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:#2BC48A;padding:4px 9px;border-radius:99px;">${ap.win}</div></div>
     </div>`).join('');
-  const badge=(emoji,label,active)=>`<div style="flex:1;text-align:center;background:${active?'#fff':'#F6F1FC'};border:1.5px ${active?'solid #efe4f8':'dashed #d6c4ef'};border-radius:16px;padding:13px 8px;${active?'':'opacity:.6;'}"><div style="font-size:26px;">${emoji}</div><div style="font-size:11px;font-weight:700;color:${active?'#6b6480':'#948aa8'};margin-top:4px;">${label}</div></div>`;
-  const todayKwh=loadConsumption()[keyOf(new Date())];
-  const smart = (todayKwh && V.hasToday) ? smartScore(todayKwh, V.todayList.map(x=>x.total)) : null;
   return `<div class="pane">
-    ${header(brand,pill,'#fff','50%')}
-    <div style="display:flex;gap:9px;margin-bottom:16px;">
-      <div style="flex:1;background:#FFE27A;border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:9px;"><span style="font-size:20px;">🏆</span>
-        <div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#2a2140;line-height:1;">${g.totalPoint||0}</div><div style="font-size:10.5px;font-weight:700;color:#7a6a2c;">POINT</div></div></div>
-      <div style="flex:1;background:#FFD0DD;border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:9px;"><span style="font-size:20px;">🔥</span>
-        <div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#2a2140;line-height:1;">${g.streak||0}</div><div style="font-size:10.5px;font-weight:700;color:#a3415c;">DAGES STIME</div></div></div>
-      ${smart!==null?`<div style="flex:1;background:#D8F3E7;border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:9px;"><span style="font-size:20px;">📊</span>
-        <div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#2a2140;line-height:1;">${smart}</div><div style="font-size:10.5px;font-weight:700;color:#2c7a5a;">SMART-SCORE</div></div></div>`:''}
-    </div>
-    <div style="background:#fff;border:1.5px solid #efe4f8;border-radius:26px;padding:20px 16px 8px;box-shadow:0 14px 34px -22px rgba(108,75,216,.6);">
-      <div style="max-width:170px;margin:0 auto 14px;">${tabsHTML(th)}</div>
+    ${compactHeader(th,brand,regionPillFor(th,V)+gearBtn(th,'#fff','50%'))}
+    <div style="background:#fff;border:1.5px solid #efe4f8;border-radius:22px;padding:14px 16px 6px;box-shadow:0 14px 34px -22px rgba(108,75,216,.6);">
+      <div style="max-width:150px;margin:0 auto 8px;">${tabsHTML(th)}</div>
       <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
-        ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${voltSVG(voltState(V),58,'#2a2140')}</div>`:''}
+        ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${voltSVG(voltState(V),52,'#2a2140')}</div>`:''}
       </div>
-      <p style="text-align:center;font-size:13px;color:#6b6480;margin:6px 0 14px;line-height:1.45;">Volt siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt indtil kl. '+V.cheapEnd+' 🎉':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+' 🙂'}</p>
+      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Volt siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+' 🎉':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+' 🙂'}</p>
       ${detailHTML(V,th)}
     </div>
-    ${forbrugHTML(th)}
-    <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:16px;color:#2a2140;margin:22px 0 12px;">Dagens opgaver 🎯</h3>
-    <div style="display:flex;flex-direction:column;gap:10px;">${aps}</div>
+    <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;margin:14px 0 9px;">Dagens opgaver 🎯</h3>
+    <div style="display:flex;flex-direction:column;gap:7px;">${aps}</div></div>`;
+}
+
+/* ===================== POINT-FANE ===================== */
+function brandFor(th){
+  if(app.state.theme==='bold') return `<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:${th.text};letter-spacing:-.01em;">ELPRISER</span>`;
+  if(app.state.theme==='play') return `<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:${th.text};">⚡ Elpriser</span>`;
+  return `<span style="font-size:18px;">⚡</span><span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:${th.text};">Elpriser</span>`;
+}
+function pointView(V){
+  const th=THEMES[app.state.theme];
+  const g=loadGamify();
+  const todayKwh=loadConsumption()[keyOf(new Date())];
+  const smart = (todayKwh && V.hasToday) ? smartScore(todayKwh, V.todayList.map(x=>x.total)) : V.score;
+  const stat=(emoji,val,lbl,col)=>`<div style="flex:1;min-width:0;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:13px 12px;display:flex;align-items:center;gap:9px;">
+    <span style="font-size:22px;">${emoji}</span>
+    <div style="min-width:0;"><div style="font-weight:800;font-size:20px;color:${th.text};line-height:1;">${val}</div><div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;color:${col||th.muted};margin-top:3px;">${lbl}</div></div></div>`;
+  const badge=(emoji,label,active)=>`<div style="flex:1;text-align:center;background:${active?th.sheetBg:th.surface};border:1.5px ${active?'solid '+th.border:'dashed '+th.border};border-radius:16px;padding:13px 6px;${active?'':'opacity:.5;'}"><div style="font-size:24px;">${emoji}</div><div style="font-size:10.5px;font-weight:700;color:${th.muted};margin-top:4px;">${label}</div></div>`;
+  return `<div class="pane">
+    ${compactHeader(th,brandFor(th),gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'))}
+    <div style="display:flex;gap:8px;">
+      ${stat('🏆',g.totalPoint||0,'POINT')}
+      ${stat('🔥',(g.streak||STREAK||0),'DAGES STIME')}
+      ${stat('📊',smart,'SMART-SCORE')}
+    </div>
+    <div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:12px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:6px;">SPAR I DAG</div>
+      <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-weight:800;font-size:24px;color:${th.accent};">op til ${V.savedToday} kr</span></div>
+      <div style="font-size:12px;color:${th.muted};margin-top:4px;line-height:1.4;">ved at flytte bil, vask og opvask til de billige timer.</div>
+    </div>
+    <h3 style="font-weight:700;font-size:14px;color:${th.text};margin:16px 0 9px;">Badges</h3>
+    <div style="display:flex;gap:8px;">${badge('🌙','Natteravn',g.badges?.natteravn)}${badge('💰','Sparefugl',g.badges?.sparefugl)}${badge('⭐','30 dage',g.badges?.dage30)}${badge('🔮','Sandsiger',g.badges?.sandsiger)}</div>
     ${claimsHTML(th)}
-    <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:16px;color:#2a2140;margin:22px 0 12px;">Badges</h3>
-    <div style="display:flex;gap:10px;">${badge('🌙','Natteravn',g.badges?.natteravn)}${badge('💰','Sparefugl',g.badges?.sparefugl)}${badge('⭐','30 dage',g.badges?.dage30)}${badge('🔮','Sandsiger',g.badges?.sandsiger)}</div>
-    ${footer(th)}</div>`;
+  </div>`;
+}
+
+/* ===================== MERE-FANE ===================== */
+function mereView(){
+  const th=THEMES[app.state.theme];
+  const now=new Date();
+  const card=inner=>`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:12px;">${inner}</div>`;
+  const linkRow=(href,emoji,label,sub)=>`<a href="${href}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:${th.text};">
+    <span style="font-size:20px;">${emoji}</span><div style="flex:1;"><div style="font-weight:700;font-size:14px;">${label}</div>${sub?`<div style="font-size:12px;color:${th.muted};">${sub}</div>`:''}</div>
+    <span style="color:${th.accent};font-weight:800;">→</span></a>`;
+  return `<div class="pane">
+    ${compactHeader(th,brandFor(th),gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%')+refreshBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'))}
+    ${card(linkRow('https://elforbrug.nu/elpriser-og-elprisprognose-for-de-kommende-dage/','📈','Ugeprognose','7-dages elprisprognose på elforbrug.nu'))}
+    <button onclick="openSettings()" style="width:100%;text-align:left;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:12px;font:inherit;cursor:pointer;color:${th.text};display:flex;align-items:center;gap:12px;">
+      <span style="font-size:20px;">⚙️</span><div style="flex:1;"><div style="font-weight:700;font-size:14px;">Indstillinger</div><div style="font-size:12px;color:${th.muted};">Tema, prisområde, netselskab, forbrug</div></div>
+      <span style="color:${th.accent};font-weight:800;">→</span></button>
+    ${card(`<div style="font-weight:700;font-size:14px;color:${th.text};margin-bottom:4px;">Om appen</div>
+      <div style="font-size:12.5px;line-height:1.5;color:${th.muted};">Elpriser viser dagens og morgendagens spotpris inkl. afgifter, moms og dit netselskabs tarif. Forbind Eloverblik for at se dit eget forbrug. Alle data bliver på din egen enhed.</div>`)}
+    ${card(`<div style="font-size:12px;color:${th.muted};line-height:1.6;">Opdateret ${now.toLocaleString('da-DK',{weekday:'short',hour:'2-digit',minute:'2-digit'})}<br>Spotpris fra <strong style="color:${th.text};">elprisenligenu.dk</strong></div>`)}
+  </div>`;
 }
 
 /* ===================== SETTINGS SHEET ===================== */
@@ -1017,9 +1010,7 @@ function statCard(th,label,value,sub){
 function forbrugView(){
   const th=THEMES[app.state.theme];
   const ev=app.state.eloverblik;
-  const back=`<button onclick="closeForbrug()" style="border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-weight:700;font-size:14px;border-radius:12px;padding:9px 14px;cursor:pointer;">← Tilbage</button>`;
-  const head=`<div style="display:flex;align-items:center;gap:10px;padding:6px 0 16px;">
-    ${back}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;color:${th.text};">Dit forbrug</span></div>`;
+  const head=compactHeader(th,brandFor(th),gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'));
 
   if(!ev.refreshToken || !ev.meteringPointId){
     return `<div class="pane">${head}
@@ -1027,7 +1018,7 @@ function forbrugView(){
         <div style="font-size:40px;margin-bottom:12px;">🔌</div>
         <p style="color:${th.text};font-size:15px;font-weight:700;margin:0 0 6px;">Forbind Eloverblik først</p>
         <p style="color:${th.muted};font-size:13px;line-height:1.5;margin:0 0 18px;">For at se din forbrugs-analyse skal du forbinde din Eloverblik-konto. Det tager ca. 1 minut.</p>
-        <button onclick="closeForbrug();openSettings()" style="border:none;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:14px;border-radius:14px;padding:12px 22px;cursor:pointer;">Forbind nu</button>
+        <button onclick="openSettings()" style="border:none;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:14px;border-radius:14px;padding:12px 22px;cursor:pointer;">Forbind nu</button>
       </div></div>`;
   }
 
@@ -1059,14 +1050,14 @@ function forbrugView(){
     <input type="date" value="${toVal}" onchange="setCustomTo(this.value)" style="flex:1;min-width:0;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:12px;border-radius:10px;padding:7px 8px;"></div>`;
 
   if(app.state.analyseLoading){
-    return `<div class="pane">${head}${picker}${nav}${custom}
+    return `<div class="pane">${head}${picker}${nav}
       <div class="skel" style="padding:40px 0;">${voltSVG('charge',56,th.text)}<div style="margin-top:12px;">Henter dit forbrug…</div></div></div>`;
   }
 
   const hasData=rows.some(r=>r.kwh!=null);
   if(app.state.analyseTip || !hasData){
     const msg=app.state.analyseTip || 'Ingen forbrugsdata for denne periode endnu (data er typisk 1-2 dage forsinket).';
-    return `<div class="pane">${head}${picker}${nav}${custom}
+    return `<div class="pane">${head}${picker}${nav}${a.periodeType==='custom'?custom:''}
       <div style="background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:22px 18px;margin-top:18px;text-align:center;color:${th.muted};font-size:13.5px;line-height:1.5;">${esc(msg)}</div></div>`;
   }
 
@@ -1164,60 +1155,66 @@ function forbrugView(){
     <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[1]};"></span>Middel</span>
     <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[2]};"></span>Dyr</span></div>` : '';
 
+  const showMore=app.state.showProfiles;
+  const toggle=`<button onclick="toggleProfiles()" style="width:100%;margin-top:12px;padding:10px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-weight:700;font-size:13px;border-radius:13px;cursor:pointer;">${showMore?'Skjul detaljer ▲':'Sammenlign & profiler ▼'}</button>`;
+  const more = showMore ? `${custom}${yoy}${profiles}${klima}${csvBtn}` : '';
   return `<div class="pane">${head}
-    ${picker}${nav}${custom}
-    <div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:16px;margin-top:16px;">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+    ${picker}${nav}
+    <div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:14px 16px;margin-top:14px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
         <span style="font-weight:800;font-size:14px;color:${th.text};">Forbrug</span>
         <span style="font-weight:800;font-size:16px;color:${th.accent};">${total.toFixed(total<100?1:0)} kWh</span></div>
       ${graph}${axisLbl}${legendRow}
     </div>
     ${stats}
-    ${yoy}
-    ${profiles}
-    ${klima}
-    ${csvBtn}
+    ${toggle}
+    ${more}
   </div>`;
 }
 
 /* ===================== RENDER ===================== */
+// Render fane-indhold (uden skal). app.lastV sættes så logClaim m.fl. virker.
+function tabContent(){
+  const th=THEMES[app.state.theme];
+  if(app.loading) return `<div class="skel">${voltSVG('charge',72,th.text)}<div style="margin-top:14px;">Henter elpriser…</div></div>`;
+  if(app.error) return `<div style="padding:40px 6px;text-align:center;color:${th.text};">
+      <div style="font-size:40px;margin-bottom:10px;">⚡</div>
+      <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${app.error}).<br>Tjek forbindelsen.</p>
+      <button onclick="load()" style="margin-top:14px;padding:12px 22px;border:none;border-radius:14px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;cursor:pointer;">Prøv igen</button></div>`;
+  if(app.state.tab==='forbrug') return forbrugView();
+  const V=computeView();
+  app.lastV=V;
+  if(app.state.tab==='point') return pointView(V);
+  if(app.state.tab==='mere')  return mereView();
+  // 'nu' (default) — pr. tema
+  return app.state.theme==='bold'?viewBold(V):(app.state.theme==='play'?viewPlay(V):viewSoft(V));
+}
 function render(){
-  if(app.state.view==='forbrug'){ renderForbrug(); return; }
   const th=THEMES[app.state.theme];
   document.body.style.background=th.bg;
   document.getElementById('theme-color').setAttribute('content',th.bg);
   const root=document.getElementById('app');
-  if(app.loading){root.innerHTML=`<div class="skel">${voltSVG('charge',72,th.text)}<div style="margin-top:14px;">Henter elpriser…</div></div>`;return;}
-  if(app.error){
-    root.innerHTML=`<div style="padding:40px 6px;text-align:center;color:${th.text};">
-      <div style="font-size:40px;margin-bottom:10px;">⚡</div>
-      <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${app.error}).<br>Tjek forbindelsen.</p>
-      <button onclick="load()" style="margin-top:14px;padding:12px 22px;border:none;border-radius:14px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;cursor:pointer;">Prøv igen</button></div>`;
-  } else {
-    const V=computeView();
-    app.lastV=V;
-    root.innerHTML = app.state.theme==='bold'?viewBold(V):(app.state.theme==='play'?viewPlay(V):viewSoft(V));
-  }
+  root.innerHTML=`<div class="tabcontent">${tabContent()}</div>${tabBar(th)}`;
   const sr=document.getElementById('sheet-root');
   if(app.state.settingsOpen){ document.getElementById('sheet').innerHTML=sheetHTML(); sr.classList.add('open'); }
   else sr.classList.remove('open');
 }
 
-function renderForbrug(){
-  const th=THEMES[app.state.theme];
-  document.body.style.background=th.bg;
-  document.getElementById('theme-color').setAttribute('content',th.bg);
-  document.getElementById('app').innerHTML=forbrugView();
-}
-
 /* ===================== ACTIONS (global) ===================== */
-function openForbrug(){
-  app.state.view='forbrug';
-  app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
+function setTab(t){
+  app.state.tab=t;
+  app.state.selectedHour=null;
+  app.state.settingsOpen=false;
+  if(t==='forbrug'){
+    app.state.showProfiles=false;
+    app.state.analyse={ periodeType:'maaned', fromKey:null, toKey:null };
+    render();
+    loadAnalyseData();
+    return;
+  }
   render();
-  loadAnalyseData();
 }
-function closeForbrug(){ app.state.view='forside'; render(); }
+function toggleProfiles(){ app.state.showProfiles=!app.state.showProfiles; render(); }
 function setPeriode(type){
   app.state.analyse.periodeType=type;
   app.state.analyse.fromKey=null; app.state.analyse.toKey=null;
@@ -1320,7 +1317,6 @@ function disconnectEloverblik(){
 }
 function setChartTab(t){app.state.chartTab=t;app.state.selectedHour=null;render();}
 function selectHour(h){ app.state.selectedHour = (h===null || h===app.state.selectedHour) ? null : h; render(); }
-function setForbrugDay(d){ app.state.forbrugDay=d; render(); }
 function adjMarkup(d){app.state.markup=Math.max(0,Math.min(60,app.state.markup+d));saveState();render();}
 function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
   app.state[key]=Math.max(lim[0],Math.min(lim[1],app.state[key]+d));saveState();render();}
@@ -1341,11 +1337,10 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTh
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
-window.setForbrugDay=setForbrugDay;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
-window.openForbrug=openForbrug;window.closeForbrug=closeForbrug;
+window.setTab=setTab;window.toggleProfiles=toggleProfiles;
 window.setPeriode=setPeriode;window.navPeriode=navPeriode;
 window.setCustomFrom=setCustomFrom;window.setCustomTo=setCustomTo;
 window.exportForbrugCSV=exportForbrugCSV;
