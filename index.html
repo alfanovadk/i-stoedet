@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Elpriser">
+<meta name="theme-color" content="#F3FAF6" id="theme-color">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Unbounded:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Elpriser</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:#11352b;
+    background:#F3FAF6;transition:background .25s;min-height:100vh;
+    -webkit-font-smoothing:antialiased}
+  #app{max-width:430px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 32px);position:relative;min-height:100vh}
+  button{font-family:inherit}
+  @keyframes voltbob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
+  @keyframes slideup{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
+  @keyframes fadein{0%{opacity:0}100%{opacity:1}}
+  @keyframes pop{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+  .pane{animation:pop .22s ease}
+  .spin{animation:spin .7s linear}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{transition:height .45s cubic-bezier(.2,.8,.2,1)}
+  .skel{padding:60px 0;text-align:center;color:#7c8a83;font-weight:600}
+  #sheet-root{position:fixed;inset:0;z-index:60;display:none}
+  #sheet-root.open{display:block}
+  .sheet-back{position:absolute;inset:0;background:rgba(8,12,18,.5);animation:fadein .2s ease}
+  .sheet{position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;
+    max-height:92%;overflow-y:auto;border-radius:28px 28px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 28px);
+    animation:slideup .28s cubic-bezier(.2,.9,.2,1)}
+</style>
+</head>
+<body>
+  <div id="app"><div class="skel">Henter elpriser…</div></div>
+  <div id="sheet-root"><div class="sheet-back" onclick="closeSettings()"></div><div class="sheet" id="sheet"></div></div>
+
+<script>
+"use strict";
+
+/* ===================== PRIS-MOTOR (rigtige data) ===================== */
+const ELAFGIFT=1.0, ENERGINET=14.375, MOMS=1.25; // øre/kWh inkl. moms, 2026-2027
+const N1={ winter:{lav:11,hoej:33,spids:99}, summer:{lav:11,hoej:17,spids:43} };
+const season=m=>(m>=3&&m<=8)?"summer":"winter";
+function nettarif(h,m){const s=N1[season(m)];if(h<6)return s.lav;if(h>=17&&h<21)return s.spids;return s.hoej;}
+const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
+function parseDK(s){const y=+s.slice(0,4),m=+s.slice(5,7),d=+s.slice(8,10),h=+s.slice(11,13);
+  return {y,m,d,h,monthIdx:m-1,dayKey:`${y}-${m}-${d}`,dow:new Date(y,m-1,d).getDay()};}
+function pad(n){return String(n).padStart(2,'0');}
+function kr(ore){return (ore/100).toFixed(2).replace('.',',');}
+
+/* ===================== THEMES ===================== */
+const THEMES={
+  soft:{ bg:'#F3FAF6', sheetBg:'#ffffff', text:'#11352b', muted:'#7c8a83', border:'#e3ede8',
+    surface:'#F1F7F4', accent:'#1c7a4d', accentText:'#ffffff', accentSoft:'#E3F7EC',
+    pal:['#34B27B','#F4B740','#E5604D'], ring:'#11352b', axis:'rgba(17,53,43,.45)',
+    tab:{track:'#E4F1EA',on:'#11352b',onText:'#fff',off:'#5a7d72'} },
+  bold:{ bg:'#0C1117', sheetBg:'#131A22', text:'#EAF2E9', muted:'#7E8C99', border:'#26323d',
+    surface:'#0F1620', accent:'#C6FF3D', accentText:'#0C1117', accentSoft:'#1c2a16',
+    pal:['#C6FF3D','#FFD23F','#FF5C7A'], ring:'#C6FF3D', axis:'rgba(234,242,233,.4)',
+    tab:{track:'#1a232e',on:'#C6FF3D',onText:'#0C1117',off:'#6f7d88'} },
+  play:{ bg:'#FBF4FF', sheetBg:'#ffffff', text:'#2a2140', muted:'#948aa8', border:'#efe4f8',
+    surface:'#F6F1FC', accent:'#6C4BD8', accentText:'#ffffff', accentSoft:'#EDE7FB',
+    pal:['#2BC48A','#FFB020','#FF5470'], ring:'#6C4BD8', axis:'rgba(42,33,64,.4)',
+    tab:{track:'#EFEBFB',on:'#6C4BD8',onText:'#fff',off:'#9a8fc7'} }
+};
+
+/* Volt-mascot */
+function volt(size,stroke,withFace){
+  const f=withFace!==false;
+  return `<svg viewBox="0 0 120 120" width="${size}" height="${size}" style="display:block;animation:voltbob 3s ease-in-out infinite;flex-shrink:0;">
+    <path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${stroke}" stroke-width="4.5" stroke-linejoin="round"></path>
+    ${f?`<circle cx="55" cy="44" r="8" fill="#fff" stroke="${stroke}" stroke-width="2"></circle>
+    <circle cx="73" cy="44" r="8" fill="#fff" stroke="${stroke}" stroke-width="2"></circle>
+    <circle cx="57" cy="46" r="3.4" fill="${stroke}"></circle><circle cx="75" cy="46" r="3.4" fill="${stroke}"></circle>
+    <path d="M54 56 Q64 64 74 56" stroke="${stroke}" stroke-width="3" fill="none" stroke-linecap="round"></path>`:''}
+  </svg>`;
+}
+
+/* ===================== APP STATE ===================== */
+const app={
+  state:{ theme:'soft', region:'DK1', markup:8, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', settingsOpen:false },
+  raw:[], loading:true, error:null
+};
+function loadState(){
+  try{ const s=JSON.parse(localStorage.getItem('elpriser_state')||'{}'); Object.assign(app.state,s);}catch(e){}
+  app.state.settingsOpen=false;
+}
+function saveState(){
+  const {theme,region,markup,bilH,opvaskH,vaskH}=app.state;
+  localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,bilH,opvaskH,vaskH}));
+}
+
+/* ===================== DATA ===================== */
+function totalOf(rec){
+  const spot=rec.DKK_per_kWh*100*MOMS;
+  const t=parseDK(rec.time_start);
+  return spot+ENERGINET+ELAFGIFT+nettarif(t.h,t.monthIdx)+app.state.markup;
+}
+function dayURL(d){const y=d.getFullYear(),m=pad(d.getMonth()+1),day=pad(d.getDate());
+  return `https://www.elprisenligenu.dk/api/v1/prices/${y}/${m}-${day}_${app.state.region}.json`;}
+async function fetchDay(d){try{const r=await fetch(dayURL(d),{cache:'no-store'});
+  if(!r.ok)return [];const j=await r.json();return Array.isArray(j)?j:[];}catch(e){return [];}}
+
+async function load(){
+  app.loading=true; app.error=null;
+  const today=new Date(), tmr=new Date(); tmr.setDate(tmr.getDate()+1);
+  try{
+    const [a,b]=await Promise.all([fetchDay(today),fetchDay(tmr)]);
+    app.raw=[...a,...b];
+    if(!app.raw.length) throw new Error('ingen data');
+    app.loading=false;
+  }catch(e){ app.loading=false; app.error=e.message; }
+  bumpStreak();
+  render();
+}
+
+function keyOf(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
+function seriesFor(dayKey){
+  const arr=new Array(24).fill(null);
+  app.raw.forEach(r=>{const t=parseDK(r.time_start); if(t.dayKey===dayKey) arr[t.h]=totalOf(r);});
+  return arr;
+}
+
+/* ===================== BEREGNINGER ===================== */
+function tierOf(p,lo,hi){if(p==null)return 0;if(hi-lo<1)return 0;const f=(p-lo)/(hi-lo);return f<.34?0:(f<.67?1:2);}
+function loHi(arr){const v=arr.filter(x=>x!=null);return [Math.min(...v),Math.max(...v)];}
+function futurePool(){
+  const now=new Date(), cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours());
+  return app.raw.map(r=>{const t=parseDK(r.time_start);
+      return {h:t.h,dayKey:t.dayKey,dow:t.dow,total:totalOf(r),dateObj:new Date(t.y,t.monthIdx,t.d,t.h)};})
+    .filter(x=>x.dateObj>=cutoff).sort((a,b)=>a.dateObj-b.dateObj);
+}
+function bestWindow(pool,len){
+  if(pool.length<len) len=pool.length||1;
+  let best=null;
+  for(let i=0;i+len<=pool.length;i++){let s=0;for(let j=0;j<len;j++)s+=pool[i+j].total;const avg=s/len;
+    if(!best||avg<best.avg)best={avg,from:pool[i],to:pool[i+len-1],len};}
+  return best;
+}
+function sameDay(r,d){return r.dayKey===keyOf(d);}
+function isTomorrow(r){const d=new Date();d.setDate(d.getDate()+1);return sameDay(r,d);}
+function winStr(w){if(!w)return '—';return pad(w.from.h)+'–'+pad((w.to.h+1)%24);}
+function whenText(w){if(!w)return '—';
+  const f=w.from;const day=sameDay(f,new Date())?'i dag':(isTomorrow(f)?'i morgen':DAYS[f.dow]);
+  return day+' '+pad(f.h)+'–'+pad((w.to.h+1)%24);}
+
+const KWH={bil:10,opvask:1.2,vask:1};
+let STREAK=0;
+function bumpStreak(){
+  try{
+    const today=keyOf(new Date());
+    const j=JSON.parse(localStorage.getItem('elpriser_streak')||'{}');
+    if(j.last===today){STREAK=j.count||1;return;}
+    const y=new Date();y.setDate(y.getDate()-1);
+    STREAK=(j.last===keyOf(y))?(j.count||0)+1:1;
+    localStorage.setItem('elpriser_streak',JSON.stringify({last:today,count:STREAK}));
+  }catch(e){STREAK=1;}
+}
+
+function computeView(){
+  const now=new Date(), nowH=now.getHours();
+  const todayArr=seriesFor(keyOf(now));
+  const tmr=new Date(); tmr.setDate(tmr.getDate()+1);
+  const tmrArr=seriesFor(keyOf(tmr));
+  const hasToday=todayArr.some(x=>x!=null), hasTmr=tmrArr.some(x=>x!=null);
+  const [loT,hiT]=hasToday?loHi(todayArr):[0,1];
+
+  const nowTotal=todayArr[nowH]!=null?todayArr[nowH]:(todayArr.find(x=>x!=null)??0);
+  const nowTier=tierOf(nowTotal,loT,hiT);
+  const peak=hasToday?Math.max(...todayArr.filter(x=>x!=null)):0;
+
+  let ce=nowH; while(ce<24 && todayArr[ce]!=null && tierOf(todayArr[ce],loT,hiT)===0) ce++;
+  const cheapEnd=pad(Math.min(ce,24))+':00';
+  let nc=-1; for(let h=nowH;h<24;h++){if(todayArr[h]!=null && tierOf(todayArr[h],loT,hiT)===0){nc=h;break;}}
+  const nextCheap=nc>=0?pad(nc)+':00':'i morgen';
+  const cheapUntil = nowTier===0?cheapEnd:nextCheap;
+
+  const pool=futurePool();
+  const tv=todayArr.filter(x=>x!=null);
+  const dayAvg=tv.length?tv.reduce((a,b)=>a+b,0)/tv.length:0;
+  const mkAp=(emoji,name,verb,len,kwh)=>{const w=bestWindow(pool,len);
+    const saveKr=Math.max(0,(dayAvg-(w?w.avg:dayAvg))/100*kwh);
+    return {emoji,name,sub:len+' timers '+verb,win:winStr(w),when:whenText(w),price:kr(w?w.avg:0),save:saveKr.toFixed(0)};};
+  const appliances=[
+    mkAp('🚗','Elbilen','ladning',app.state.bilH,KWH.bil),
+    mkAp('🍽️','Opvask','program',app.state.opvaskH,KWH.opvask),
+    mkAp('👕','Vasketøj','program',app.state.vaskH,KWH.vask)
+  ];
+  const savedToday=Math.round(appliances.reduce((a,b)=>a+(+b.save),0));
+  const score=hasToday?Math.round(Math.max(0,Math.min(100,(peak-nowTotal)/Math.max(1,peak-loT)*100))):0;
+
+  const showToday=app.state.chartTab==='today';
+  return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapEnd,nextCheap,
+    appliances,savedToday,score,streak:STREAK,
+    todayArr,tmrArr,hasToday,hasTmr,
+    chartArr:showToday?todayArr:tmrArr,chartNowH:showToday?nowH:-1,
+    regionLabel:app.state.region==='DK1'?'DK1 · VEST':'DK2 · ØST',regionShort:app.state.region,
+    nowKr:kr(nowTotal),peakKr:kr(peak)};
+}
+
+/* ===================== CHART ===================== */
+function chartHTML(arr,th,nowH,opts){
+  opts=opts||{};
+  const vals=arr.filter(x=>x!=null);
+  if(!vals.length) return `<div style="padding:28px 6px;text-align:center;color:${th.muted};font-size:13px;line-height:1.6;">Morgendagens priser kommer typisk efter kl. 13.<br>Kig forbi igen senere 🙂</div>`;
+  const [lo,hi]=[Math.min(...vals),Math.max(...vals)];
+  const max=hi, H=opts.h||128, gap=opts.gap||2.5;
+  let bars='';
+  for(let i=0;i<24;i++){
+    const p=arr[i];
+    if(p==null){bars+=`<div style="flex:1 1 0;min-width:0;"></div>`;continue;}
+    const h=Math.max(7,Math.round(p/max*100));
+    const col=th.pal[tierOf(p,lo,hi)];
+    const isNow=i===nowH;
+    bars+=`<div class="bar" title="kl ${pad(i)}:00 · ${kr(p)} kr" style="flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</div>`;
+  }
+  return `<div><div style="display:flex;align-items:flex-end;gap:${gap}px;height:${H}px;padding-top:14px;">${bars}</div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis};">
+    <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>`;
+}
+function ringHTML(arr,th,nowH){
+  const vals=arr.filter(x=>x!=null);
+  if(!vals.length) return `<div style="padding:40px 6px;text-align:center;color:${th.muted};font-size:13px;">Morgendagens priser kommer efter kl. 13 🙂</div>`;
+  const [lo,hi]=[Math.min(...vals),Math.max(...vals)];
+  const pal=['#2BC48A','#FFB020','#FF5470'];
+  const segs=[];
+  for(let i=0;i<24;i++){const p=arr[i]!=null?arr[i]:lo;segs.push(pal[tierOf(p,lo,hi)]+' '+(i*15)+'deg '+((i+1)*15)+'deg');}
+  let dot='';
+  if(nowH>=0){const a=(nowH*15+7.5)*Math.PI/180,r=92,c=115;const x=c+r*Math.sin(a),y=c-r*Math.cos(a);
+    dot=`<div style="position:absolute;left:${x-9}px;top:${y-9}px;width:18px;height:18px;border-radius:50%;background:#2a2140;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);"></div>`;}
+  const centerVal=arr[nowH>=0?nowH:0]??vals[0];
+  return `<div style="position:relative;width:230px;height:230px;margin:0 auto;">
+    <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(${segs.join(',')});-webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);"></div>
+    ${dot}
+    <div style="position:absolute;inset:24%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px;box-shadow:0 10px 30px rgba(108,75,216,.18);">
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:30px;color:#2a2140;line-height:1;">${kr(centerVal)}</div>
+      <div style="font-size:11px;font-weight:700;color:#948aa8;">kr/kWh</div></div></div>`;
+}
+function tabsHTML(th){
+  const t=th.tab;
+  return `<div style="display:flex;gap:4px;padding:4px;background:${t.track};border-radius:99px;">`+
+    [['today','I dag'],['tomorrow','I morgen']].map(([k,l])=>{const on=app.state.chartTab===k;
+      return `<button onclick="setChartTab('${k}')" style="flex:1;padding:8px 0;border:none;border-radius:99px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;transition:all .15s;background:${on?t.on:'transparent'};color:${on?t.onText:t.off};">${l}</button>`;}).join('')+`</div>`;
+}
+function header(brandHTML,regionPill,gearBg,gearRadius){
+  return `<div style="display:flex;align-items:center;gap:9px;padding:6px 0 16px;">${brandHTML}
+    <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${regionPill}
+    <button onclick="openSettings()" aria-label="Indstillinger" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">⚙️</button>
+    <button onclick="doRefresh(this)" aria-label="Opdatér" style="width:34px;height:34px;border-radius:${gearRadius};background:${gearBg};border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;padding:0;">↻</button>
+    </span></div>`;
+}
+function legend(th){return `<div style="display:flex;gap:14px;margin-top:14px;font-size:11px;font-weight:600;color:${th.muted};">
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[0]};"></span>Billig</span>
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[1]};"></span>Middel</span>
+  <span style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:3px;background:${th.pal[2]};"></span>Dyr</span></div>`;}
+function footer(th){
+  const now=new Date();
+  return `<div style="text-align:center;color:${th.muted};font-size:11px;line-height:1.6;margin-top:22px;">
+    <a href="https://elforbrug.nu/elpriser-og-elprisprognose-for-de-kommende-dage/" target="_blank" rel="noopener" style="color:${th.accent};font-weight:700;text-decoration:none;">📈 Ugeprognose på elforbrug.nu →</a><br>
+    Opdateret ${now.toLocaleString('da-DK',{weekday:'short',hour:'2-digit',minute:'2-digit'})} · spotpris fra elprisenligenu.dk</div>`;
+}
+function nowCopy(V){
+  if(V.nowTier===0)return `Billig indtil <strong>kl. ${V.cheapUntil}</strong> — kør endelig de store apparater nu.`;
+  if(V.nowTier===1)return `Middelpris nu. Billigst igen <strong>kl. ${V.cheapUntil}</strong>.`;
+  return `Dyrt lige nu — vent til <strong>kl. ${V.cheapUntil}</strong> med bil, vask og opvask.`;
+}
+function badgeFor(V,th){return [['● BILLIG LIGE NU',th.pal[0]],['○ MIDDEL PRIS',th.pal[1]],['▲ DYR LIGE NU',th.pal[2]]][V.nowTier];}
+
+/* ===================== TEMA-LAYOUTS ===================== */
+function viewSoft(V){
+  const th=THEMES.soft;
+  const [btxt,bcol]=badgeFor(V,th);
+  const brand=`<span style="font-size:20px;">⚡</span><span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;color:#11352b;">Elpriser</span>`;
+  const pill=`<span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:#11352b;background:#DDEFE6;padding:6px 11px;border-radius:99px;">${V.regionLabel}</span>`;
+  const aps=V.appliances.map(ap=>`
+    <div style="display:flex;align-items:center;gap:13px;background:#fff;border:1px solid #e3ede8;border-radius:18px;padding:13px 15px;">
+      <span style="width:42px;height:42px;border-radius:13px;background:#EAF6F0;display:flex;align-items:center;justify-content:center;font-size:21px;">${ap.emoji}</span>
+      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#11352b;">${ap.name}</div><div style="font-size:12px;color:#7c8a83;">${ap.when}</div></div>
+      <div style="text-align:right;"><div style="font-weight:800;font-size:14px;color:#1c7a4d;background:#E3F7EC;padding:4px 10px;border-radius:99px;">${ap.win}</div><div style="font-size:11px;color:#7c8a83;margin-top:3px;">≈ ${ap.price} kr/kWh</div></div>
+    </div>`).join('');
+  return `<div class="pane">
+    ${header(brand,pill,'#fff','50%')}
+    <div style="background:#fff;border:1px solid #e3ede8;border-radius:24px;padding:20px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px -16px rgba(17,53,43,.4);">
+      <div style="flex:1;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:${bcol};font-weight:800;font-size:12px;letter-spacing:.04em;padding:5px 11px;border-radius:99px;">${btxt}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:12px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:52px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:15px;color:#6b7d74;">kr/kWh</span></div>
+        <p style="margin:12px 0 0;font-size:13.5px;line-height:1.5;color:#46554d;">${nowCopy(V)}</p>
+      </div>${volt(78,'#11352b')}
+    </div>
+    <h3 style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:17px;color:#11352b;margin:24px 0 12px;">Hvornår skal vi tænde for…</h3>
+    <div style="display:flex;flex-direction:column;gap:9px;">${aps}</div>
+    <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px 16px 14px;margin-top:20px;">
+      <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin-bottom:12px;">Pris pr. time</div>
+      <div style="max-width:180px;margin-bottom:14px;">${tabsHTML(th)}</div>
+      ${chartHTML(V.chartArr,th,V.chartNowH)}
+      ${legend(th)}
+    </div>
+    <div style="background:#11352b;border-radius:22px;padding:18px;margin-top:16px;color:#eafff4;">
+      <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:26px;">🔥</span>
+        <div><div style="font-weight:800;font-size:15px;">${V.streak} dages stime</div>
+        <div style="font-size:12.5px;color:#9fc7b6;">Du kan spare <strong style="color:#C6FF3D;">op til ${V.savedToday} kr i dag</strong> ved at vente på de billige timer.</div></div></div>
+    </div>
+    ${footer(th)}</div>`;
+}
+
+function viewBold(V){
+  const th=THEMES.bold;
+  const brand=`${volt(26,'#0C1117',false)}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:16px;color:#EAF2E9;letter-spacing:-.01em;">ELPRISER</span>`;
+  const pill=`<span style="font-size:11px;font-weight:800;color:#C6FF3D;border:1px solid #2c3a2a;padding:6px 11px;border-radius:8px;">${V.regionShort}</span>`;
+  const aps=V.appliances.map(ap=>`
+    <div style="display:flex;align-items:center;gap:13px;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:13px 15px;">
+      <span style="font-size:22px;">${ap.emoji}</span>
+      <div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#EAF2E9;">${ap.name}</div><div style="font-size:12px;color:#6b7785;">${ap.when}</div></div>
+      <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#C6FF3D;">${ap.win}</div><div style="font-size:11px;color:#6b7785;">${ap.price} kr</div></div>
+    </div>`).join('');
+  const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapUntil}`;
+  return `<div class="pane">
+    ${header(brand,pill,'#131A22','10px')}
+    <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:26px;padding:22px 20px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:13px;color:#C6FF3D;letter-spacing:.1em;">${V.nowTier===0?'BILLIGT NU':(V.nowTier===1?'MIDDEL NU':'DYRT NU')}</span>
+        ${volt(46,'#0C1117')}
+      </div>
+      <div style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:76px;line-height:.82;color:#EAF2E9;margin:14px 0 0;letter-spacing:-.04em;">${V.nowKr}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-weight:800;font-size:14px;color:#7E8C99;">kr / kWh</span>
+        <span style="font-weight:800;font-size:12px;color:#0C1117;background:#C6FF3D;padding:3px 9px;border-radius:6px;white-space:nowrap;">${cheapTag}</span></div>
+    </div>
+    <div style="margin-top:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#7E8C99;letter-spacing:.12em;">24 TIMER</span>
+        <div style="width:160px;">${tabsHTML(th)}</div></div>
+      ${chartHTML(V.chartArr,th,V.chartNowH,{h:150,gap:3})}
+    </div>
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#7E8C99;letter-spacing:.14em;margin:24px 0 12px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">${aps}</div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <div style="flex:1;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:#7E8C99;letter-spacing:.08em;">SPAR I DAG</div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:24px;color:#C6FF3D;margin-top:6px;">${V.savedToday} kr</div></div>
+      <div style="flex:1;background:#131A22;border:1px solid #222e38;border-radius:14px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:#7E8C99;letter-spacing:.08em;">DYREST I DAG</div>
+        <div style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:24px;color:#FF5C7A;margin-top:6px;">${V.peakKr}</div></div>
+    </div>
+    ${footer(th)}</div>`;
+}
+
+function viewPlay(V){
+  const th=THEMES.play;
+  const brand=`<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:20px;color:#2a2140;">⚡ Elpriser</span>`;
+  const pill=`<span style="font-size:11px;font-weight:800;color:#6C4BD8;background:#EDE7FB;padding:6px 11px;border-radius:99px;">${V.regionLabel}</span>`;
+  const aps=V.appliances.map(ap=>`
+    <div style="display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid #efe4f8;border-radius:18px;padding:12px 14px;">
+      <span style="width:44px;height:44px;border-radius:14px;background:#F3ECFF;display:flex;align-items:center;justify-content:center;font-size:22px;">${ap.emoji}</span>
+      <div style="flex:1;"><div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;">${ap.name}</div><div style="font-size:12px;color:#948aa8;">${ap.when}</div></div>
+      <div style="text-align:right;"><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#fff;background:#2BC48A;padding:5px 11px;border-radius:99px;">${ap.win}</div><div style="font-size:11px;color:#948aa8;margin-top:3px;">spar ~${ap.save} kr</div></div>
+    </div>`).join('');
+  const nat=V.appliances[0].win!=='—' && (+V.appliances[0].win.slice(0,2))<6;
+  const spar=V.nowTier===0;
+  const badge=(emoji,label,active)=>`<div style="flex:1;text-align:center;background:${active?'#fff':'#F6F1FC'};border:1.5px ${active?'solid #efe4f8':'dashed #d6c4ef'};border-radius:16px;padding:13px 8px;${active?'':'opacity:.6;'}"><div style="font-size:26px;">${emoji}</div><div style="font-size:11px;font-weight:700;color:${active?'#6b6480':'#948aa8'};margin-top:4px;">${label}</div></div>`;
+  return `<div class="pane">
+    ${header(brand,pill,'#fff','50%')}
+    <div style="display:flex;gap:9px;margin-bottom:16px;">
+      <div style="flex:1;background:#FFE27A;border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:9px;"><span style="font-size:20px;">🏆</span>
+        <div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#2a2140;line-height:1;">${V.score}</div><div style="font-size:10.5px;font-weight:700;color:#7a6a2c;">GUNSTIG NU</div></div></div>
+      <div style="flex:1;background:#FFD0DD;border-radius:16px;padding:11px 13px;display:flex;align-items:center;gap:9px;"><span style="font-size:20px;">🔥</span>
+        <div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#2a2140;line-height:1;">${V.streak}</div><div style="font-size:10.5px;font-weight:700;color:#a3415c;">DAGES STIME</div></div></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #efe4f8;border-radius:26px;padding:20px 16px 8px;box-shadow:0 14px 34px -22px rgba(108,75,216,.6);">
+      <div style="max-width:170px;margin:0 auto 14px;">${tabsHTML(th)}</div>
+      <div style="position:relative;">${ringHTML(V.chartArr,th,V.chartNowH)}
+        ${V.chartArr.some(x=>x!=null)?`<svg viewBox="0 0 120 120" width="58" height="58" style="position:absolute;left:50%;top:26px;transform:translateX(-50%);animation:voltbob 3s ease-in-out infinite;">
+          <path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="#2a2140" stroke-width="5" stroke-linejoin="round"></path>
+          <circle cx="55" cy="44" r="8" fill="#fff" stroke="#2a2140" stroke-width="2"></circle><circle cx="73" cy="44" r="8" fill="#fff" stroke="#2a2140" stroke-width="2"></circle>
+          <circle cx="57" cy="46" r="3.4" fill="#2a2140"></circle><circle cx="75" cy="46" r="3.4" fill="#2a2140"></circle>
+          <path d="M54 56 Q64 64 74 56" stroke="#2a2140" stroke-width="3" fill="none" stroke-linecap="round"></path></svg>`:''}
+      </div>
+      <p style="text-align:center;font-size:13px;color:#6b6480;margin:6px 0 14px;line-height:1.45;">Volt siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt indtil kl. '+V.cheapEnd+' 🎉':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+' 🙂'}</p>
+    </div>
+    <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:16px;color:#2a2140;margin:22px 0 12px;">Dagens opgaver 🎯</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;">${aps}</div>
+    <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:16px;color:#2a2140;margin:22px 0 12px;">Badges</h3>
+    <div style="display:flex;gap:10px;">${badge('🌙','Natteravn',nat)}${badge('💰','Sparefugl',spar)}${badge(V.streak>=30?'⭐':'🔒',V.streak>=30?'30 dage':(30-V.streak)+' dage',V.streak>=30)}</div>
+    ${footer(th)}</div>`;
+}
+
+/* ===================== SETTINGS SHEET ===================== */
+function sheetHTML(){
+  const th=THEMES[app.state.theme];
+  const card=(key,name,desc,swatches)=>{const sel=app.state.theme===key;
+    const sw=swatches.map(c=>`<span style="width:14px;height:22px;border-radius:5px;background:${c};"></span>`).join('');
+    return `<button onclick="setTheme('${key}')" style="display:flex;align-items:center;gap:13px;width:100%;text-align:left;padding:13px 14px;border-radius:16px;border:2px solid ${sel?th.accent:th.border};background:${sel?th.accentSoft:th.surface};color:${th.text};font:inherit;cursor:pointer;transition:all .15s;">
+      <span style="display:flex;gap:4px;">${sw}</span>
+      <span style="flex:1;"><span style="display:block;font-weight:800;font-size:15px;">${name}</span><span style="display:block;font-size:12px;color:${th.muted};">${desc}</span></span>
+      ${sel?`<span style="font-size:15px;color:${th.accent};">✓</span>`:''}</button>`;};
+  const pill=(reg,label)=>{const a=app.state.region===reg;
+    return `<button onclick="setRegion('${reg}')" style="flex:1;padding:12px 0;border-radius:14px;border:2px solid ${a?th.accent:th.border};background:${a?th.accentSoft:th.surface};color:${th.text};font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;">${label}</button>`;};
+  const step=(fn,sym)=>`<button onclick="${fn}" style="width:36px;height:36px;flex-shrink:0;border-radius:11px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-size:19px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">${sym}</button>`;
+  const apRow=(emoji,name,key,val)=>`<div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:11px 14px;">
+      <span style="font-size:20px;">${emoji}</span><span style="flex:1;font-weight:700;font-size:14px;">${name}</span>
+      ${step(`adjAp('${key}',-1)`,'−')}<span style="min-width:38px;text-align:center;font-weight:800;font-size:15px;">${val}</span>${step(`adjAp('${key}',1)`,'+')}</div>`;
+  const lbl=t=>`<div style="font-size:12px;font-weight:800;letter-spacing:.1em;color:${th.muted};margin-bottom:10px;">${t}</div>`;
+  const sh=document.getElementById('sheet'); sh.style.background=th.sheetBg; sh.style.color=th.text;
+  return `
+    <div style="width:40px;height:5px;border-radius:99px;background:${th.border};margin:6px auto 16px;"></div>
+    <div style="display:flex;align-items:center;margin-bottom:18px;"><span style="font-weight:800;font-size:20px;">Indstillinger</span>
+      <button onclick="closeSettings()" style="margin-left:auto;width:32px;height:32px;border-radius:50%;border:none;background:${th.surface};color:${th.text};font-size:15px;cursor:pointer;">✕</button></div>
+    ${lbl('TEMA')}
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+      ${card('soft','Blød &amp; venlig','Roligt, rundt, lyst',['#34B27B','#11352b','#FFD23F'])}
+      ${card('bold','Bold &amp; elektrisk','Stor type, mørkt, neon',['#0C1117','#C6FF3D','#FF5C7A'])}
+      ${card('play','Legende &amp; gamificeret','Spil, score, badges',['#6C4BD8','#2BC48A','#FFB020'])}
+    </div>
+    ${lbl('PRISOMRÅDE')}
+    <div style="display:flex;gap:9px;margin-bottom:24px;">${pill('DK1','DK1 · Vest')}${pill('DK2','DK2 · Øst')}</div>
+    ${lbl('ELHANDLER-TILLÆG')}
+    <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
+      <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Tillæg pr. kWh</div><div style="font-size:12px;color:${th.muted};">Inkl. moms</div></div>
+      ${step('adjMarkup(-1)','−')}<span style="min-width:78px;text-align:center;font-weight:800;font-size:15px;">${app.state.markup} øre</span>${step('adjMarkup(1)','+')}</div>
+    ${lbl('APPARATER — VARIGHED I TIMER')}
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      ${apRow('🚗','Bil — ladning','bilH',app.state.bilH)}
+      ${apRow('🍽️','Opvask','opvaskH',app.state.opvaskH)}
+      ${apRow('👕','Vasketøj','vaskH',app.state.vaskH)}
+    </div>
+    <button onclick="closeSettings()" style="width:100%;margin-top:22px;padding:14px;border:none;border-radius:16px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:15px;cursor:pointer;">Gem &amp; luk</button>`;
+}
+
+/* ===================== RENDER ===================== */
+function render(){
+  const th=THEMES[app.state.theme];
+  document.body.style.background=th.bg;
+  document.getElementById('theme-color').setAttribute('content',th.bg);
+  const root=document.getElementById('app');
+  if(app.loading){root.innerHTML='<div class="skel">Henter elpriser…</div>';return;}
+  if(app.error){
+    root.innerHTML=`<div style="padding:40px 6px;text-align:center;color:${th.text};">
+      <div style="font-size:40px;margin-bottom:10px;">⚡</div>
+      <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${app.error}).<br>Tjek forbindelsen.</p>
+      <button onclick="load()" style="margin-top:14px;padding:12px 22px;border:none;border-radius:14px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;cursor:pointer;">Prøv igen</button></div>`;
+  } else {
+    const V=computeView();
+    root.innerHTML = app.state.theme==='bold'?viewBold(V):(app.state.theme==='play'?viewPlay(V):viewSoft(V));
+  }
+  const sr=document.getElementById('sheet-root');
+  if(app.state.settingsOpen){ document.getElementById('sheet').innerHTML=sheetHTML(); sr.classList.add('open'); }
+  else sr.classList.remove('open');
+}
+
+/* ===================== ACTIONS (global) ===================== */
+function openSettings(){app.state.settingsOpen=true;render();}
+function closeSettings(){app.state.settingsOpen=false;render();}
+function setTheme(t){app.state.theme=t;saveState();render();}
+function setRegion(r){app.state.region=r;saveState();load();}
+function setChartTab(t){app.state.chartTab=t;render();}
+function adjMarkup(d){app.state.markup=Math.max(0,Math.min(60,app.state.markup+d));saveState();render();}
+function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
+  app.state[key]=Math.max(lim[0],Math.min(lim[1],app.state[key]+d));saveState();render();}
+function doRefresh(btn){if(btn){btn.classList.add('spin');setTimeout(()=>btn.classList.remove('spin'),700);}load();}
+window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTheme=setTheme;
+window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
+window.doRefresh=doRefresh;window.load=load;
+
+/* ===================== INIT ===================== */
+loadState();
+render();
+load();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
