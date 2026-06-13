@@ -298,6 +298,20 @@ function chartHTML(list,th,nowH,opts){
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis};">
     <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>`;
 }
+function ringSectors(th){
+  const cx=115, cy=115, rOut=115, rIn=64;
+  const polar=(r,deg)=>{const a=deg*Math.PI/180; return [cx+r*Math.sin(a), cy-r*Math.cos(a)];};
+  let paths='';
+  for(let i=0;i<24;i++){
+    const a0=i*15, a1=(i+1)*15;
+    const [x0o,y0o]=polar(rOut,a0), [x1o,y1o]=polar(rOut,a1);
+    const [x1i,y1i]=polar(rIn,a1),  [x0i,y0i]=polar(rIn,a0);
+    const sel=i===app.state.selectedHour;
+    const d=`M${x0o} ${y0o} A${rOut} ${rOut} 0 0 1 ${x1o} ${y1o} L${x1i} ${y1i} A${rIn} ${rIn} 0 0 0 ${x0i} ${y0i} Z`;
+    paths+=`<path d="${d}" fill="${th.ring}" fill-opacity="${sel?0.28:0}" stroke="${sel?th.ring:'none'}" stroke-width="${sel?2:0}" style="cursor:pointer;" onclick="selectHour(${i})"></path>`;
+  }
+  return `<svg viewBox="0 0 230 230" width="230" height="230" style="position:absolute;left:0;top:0;">${paths}</svg>`;
+}
 function ringHTML(list,th,nowH){
   if(!list.length) return `<div style="padding:40px 6px;text-align:center;color:${th.muted};font-size:13px;">Morgendagens priser kommer efter kl. 13 🙂</div>`;
   const byHour=h=>list.find(x=>x.h===h);
@@ -315,6 +329,7 @@ function ringHTML(list,th,nowH){
   return `<div style="position:relative;width:230px;height:230px;margin:0 auto;">
     <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(${segs.join(',')});-webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);"></div>
     ${dot}
+    ${ringSectors(th)}
     <div style="position:absolute;inset:24%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px;box-shadow:0 10px 30px rgba(108,75,216,.18);">
       <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:30px;color:#2a2140;line-height:1;">${kr(centerVal)}</div>
       <div style="font-size:11px;font-weight:700;color:#948aa8;">kr/kWh</div></div></div>`;
