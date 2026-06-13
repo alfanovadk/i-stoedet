@@ -178,7 +178,7 @@ const app={
     dso:'n1',
     customTariff:{ winter:{lav:11,hoej:33,spids:99}, summer:{lav:11,hoej:17,spids:43} },
     eloverblik:{ refreshToken:'', meteringPointId:'', accessToken:'', accessTokenExp:0 },
-    wizardStep:0, wizardMsg:'', meteringPoints:[] },
+    wizardStep:0, wizardMsg:'', meteringPoints:[], forbrugDay:null },
   raw:[], loading:true, error:null
 };
 function currentTariff(){
@@ -194,6 +194,7 @@ function loadState(){
   app.state.wizardStep=0;
   app.state.wizardMsg='';
   app.state.meteringPoints=[];
+  app.state.forbrugDay=null;
 }
 function saveState(){
   const {theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
@@ -218,6 +219,7 @@ async function load(){
   bumpStreak();
   render();
   refreshConsumption().then(verifyPending).catch(()=>{});
+  fetchRecentConsumption();
 }
 
 function keyOf(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
@@ -255,6 +257,8 @@ function saveClaims(arr){ try{ localStorage.setItem('elpriser_claims', JSON.stri
 /* ===================== FORBRUG + GAMIFY (lokal persistens) ===================== */
 function loadConsumption(){ try{ return JSON.parse(localStorage.getItem('elpriser_consumption')||'{}'); }catch(e){ return {}; } }
 function saveConsumption(o){ try{ localStorage.setItem('elpriser_consumption', JSON.stringify(o)); }catch(e){} }
+function loadDayPrices(){ try{ return JSON.parse(localStorage.getItem('elpriser_dayprices')||'{}'); }catch(e){ return {}; } }
+function saveDayPrices(o){ try{ localStorage.setItem('elpriser_dayprices', JSON.stringify(o)); }catch(e){} }
 function loadGamify(){ try{ return JSON.parse(localStorage.getItem('elpriser_gamify')||'{}'); }catch(e){ return {}; } }
 function saveGamify(g){ try{ localStorage.setItem('elpriser_gamify', JSON.stringify(g)); }catch(e){} }
 function dateFromKey(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
@@ -285,6 +289,35 @@ async function refreshConsumption(){
     Object.assign(cons, parseTimeSeries(json));
     saveConsumption(cons);
   }catch(e){ /* non-blocking: leave pending */ }
+}
+
+async function fetchRecentConsumption(){
+  const ev=app.state.eloverblik;
+  if(!ev.refreshToken || !ev.meteringPointId) return;
+  try{
+    let access=ev.accessToken;
+    if(!access || Date.now()>ev.accessTokenExp){
+      access=await getAccessToken(ev.refreshToken);
+      ev.accessToken=access; ev.accessTokenExp=Date.now()+23*3600*1000; saveState();
+    }
+    const today=new Date();
+    const from=isoDate(addDays(today,-5)), to=isoDate(addDays(today,1));
+    const json=await getTimeSeries(access, ev.meteringPointId, from, to);
+    const parsed=parseTimeSeries(json);
+    const cons=loadConsumption(); Object.assign(cons,parsed); saveConsumption(cons);
+    // fetch matching day prices (only days we now have consumption for and lack prices)
+    const dp=loadDayPrices();
+    for(const dk of Object.keys(parsed)){
+      if(dp[dk]) continue;
+      try{
+        const recs=await fetchDay(dateFromKey(dk));
+        const list=seriesForDay(recs, dk, cfg());
+        if(list.length){ const arr=Array(24).fill(0); list.forEach(x=>{arr[x.h]=x.total;}); dp[dk]=arr; }
+      }catch(e){}
+    }
+    saveDayPrices(dp);
+    render();
+  }catch(e){ /* non-blocking */ }
 }
 
 function verifyPending(){
@@ -334,6 +367,40 @@ function claimsHTML(th){
     <span>${emo[c.apparat]||'⚡'}</span><span style="flex:1;color:${th.text};">kl ${pad(c.startHour)}</span>${chip(c.status)}</div>`).join('');
   return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-top:12px;">
     <div style="font-weight:800;font-size:12px;letter-spacing:.06em;color:${th.muted};margin-bottom:6px;">DINE MARKERINGER I DAG</div>${rows}</div>`;
+}
+
+function forbrugHTML(th){
+  const ev=app.state.eloverblik;
+  if(!ev.refreshToken || !ev.meteringPointId) return '';   // only when connected
+  const cons=loadConsumption();
+  const days=Object.keys(cons).sort((a,b)=>dateFromKey(a)-dateFromKey(b));
+  if(!days.length) return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:16px;margin-top:16px;font-size:13px;color:${th.muted};">Henter dit forbrug fra Eloverblik… (data er typisk 1-2 dage forsinket)</div>`;
+  const day = (app.state.forbrugDay && cons[app.state.forbrugDay]) ? app.state.forbrugDay : days[days.length-1];
+  const kwh = cons[day];
+  const prices = loadDayPrices()[day] || null;
+  const idx = days.indexOf(day);
+  const maxK = Math.max(...kwh, 0.001);
+  const total = kwh.reduce((a,b)=>a+b,0);
+  const [lo,hi] = prices ? loHi(prices) : [0,1];
+  let bars='';
+  for(let h=0;h<24;h++){
+    const k=kwh[h]||0;
+    const ht=Math.max(2,Math.round(k/maxK*100));
+    const col = prices ? th.pal[tierOf(prices[h],lo,hi)] : th.accent;
+    bars+=`<div title="kl ${pad(h)}: ${k.toFixed(2)} kWh" style="flex:1 1 0;min-width:0;height:${ht}%;background:${col};border-radius:4px 4px 2px 2px;"></div>`;
+  }
+  const dato = dateFromKey(day).toLocaleDateString('da-DK',{weekday:'long',day:'numeric',month:'long'});
+  const navBtn=(label,toDay,disabled)=>`<button ${disabled?'disabled':''} onclick="setForbrugDay('${toDay}')" style="border:1px solid ${th.border};background:${th.surface};color:${disabled?th.muted:th.text};font:inherit;font-weight:700;font-size:13px;border-radius:10px;padding:6px 12px;cursor:${disabled?'default':'pointer'};opacity:${disabled?0.4:1};">${label}</button>`;
+  return `<div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:16px;margin-top:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <span style="font-weight:800;font-size:15px;color:${th.text};">Dit forbrug</span>
+      <span style="font-weight:800;font-size:15px;color:${th.accent};">${total.toFixed(1)} kWh</span></div>
+    <div style="font-size:12.5px;color:${th.muted};text-transform:capitalize;margin-bottom:12px;">${dato}</div>
+    <div style="display:flex;align-items:flex-end;gap:2.5px;height:120px;">${bars}</div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis||th.muted};"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+    ${prices?`<div style="font-size:11.5px;color:${th.muted};margin-top:10px;">Søjlerne er farvet efter prisen den time — grøn = billig, rød = dyr. Brugte du strøm i de grønne timer? 💡</div>`:''}
+    <div style="display:flex;justify-content:space-between;margin-top:12px;">${navBtn('← Dagen før',days[idx-1]||day,idx<=0)}${navBtn('Dagen efter →',days[idx+1]||day,idx>=days.length-1)}</div>
+  </div>`;
 }
 
 function computeView(){
@@ -525,6 +592,7 @@ function viewSoft(V){
       ${legend(th)}
       ${detailHTML(V,th)}
     </div>
+    ${forbrugHTML(th)}
     <div style="background:#11352b;border-radius:22px;padding:18px;margin-top:16px;color:#eafff4;">
       <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:26px;">🔥</span>
         <div><div style="font-weight:800;font-size:15px;">${V.streak} dages stime</div>
@@ -563,6 +631,7 @@ function viewBold(V){
       ${chartHTML(V.chartList,th,V.chartNowH,{h:150,gap:3})}
       ${detailHTML(V,th)}
     </div>
+    ${forbrugHTML(th)}
     <h3 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;color:#7E8C99;letter-spacing:.14em;margin:24px 0 12px;">HVORNÅR SKAL VI TÆNDE FOR…</h3>
     <div style="display:flex;flex-direction:column;gap:8px;">${aps}</div>
     ${claimsHTML(th)}
@@ -610,6 +679,7 @@ function viewPlay(V){
       <p style="text-align:center;font-size:13px;color:#6b6480;margin:6px 0 14px;line-height:1.45;">Volt siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt indtil kl. '+V.cheapEnd+' 🎉':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+' 🙂'}</p>
       ${detailHTML(V,th)}
     </div>
+    ${forbrugHTML(th)}
     <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:16px;color:#2a2140;margin:22px 0 12px;">Dagens opgaver 🎯</h3>
     <div style="display:flex;flex-direction:column;gap:10px;">${aps}</div>
     ${claimsHTML(th)}
@@ -809,6 +879,7 @@ function disconnectEloverblik(){
 }
 function setChartTab(t){app.state.chartTab=t;app.state.selectedHour=null;render();}
 function selectHour(h){ app.state.selectedHour = (h===null || h===app.state.selectedHour) ? null : h; render(); }
+function setForbrugDay(d){ app.state.forbrugDay=d; render(); }
 function adjMarkup(d){app.state.markup=Math.max(0,Math.min(60,app.state.markup+d));saveState();render();}
 function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
   app.state[key]=Math.max(lim[0],Math.min(lim[1],app.state[key]+d));saveState();render();}
@@ -829,6 +900,7 @@ window.openSettings=openSettings;window.closeSettings=closeSettings;window.setTh
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
+window.setForbrugDay=setForbrugDay;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
