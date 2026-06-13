@@ -129,12 +129,12 @@
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf
-} from './pricing.js';
-import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js';
-import { verifyClaim, pointsFor, smartScore, badgeUpdates } from './gamify.js';
+} from './pricing.js?v=2';
+import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=2';
+import { verifyClaim, pointsFor, smartScore, badgeUpdates } from './gamify.js?v=2';
 import {
   dayProfile, weekdayProfile, periodTotals, pctChange, toCSV
-} from './forbrug-analyse.js';
+} from './forbrug-analyse.js?v=2';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
