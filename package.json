@@ -10,7 +10,7 @@
     "clean": "rm -rf _site",
     "deploy": "npm run build && rsync -avz --delete _site/ root@websites:/var/www/xn--i-stdet-t1a.dk/current/ && npm run verify:live",
     "deploy:caddy": "bash scripts/deploy-caddy.sh",
-    "verify:live": "node scripts/verify-live.js",
+    "verify:live": "node scripts/verify-live.mjs",
     "cap:assets": "node scripts/build-www.mjs",
     "cap:icons": "node scripts/make-assets.mjs && npx @capacitor/assets generate --ios",
     "cap:sync": "npm run cap:assets && npx cap sync ios",

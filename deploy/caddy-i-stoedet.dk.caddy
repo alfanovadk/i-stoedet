@@ -1,0 +1,57 @@
+# i-stødet.dk (xn--i-stdet-t1a.dk) — 11ty content-site + PWA under /app/
+# Hostes på websites (46.225.103.197). TLS via CF Origin-cert (Full Strict).
+# Deploy af denne fil: scripts/deploy-caddy.sh (scp + ugctl caddy reload).
+xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
+	tls /etc/caddy/certs/xn--i-stdet-t1a.dk/origin.crt /etc/caddy/certs/xn--i-stdet-t1a.dk/origin.key
+
+	# www → apex (301 så SEO konsoliderer på apex).
+	@www host www.xn--i-stdet-t1a.dk
+	redir @www https://xn--i-stdet-t1a.dk{uri} 301
+
+	root * /var/www/xn--i-stdet-t1a.dk/current
+	encode gzip zstd
+
+	# sw.js + manifest skal være friske, ellers hænger PWA på en gammel app-skal.
+	@swmanifest path /app/sw.js /app/manifest.webmanifest
+	header @swmanifest Cache-Control "public, max-age=0, must-revalidate"
+
+	# PWA-moduler/ikoner: kort cache.
+	@appassets path /app/*.js /app/*.png /app/*.ico
+	header @appassets Cache-Control "public, max-age=3600"
+
+	# Marketing-assets (CSS/JS) er cache-bustet via ?v= → kan caches længere.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=86400"
+
+	# HTML opdateres ofte → kort cache.
+	@html path *.html /
+	header @html Cache-Control "public, max-age=300, must-revalidate"
+
+	# Sikkerheds-headers. >-prefix lader upstream overskrive. HSTS-ramp: start lavt.
+	# Bevidst INGEN restriktiv Content-Security-Policy: PWA'ens index.html bruger
+	# inline scripts; en streng script-src ville brække appen. Tilføj først CSP
+	# efter appens inline-JS er flyttet ud (uden for dette projekts scope).
+	header {
+		>Strict-Transport-Security "max-age=300"
+		>X-Content-Type-Options "nosniff"
+		>Referrer-Policy "strict-origin-when-cross-origin"
+		>Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		-Server
+	}
+
+	file_server
+
+	handle_errors {
+		@404 expression {http.error.status_code} == 404
+		rewrite @404 /404.html
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/xn--i-stdet-t1a.dk.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+		format json
+	}
+}
