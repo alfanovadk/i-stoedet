@@ -9,7 +9,8 @@
     "cap:icons": "node scripts/make-assets.mjs && npx @capacitor/assets generate --ios",
     "cap:sync": "npm run cap:assets && npx cap sync ios",
     "cap:open": "npx cap open ios",
-    "ios:release": "sh scripts/ios-release.sh"
+    "ios:release": "sh scripts/ios-release.sh",
+    "xcode:log": "node scripts/xcode-cloud-log.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
