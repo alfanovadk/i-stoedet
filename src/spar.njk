@@ -22,7 +22,7 @@ permalink: /spar/
     <tbody>
     {%- for a in apparater.liste %}
       <tr>
-        <td><a href="/spar/{{ a.slug }}/">{{ a.navn }}</a></td>
+        <td><a href="/spar/{{ a.slug }}/"><span class="td-icon">{% icon a.icon, 17, "var(--accent)" %}</span>{{ a.navn }}</a></td>
         <td>{{ apparater.besparelse(a, 'typisk') | kr }} kr {{ a.enhed }}</td>
         <td>~{{ apparater.besparelseOmAaret(a, 'typisk') | kr0 }} kr</td>
         <td>{% if a.kanFlyttes %}Ja, nemt{% else %}Kun hvis systemet kan tidsstyres{% endif %}</td>

@@ -3,6 +3,7 @@ layout: layouts/base.njk
 ---
 {%- set a = apparater.bySlug(apparat) %}
 <article class="guide">
+  {%- if a.icon %}<div class="guide__icon">{% icon a.icon, 38 %}</div>{% endif %}
   <h1>{{ h1 }}</h1>
   <p class="lead">{{ a.resume }}</p>
   <aside class="savings-box">

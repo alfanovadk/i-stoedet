@@ -8,6 +8,7 @@ permalink: /
 
 {# ── Hero ── #}
 <section class="hero">
+  <div class="hero__elly">{% elly 92 %}</div>
   <h1>{{ site.tagline }}</h1>
   <p class="lead">Du behøver ikke lave om på hvad du bruger. Du skal bare vide, hvornår det er billigst.</p>
   <a href="{{ site.appPath }}" class="btn">Åbn app</a>
@@ -45,6 +46,7 @@ permalink: /
     <div class="card-grid">
       {%- for a in apparater.liste %}
       <a class="card" href="/spar/{{ a.slug }}/">
+        <div class="card__icon">{% icon a.icon, 30 %}</div>
         <h3>{{ a.navn }}</h3>
         <div class="savings-amount">{{ apparater.besparelse(a, 'typisk') | kr }} kr</div>
         <p class="muted">{{ a.enhed }}</p>

@@ -105,16 +105,15 @@ body {
   letter-spacing: -.01em;
   white-space: nowrap;
   flex-shrink: 0;
-  /* subtle bolt accent before the name */
+  /* Elly-maskotten som logo-maerke (afloeser den gamle bolt-emoji) */
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.brand::before {
-  content: "⚡";
-  font-size: .9em;
-  color: var(--energy-gold);
-  filter: drop-shadow(0 0 4px rgba(255, 210, 63, .6));
+.brand__elly {
+  display: inline-flex;
+  line-height: 0;
+  filter: drop-shadow(0 0 4px rgba(255, 210, 63, .55));
 }
 
 /* Nav */
@@ -355,6 +354,13 @@ strong { font-weight: 700; }
 }
 .hero .lead { color: var(--muted); margin-bottom: 2em; }
 .hero .btn { font-size: 1.1rem; padding: 14px 32px; }
+/* Elly-maskotten i hero'en (eneste ikke-FA-grafik). */
+.hero__elly { margin-bottom: 14px; line-height: 0; }
+/* FA-ikon på apparat-kortene — accent-grøn via currentColor. */
+.card__icon { color: var(--accent); margin-bottom: 12px; line-height: 0; }
+/* FA-ikon i guide-header + spar-tabel. */
+.guide__icon { color: var(--accent); margin-bottom: 8px; line-height: 0; }
+.td-icon { display: inline-flex; vertical-align: -.2em; margin-right: 7px; }
 
 /* =========================================================
    CARD GRID (apparater on front page etc.)
