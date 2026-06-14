@@ -1,4 +1,515 @@
-:root { color-scheme: light; }
-body { font-family: system-ui, sans-serif; margin: 0; }
-.skip-link { position: absolute; left: -9999px; }
-.skip-link:focus { left: 8px; top: 8px; }
+/* =========================================================
+   I stødet — marketing site CSS
+   Palette mirrors the app's "soft" theme:
+     bg          #F3FAF6  (greenish white)
+     surface     #F1F7F4
+     text        #11352b  (deep forest green)
+     muted       #7c8a83
+     border      #e3ede8
+     accent      #1c7a4d  (CTA green)
+     accent-lite #34B27B  (bright green — app's "cheap" bolt)
+     energy-gold #FFD23F  (Elly's bolt colour)
+   Font: Figtree (app font) → system-ui fallback (no extra request on
+   the marketing site; Figtree loads inside /app/).
+   ========================================================= */
+
+/* ── Reset + Box model ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Design tokens ── */
+:root {
+  --bg:           #F3FAF6;
+  --surface:      #F1F7F4;
+  --text:         #11352b;
+  --muted:        #7c8a83;
+  --border:       #e3ede8;
+  --accent:       #1c7a4d;
+  --accent-text:  #ffffff;
+  --accent-lite:  #34B27B;
+  --energy-gold:  #FFD23F;
+  --danger:       #E5604D;
+  --radius:       12px;
+  --radius-sm:    8px;
+  --radius-lg:    20px;
+  --shadow-sm:    0 1px 3px rgba(17, 53, 43, .08);
+  --shadow-md:    0 4px 16px rgba(17, 53, 43, .12);
+  --max-w:        1140px;
+  --prose-w:      70ch;
+  color-scheme: light;
+}
+
+/* ── Base typography ── */
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+body {
+  margin: 0;
+  font-family: 'Figtree', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* ── Accessibility ── */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  font-weight: 700;
+  z-index: 999;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 8px;
+}
+
+/* ── Container ── */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+.container--prose {
+  max-width: var(--prose-w);
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(243, 250, 246, .92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  height: 60px;
+}
+
+/* Logo / brand */
+.brand {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* subtle bolt accent before the name */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.brand::before {
+  content: "⚡";
+  font-size: .9em;
+  color: var(--energy-gold);
+  filter: drop-shadow(0 0 4px rgba(255, 210, 63, .6));
+}
+
+/* Nav */
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .9rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
+  white-space: nowrap;
+}
+.site-nav a:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.site-nav a[aria-current="page"] {
+  color: var(--accent);
+  background: rgba(28, 122, 77, .08);
+}
+
+/* CTA button in nav */
+.nav-cta {
+  display: inline-block;
+  background: var(--accent) !important;
+  color: var(--accent-text) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 16px !important;
+  font-weight: 700 !important;
+  font-size: .875rem !important;
+  text-decoration: none;
+  transition: background .15s, transform .1s, box-shadow .15s !important;
+  box-shadow: 0 2px 8px rgba(28, 122, 77, .3);
+  white-space: nowrap;
+}
+.nav-cta:hover {
+  background: #155e39 !important;
+  box-shadow: 0 4px 14px rgba(28, 122, 77, .4) !important;
+  transform: translateY(-1px);
+}
+.nav-cta:active {
+  transform: translateY(0);
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 32px 20px;
+  font-size: .875rem;
+  color: var(--muted);
+}
+.site-footer p { margin: 0 0 8px; }
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.site-footer nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color .15s;
+}
+.site-footer nav a:hover { color: var(--text); }
+.site-footer a[href^="https://alfanova"] { color: var(--accent); }
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+#main {
+  min-height: calc(100dvh - 60px - 120px); /* viewport - header - approx footer */
+}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+h1, h2, h3, h4 {
+  margin: 0 0 .5em;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); }
+h2 { font-size: clamp(1.35rem, 3vw, 1.9rem); }
+h3 { font-size: 1.15rem; font-weight: 700; }
+h4 { font-size: 1rem; font-weight: 700; }
+
+p { margin: 0 0 1em; }
+p:last-child { margin-bottom: 0; }
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+a:hover { color: #155e39; }
+
+ul, ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+li { margin-bottom: .35em; }
+
+strong { font-weight: 700; }
+
+/* ── Utility text helpers ── */
+.lead {
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 1.25em;
+}
+.muted {
+  color: var(--muted);
+  font-size: .9rem;
+}
+.caveat {
+  background: rgba(229, 96, 77, .08);
+  border-left: 3px solid var(--danger);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 16px;
+  color: var(--text);
+  font-size: .9rem;
+  margin: 1em 0;
+}
+.caveat strong { color: var(--danger); }
+
+/* CTA paragraph wrapper */
+.cta {
+  margin: 2em 0 0;
+  text-align: center;
+}
+
+/* =========================================================
+   SAVINGS COMPONENTS (used by guide.njk + spar.njk — Task 6)
+   ========================================================= */
+
+/* Savings highlight box */
+.savings-box {
+  background: var(--surface);
+  border: 1.5px solid var(--accent-lite);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin: 1.5em 0;
+  box-shadow: var(--shadow-sm);
+}
+.savings-box p { margin: 0 0 6px; }
+.savings-box p:last-child { margin: 0; }
+.savings-box strong {
+  font-size: 1.1em;
+  color: var(--accent);
+}
+
+/* Savings overview table */
+.savings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9375rem;
+  margin: 1.25em 0;
+}
+.savings-table th {
+  text-align: left;
+  font-weight: 700;
+  font-size: .8125rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+  padding: 8px 12px 8px 0;
+}
+.savings-table th:last-child { padding-right: 0; }
+.savings-table td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+.savings-table td:last-child { padding-right: 0; }
+.savings-table tr:last-child td { border-bottom: none; }
+.savings-table a {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text);
+}
+.savings-table a:hover { color: var(--accent); text-decoration: underline; }
+
+/* =========================================================
+   BUTTON / CTA standalone
+   ========================================================= */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(28, 122, 77, .3);
+  transition: background .15s, transform .1s, box-shadow .15s;
+}
+.btn:hover {
+  background: #155e39;
+  box-shadow: 0 4px 14px rgba(28, 122, 77, .4);
+  transform: translateY(-1px);
+  color: var(--accent-text);
+}
+.btn:active { transform: translateY(0); }
+
+/* =========================================================
+   HERO SECTION
+   ========================================================= */
+.hero {
+  padding: 72px 20px 64px;
+  text-align: center;
+  max-width: 680px;
+  margin-inline: auto;
+}
+.hero h1 {
+  margin-bottom: .6em;
+}
+.hero .lead { color: var(--muted); margin-bottom: 2em; }
+.hero .btn { font-size: 1.1rem; padding: 14px 32px; }
+
+/* =========================================================
+   CARD GRID (apparater on front page etc.)
+   ========================================================= */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 2em 0;
+}
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s, transform .2s;
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  color: var(--text);
+  text-decoration: none;
+}
+.card h3 { margin-bottom: .3em; }
+.card .savings-amount {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin: .25em 0 .5em;
+}
+.card .muted { font-size: .85rem; }
+
+/* =========================================================
+   GUIDE ARTICLE
+   ========================================================= */
+.guide {
+  max-width: var(--prose-w);
+  margin-inline: auto;
+  padding: 48px 20px 64px;
+}
+.guide h1 { margin-bottom: .5em; }
+.guide > * + * { margin-top: 0; }
+
+/* =========================================================
+   SECTION WRAPPER
+   ========================================================= */
+.section {
+  padding: 56px 20px;
+}
+.section + .section {
+  padding-top: 0;
+}
+.section__title {
+  margin-bottom: 1em;
+}
+
+/* =========================================================
+   STEPS (how-it-works)
+   ========================================================= */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+  margin: 2em 0;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: .875rem;
+  flex-shrink: 0;
+}
+.step h3 { margin: 0; font-size: 1rem; }
+.step p { margin: 0; font-size: .9rem; color: var(--muted); }
+
+/* =========================================================
+   RESPONSIVE — 390 px (iPhone SE / 14)
+   ========================================================= */
+@media (max-width: 600px) {
+  /* Header: stack nav below brand if needed */
+  .site-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  .brand { font-size: 1rem; }
+  .site-nav {
+    width: 100%;
+    gap: 2px;
+    justify-content: flex-start;
+  }
+  .site-nav a {
+    font-size: .8125rem;
+    padding: 5px 8px;
+  }
+  .nav-cta {
+    padding: 6px 12px !important;
+    font-size: .8125rem !important;
+  }
+
+  /* Hero */
+  .hero { padding: 48px 16px 40px; }
+
+  /* Guide */
+  .guide { padding: 32px 16px 48px; }
+
+  /* Table: let it scroll on tiny screens */
+  .savings-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Sections */
+  .section { padding: 40px 16px; }
+
+  /* Footer */
+  .site-footer { padding: 24px 16px; }
+}
+
+/* ── Dark mode (respect system, but app default is light so keep subtle) ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:          #0d1a15;
+    --surface:     #111f18;
+    --text:        #e6f2ec;
+    --muted:       #7a9485;
+    --border:      #1e2f26;
+    --accent:      #34B27B;
+    --accent-text: #0d1a15;
+    --accent-lite: #34B27B;
+    color-scheme: dark;
+  }
+  .site-header {
+    background: rgba(13, 26, 21, .92);
+  }
+  .card {
+    background: var(--surface);
+  }
+  .nav-cta {
+    box-shadow: 0 2px 8px rgba(52, 178, 123, .3);
+  }
+  .nav-cta:hover {
+    box-shadow: 0 4px 14px rgba(52, 178, 123, .4) !important;
+  }
+}

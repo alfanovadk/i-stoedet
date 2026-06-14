@@ -1,0 +1,8 @@
+<header class="site-header">
+  <a class="brand" href="/">{{ site.name }}</a>
+  <nav class="site-nav" aria-label="Hovedmenu">
+    {%- for item in site.nav %}
+    <a href="{{ item.href }}"{% if item.cta %} class="nav-cta"{% endif %}{% if page.url == item.href %} aria-current="page"{% endif %}>{{ item.label }}</a>
+    {%- endfor %}
+  </nav>
+</header>

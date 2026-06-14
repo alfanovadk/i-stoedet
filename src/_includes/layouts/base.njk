@@ -16,8 +16,11 @@
 </head>
 <body class="{{ bodyClass | default('') }}">
 <a class="skip-link" href="#main">Spring til hovedindhold</a>
+{% include "partials/header.njk" %}
 <main id="main">
 {{ content | safe }}
 </main>
+{% include "partials/footer.njk" %}
+<script defer src="{{ '/assets/js/site.js' | assetUrl }}?v={{ '/assets/js/site.js' | assetVersion }}"></script>
 </body>
 </html>
