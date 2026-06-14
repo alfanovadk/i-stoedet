@@ -425,8 +425,11 @@ function besparelseOmAaret(a, niveau = "typisk") {
   return Math.round(besparelse(a, niveau) * a.frekvensOmAaret);
 }
 
-module.exports = { prisspaend, liste, bySlug, besparelse, besparelseOmAaret };
+// ESM (repoet er type:module). 11ty 3.x læser ESM _data-filer fint.
+export default { prisspaend, liste, bySlug, besparelse, besparelseOmAaret };
 ```
+> **Note:** Alle `src/_data/*.js`-filer SKAL bruge `export default` (repoet er
+> `type:module`), IKKE `module.exports`. Kun `eleventy.config.cjs` bruger CommonJS.
 
 - [ ] **Step 4: Kør testen — forventet PASS**
 

@@ -4,7 +4,7 @@ import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { RUNTIME_FILES } from './runtime-files.mjs';
+import { APP_DIR, RUNTIME_FILES } from './runtime-files.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const wwwDir = join(repoRoot, 'www');
@@ -20,7 +20,7 @@ test('www/index.html er identisk med kilden', () => {
   execFileSync('node', ['scripts/build-www.mjs'], { cwd: repoRoot });
   assert.equal(
     readFileSync(join(wwwDir, 'index.html'), 'utf8'),
-    readFileSync(join(repoRoot, 'index.html'), 'utf8'),
+    readFileSync(join(repoRoot, APP_DIR, 'index.html'), 'utf8'),
   );
 });
 
