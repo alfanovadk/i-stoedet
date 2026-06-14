@@ -11,9 +11,9 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 	root * /var/www/xn--i-stdet-t1a.dk/current
 	encode gzip zstd
 
-	# sw.js + manifest skal være friske, ellers hænger PWA på en gammel app-skal.
-	@swmanifest path /app/sw.js /app/manifest.webmanifest
-	header @swmanifest Cache-Control "public, max-age=0, must-revalidate"
+	# Caddy anvender header-direktiver i rækkefølge; sidste match vinder for samme
+	# felt. sw.js/manifest matcher BÅDE @appassets og @swmanifest, så @swmanifest
+	# SKAL stå sidst for at vinde (max-age=0). Rækkefølge er bevidst.
 
 	# PWA-moduler/ikoner: kort cache.
 	@appassets path /app/*.js /app/*.png /app/*.ico
@@ -26,6 +26,11 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 	# HTML opdateres ofte → kort cache.
 	@html path *.html /
 	header @html Cache-Control "public, max-age=300, must-revalidate"
+
+	# sw.js + manifest skal være friske (ellers hænger PWA på en gammel app-skal).
+	# SIDST, så den overskriver @appassets for sw.js.
+	@swmanifest path /app/sw.js /app/manifest.webmanifest
+	header @swmanifest Cache-Control "public, max-age=0, must-revalidate"
 
 	# Sikkerheds-headers. >-prefix lader upstream overskrive. HSTS-ramp: start lavt.
 	# Bevidst INGEN restriktiv Content-Security-Policy: PWA'ens index.html bruger

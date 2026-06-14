@@ -8,7 +8,7 @@
     "dev": "eleventy --serve",
     "build": "eleventy",
     "clean": "rm -rf _site",
-    "deploy": "npm run build && rsync -avz --delete _site/ root@websites:/var/www/xn--i-stdet-t1a.dk/current/ && npm run verify:live",
+    "deploy": "npm run build && rsync -avz --delete _site/ root@websites:/var/www/xn--i-stdet-t1a.dk/current/ && npm run deploy:purge && npm run verify:live",
     "deploy:caddy": "bash scripts/deploy-caddy.sh",
     "verify:live": "node scripts/verify-live.mjs",
     "cap:assets": "node scripts/build-www.mjs",
@@ -16,7 +16,8 @@
     "cap:sync": "npm run cap:assets && npx cap sync ios",
     "cap:open": "npx cap open ios",
     "ios:release": "sh scripts/ios-release.sh",
-    "xcode:log": "node scripts/xcode-cloud-log.mjs"
+    "xcode:log": "node scripts/xcode-cloud-log.mjs",
+    "deploy:purge": "node scripts/purge-cache.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
