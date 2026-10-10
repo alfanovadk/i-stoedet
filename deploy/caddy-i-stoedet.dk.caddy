@@ -90,3 +90,38 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 		format json
 	}
 }
+
+# media.i-stødet.dk — cookieless asset-host (ug-stack MEDIA_URL-mønster, kontrakt 0019).
+# Samme docroot som sitet, men KUN /assets/*. Filerne er cache-bustet via ?v=<content-hash>
+# (assetVersion-filteret), så de kan caches som immutable. Ingen cookies sættes nogen steder.
+media.xn--i-stdet-t1a.dk {
+	tls /etc/caddy/certs/xn--i-stdet-t1a.dk/origin.crt /etc/caddy/certs/xn--i-stdet-t1a.dk/origin.key
+
+	root * /var/www/xn--i-stdet-t1a.dk/current
+	encode gzip zstd
+
+	@assets path /assets/*
+	handle @assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		header Access-Control-Allow-Origin "https://xn--i-stdet-t1a.dk"
+		header Vary Origin
+		file_server
+	}
+	handle {
+		respond 404
+	}
+
+	header {
+		>Strict-Transport-Security "max-age=86400"
+		>X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/media.xn--i-stdet-t1a.dk.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+		format json
+	}
+}

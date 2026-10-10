@@ -8,7 +8,7 @@
     "dev": "eleventy --serve",
     "build": "eleventy",
     "clean": "rm -rf _site",
-    "deploy": "npm run tariffs && npm run build && rsync -avz --delete _site/ root@websites:/var/www/xn--i-stdet-t1a.dk/current/ && npm run deploy:purge && npm run verify:live",
+    "deploy": "npm run tariffs && MEDIA_URL=https://media.xn--i-stdet-t1a.dk npm run build && rsync -avz --delete _site/ root@websites:/var/www/xn--i-stdet-t1a.dk/current/ && npm run deploy:purge && npm run verify:live",
     "deploy:caddy": "bash scripts/deploy-caddy.sh",
     "verify:live": "node scripts/verify-live.mjs",
     "tariffs": "node scripts/fetch-tariffs.mjs",
