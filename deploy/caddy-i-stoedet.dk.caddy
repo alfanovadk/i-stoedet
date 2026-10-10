@@ -39,12 +39,16 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 	@swmanifest path /app/sw.js /app/manifest.webmanifest
 	header @swmanifest Cache-Control "public, max-age=0, must-revalidate"
 
-	# Sikkerheds-headers. >-prefix lader upstream overskrive. HSTS-ramp: start lavt.
+	# Sikkerheds-headers. >-prefix lader upstream overskrive.
+	# HSTS-ramp: 300 → 86400 (nu, trin 1) → 31536000 når et døgn har kørt uden
+	# problemer. Hæv først til et år når alle subdomæner med sikkerhed er HTTPS.
+	# X-Frame-Options DENY: sitet og appen skal aldrig indlejres i en frame.
 	# Bevidst INGEN restriktiv Content-Security-Policy: PWA'ens index.html bruger
 	# inline scripts; en streng script-src ville brække appen. Tilføj først CSP
 	# efter appens inline-JS er flyttet ud (uden for dette projekts scope).
 	header {
-		>Strict-Transport-Security "max-age=300"
+		>Strict-Transport-Security "max-age=86400"
+		>X-Frame-Options "DENY"
 		>X-Content-Type-Options "nosniff"
 		>Referrer-Policy "strict-origin-when-cross-origin"
 		>Permissions-Policy "geolocation=(), camera=(), microphone=()"
