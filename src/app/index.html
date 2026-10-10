@@ -159,7 +159,7 @@ import {
 } from './forbrug-analyse.js?v=8';
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
 import { ellySVG } from './elly.js?v=2';
-import { futurePool as poolFrom, viewCore, keyOf } from './view.js?v=2';
+import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=3';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -283,9 +283,44 @@ function loadState(){
   app.state.toast='';
   app.state.region=regionFor(app.state.dso, app.state.region);
 }
+// iOS-appen gemmer Eloverblik-tokenet i Keychain (app-lokalt plugin, se ios/App/App/IStoedetPlugin.swift).
+// Web og en native-app uden pluginet beholder tokenet i localStorage som hidtil.
+const NativeStore=window.Capacitor?.isNativePlatform() ? (window.Capacitor.Plugins?.IStoedet||null) : null;
+const TOKEN_KEY='eloverblik_refresh';
+// Del de kommende timepriser med iOS-widget'en (no-op på web og uden pluginet).
+function shareWidget(){
+  if(!NativeStore?.setWidgetData || !app.raw.length) return;
+  try{
+    const json=JSON.stringify(widgetPayload(app.raw, cfg(), nowDK(), app.state.region, Math.floor(Date.now()/1000)));
+    NativeStore.setWidgetData({json}).catch(()=>{});
+  }catch(e){}
+}
+let secureToken=false;   // true når Keychain er bekræftet brugbar — først da fjernes tokenet fra localStorage
+async function initSecureToken(){
+  if(!NativeStore) return;
+  try{
+    const legacy=app.state.eloverblik.refreshToken||'';
+    const stored=(await NativeStore.keychainGet({key:TOKEN_KEY})).value||'';
+    if(stored){ app.state.eloverblik.refreshToken=stored; secureToken=true; }
+    else if(legacy){
+      // Flyt et eksisterende token: skriv, læs tilbage, og slip først localStorage-kopien når de er ens.
+      await NativeStore.keychainSet({key:TOKEN_KEY,value:legacy});
+      secureToken=(await NativeStore.keychainGet({key:TOKEN_KEY})).value===legacy;
+    } else secureToken=true;
+    if(secureToken) saveState();
+  }catch(e){ secureToken=false; }
+}
 function saveState(){
-  const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
+  const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff}=app.state;
+  let eloverblik=app.state.eloverblik;
+  if(secureToken){
+    const token=eloverblik.refreshToken||'';
+    eloverblik={...eloverblik, refreshToken:''};
+    (token ? NativeStore.keychainSet({key:TOKEN_KEY,value:token}) : NativeStore.keychainRemove({key:TOKEN_KEY}))
+      .catch(()=>{ secureToken=false; saveState(); });   // Keychain fejlede: fald tilbage til localStorage
+  }
   try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
+  shareWidget();   // netselskab/tillæg ændrer prisen widget'en viser
 }
 
 /* ===================== DATA ===================== */
@@ -314,6 +349,7 @@ async function load(){
   }catch(e){ app.loading=false; app.error=e.message; }
   bumpStreak();
   render();
+  shareWidget();
   refreshLiveTariff();
   // Forbrugs-hentning er gated på stale-guard'en (se shouldRefreshConsumption) — den hitter
   // IKKE DataHub på hvert load()/visibilitychange, kun hvis cache mangler eller er stale.
@@ -1769,6 +1805,7 @@ loadState();
 // Vis cachede priser med det samme (uden «ingen forbindelse»-note); load() henter friske.
 try{ if(applyPrices([],[])){ app.loading=false; app.staleTs=null; } }catch(e){ app.raw=[]; }
 render();
+await initSecureToken();   // no-op på web; på iOS hentes tokenet fra Keychain før første forbrugskald
 load();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
 // Hold visningen frisk mens appen står åben: re-render ved timeskifte (ny dag → hent igen),

@@ -1,5 +1,5 @@
 // Service worker til «I stødet»-PWA
-const CACHE = 'istoedet-v15';
+const CACHE = 'istoedet-v16';
 const SHELL = [
   'index.html',
   'pricing.js',

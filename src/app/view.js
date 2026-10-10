@@ -1,7 +1,7 @@
 // view.js — ren visnings-logik for «Nu»-fanen. Ingen DOM, ingen global state:
 // alt afhænger af (raw, cfg, now), så det kan testes med falsk tid.
 // `now` er dansk vægur (nowDK() fra pricing.js). `cfg` er { markup, tariff }.
-import { parseDK, totalOf, seriesForDay, loHi, tierOf } from './pricing.js';
+import { parseDK, totalOf, seriesForDay, loHi, tierOf, bestWindow } from './pricing.js';
 
 export const keyOf = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const addDay = d => { const x = new Date(d); x.setDate(x.getDate() + 1); return x; };
@@ -11,7 +11,8 @@ const addDay = d => { const x = new Date(d); x.setDate(x.getDate() + 1); return 
 export function futurePool(raw, cfg, now){
   const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
   return raw.map(r => { const t = parseDK(r.time_start);
-      return { h:t.h, dayKey:t.dayKey, dow:t.dow, total:totalOf(r, cfg), dateObj:new Date(t.y, t.monthIdx, t.d, t.h) }; })
+      return { h:t.h, dayKey:t.dayKey, dow:t.dow, total:totalOf(r, cfg), dateObj:new Date(t.y, t.monthIdx, t.d, t.h),
+        ts:Math.floor(Date.parse(r.time_start) / 1000) }; })
     .filter(x => x.dateObj >= cutoff).sort((a, b) => a.dateObj - b.dateObj);
 }
 
@@ -42,4 +43,18 @@ export function viewCore(raw, cfg, now){
   const mood = hasToday ? 1 - Math.max(0, Math.min(1, (nowTotal - loT) / Math.max(1, hiT - loT))) : 1;
   const look = !hasToday || nowTier === 0 ? 0 : (nextCheapH < 0 ? 1 : Math.min(1, (nextCheapH - nowH) / 8));
   return { nowH, todayList, tmrList, hasToday, hasTmr, loT, hiT, nowTotal, nowTier, peak, cheapEndH, nextCheapH, dayAvg, score, mood, look };
+}
+
+// Data til iOS-widget'en (læses af ios/App/IStoedetWidget/PriceStore.swift): de
+// kommende timepriser som { t: epoch-sekunder, p: øre/kWh } og det billigste
+// sammenhængende vindue på `windowLen` timer. `nowEpoch` er rigtig tid i sekunder.
+export function widgetPayload(raw, cfg, now, area, nowEpoch, windowLen = 3){
+  const pool = futurePool(raw, cfg, now).filter(x => Number.isFinite(x.ts));
+  const w = bestWindow(pool, windowLen);
+  return {
+    updated: nowEpoch, area,
+    hours: pool.map(x => ({ t:x.ts, p:Math.round(x.total * 10) / 10 })),
+    cheapFrom: w ? w.from.ts : null,
+    cheapTo: w ? w.to.ts + 3600 : null,
+  };
 }

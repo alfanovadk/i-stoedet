@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { futurePool, viewCore, keyOf } from '../src/app/view.js';
+import { futurePool, viewCore, keyOf, widgetPayload } from '../src/app/view.js';
 
 // Flat tariff + zero markup so totals follow the spot price shape.
 const CFG = { markup: 0, tariff: { winter: { lav: 0, hoej: 0, spids: 0 }, summer: { lav: 0, hoej: 0, spids: 0 } } };
@@ -73,4 +73,22 @@ test('viewCore: Ellys humør og blik følger prisen', () => {
   const peak = viewCore([...TODAY, ...TMR], CFG, at(18));
   assert.deepEqual([peak.mood, peak.look], [0, 1]);
   assert.deepEqual([viewCore([], CFG, at(3)).mood, viewCore([], CFG, at(3)).look], [1, 0]);
+});
+
+test('widgetPayload: kommende timer i rigtig tid + billigste 3-timers vindue', () => {
+  const w = widgetPayload([...TODAY, ...TMR], CFG, at(14), 'DK1', 1234);
+  assert.equal(w.updated, 1234);
+  assert.equal(w.area, 'DK1');
+  assert.equal(w.hours.length, 10 + 24);
+  // 2026-10-10 14:00 +02:00 = 12:00 UTC
+  assert.equal(w.hours[0].t, Date.UTC(2026, 9, 10, 12) / 1000);
+  assert.equal(w.hours[0].p, 77.9);                       // 62,5 spot inkl. moms + 1,0 elafgift + 14,375 Energinet
+  assert.equal(w.hours[1].t - w.hours[0].t, 3600);
+  // Cheapest 3 hours ahead: tomorrow 00–03 (10 øre spot). +02:00 -> 22:00 UTC the day before.
+  assert.equal(w.cheapFrom, Date.UTC(2026, 9, 10, 22) / 1000);
+  assert.equal(w.cheapTo - w.cheapFrom, 3 * 3600);
+});
+
+test('widgetPayload: uden data er der ingen timer og intet vindue', () => {
+  assert.deepEqual(widgetPayload([], CFG, at(14), 'DK2', 1), { updated: 1, area: 'DK2', hours: [], cheapFrom: null, cheapTo: null });
 });
