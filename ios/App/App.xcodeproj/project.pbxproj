@@ -70,7 +70,7 @@
 		B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IStoedetPlugin.swift; sourceTree = "<group>"; };
 		B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
-		CA063540EA33EEFA17219A5E /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; path = README.md; sourceTree = "<group>"; };
+		CA063540EA33EEFA17219A5E /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStore.swift; sourceTree = "<group>"; };
 		F0F199469FA5C7D5EEDEAB9B /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -153,7 +153,6 @@
 				CA063540EA33EEFA17219A5E /* README.md */,
 				8330C7423E1817A96263030B /* PriceStoreCheck.swift */,
 			);
-			name = IStoedetWidget;
 			path = IStoedetWidget;
 			sourceTree = "<group>";
 		};
