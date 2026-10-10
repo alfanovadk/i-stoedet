@@ -53,10 +53,13 @@ module.exports = function (eleventyConfig) {
     return `<svg viewBox="${ic[0]}" width="${dim}" height="${dim}" fill="${color || "currentColor"}" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:-0.125em;overflow:visible;"><path d="${ic[1]}"/></svg>`;
   });
   // Elly-maskotten (statisk, glad) — den ENESTE ikke-FA-grafik der må bruges på sitet.
+  // Omridset følger tekstfarven (--text), så det er synligt i dark mode; i light
+  // mode er --text = #11352b, altså uændret. Ansigtet (øjne, pupiller, mund)
+  // ligger oven på gul/hvid og beholder derfor den mørke farve i begge temaer.
   eleventyConfig.addShortcode("elly", (size, stroke) => {
-    const s = size || 96, k = stroke || "#11352b";
-    return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" aria-hidden="true" focusable="false" style="display:inline-block;overflow:visible;">` +
-      `<path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${k}" stroke-width="4.5" stroke-linejoin="round"/>` +
+    const s = size || 96, k = "#11352b", outline = stroke || "currentColor";
+    return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" aria-hidden="true" focusable="false" style="display:inline-block;overflow:visible;color:var(--text,#11352b);">` +
+      `<path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${outline}" stroke-width="4.5" stroke-linejoin="round"/>` +
       `<circle cx="55" cy="44" r="8" fill="#fff" stroke="${k}" stroke-width="2"/>` +
       `<circle cx="73" cy="44" r="8" fill="#fff" stroke="${k}" stroke-width="2"/>` +
       `<circle cx="57" cy="46" r="3.4" fill="${k}"/><circle cx="75" cy="46" r="3.4" fill="${k}"/>` +
