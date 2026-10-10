@@ -6,7 +6,7 @@ eleventyExcludeFromCollections: true
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {%- for p in collections.all %}
   {%- if not ('/app/' in p.url) and p.url != '/404.html' %}
-  <url><loc>{{ site.url }}{{ p.url }}</loc></url>
+  <url><loc>{{ site.url }}{{ p.url }}</loc><lastmod>{{ p.inputPath | lastmod }}</lastmod></url>
   {%- endif %}
 {%- endfor %}
 </urlset>

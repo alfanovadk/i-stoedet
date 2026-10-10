@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { execFileSync } = require("node:child_process");
 const { assetUrl: assetUrlFn } = require("@udstillerguide/11ty-media/lib/asset-url");
 
 module.exports = function (eleventyConfig) {
@@ -32,9 +33,33 @@ module.exports = function (eleventyConfig) {
     }
   });
 
+  // Browsere henter /favicon.ico fra roden uanset <link>; genbrug appens ikon.
+  eleventyConfig.addPassthroughCopy({ "src/app/favicon.ico": "favicon.ico" });
+
+  // absUrl: gør en rod-relativ sti absolut (og:image/JSON-LD kræver fuld URL).
+  // Allerede absolutte URL'er (MEDIA_URL sat) returneres uændret.
+  eleventyConfig.addFilter("absUrl", (p, base) => (/^https?:\/\//.test(p) ? p : base + p));
+  // jsonld: sikker serialisering til <script type="application/ld+json">.
+  eleventyConfig.addFilter("jsonld", (obj) => JSON.stringify(obj).replace(/</g, "\\u003c"));
+  // lastmod: dato (YYYY-MM-DD) for sidste git-commit der rørte kildefilen.
+  // Fallback er build-dagen (ucommittet fil eller build uden git-historik).
+  const lastmodCache = new Map();
+  eleventyConfig.addFilter("lastmod", (inputPath) => {
+    if (lastmodCache.has(inputPath)) return lastmodCache.get(inputPath);
+    let d = "";
+    try {
+      d = execFileSync("git", ["log", "-1", "--format=%cs", "--", inputPath], { cwd: __dirname, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch (e) { /* no git: fall through */ }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) d = new Date().toISOString().slice(0, 10);
+    lastmodCache.set(inputPath, d);
+    return d;
+  });
+
   // kr-formatering: 12.34 -> "12,34". Bruges i besparelses-tal.
   eleventyConfig.addFilter("kr", (n) => Number(n).toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   eleventyConfig.addFilter("kr0", (n) => Number(n).toLocaleString("da-DK", { maximumFractionDigits: 0 }));
+  // tal: dansk decimalkomma uden tvungne decimaler (4.5 -> "4,5", 50 -> "50"). Til kWh.
+  eleventyConfig.addFilter("tal", (n) => Number(n).toLocaleString("da-DK", { maximumFractionDigits: 2 }));
 
   // ── Ikoner: KUN Font Awesome (genbruger PWA'ens paths) + Elly-maskotten. Ingen emojis. ──
   // {% icon "car", 28 %}  ·  {% elly 88 %}
@@ -51,10 +76,13 @@ module.exports = function (eleventyConfig) {
     return `<svg viewBox="${ic[0]}" width="${dim}" height="${dim}" fill="${color || "currentColor"}" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:-0.125em;overflow:visible;"><path d="${ic[1]}"/></svg>`;
   });
   // Elly-maskotten (statisk, glad) — den ENESTE ikke-FA-grafik der må bruges på sitet.
+  // Omridset følger tekstfarven (--text), så det er synligt i dark mode; i light
+  // mode er --text = #11352b, altså uændret. Ansigtet (øjne, pupiller, mund)
+  // ligger oven på gul/hvid og beholder derfor den mørke farve i begge temaer.
   eleventyConfig.addShortcode("elly", (size, stroke) => {
-    const s = size || 96, k = stroke || "#11352b";
-    return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" aria-hidden="true" focusable="false" style="display:inline-block;overflow:visible;">` +
-      `<path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${k}" stroke-width="4.5" stroke-linejoin="round"/>` +
+    const s = size || 96, k = "#11352b", outline = stroke || "currentColor";
+    return `<svg viewBox="0 0 120 120" width="${s}" height="${s}" aria-hidden="true" focusable="false" style="display:inline-block;overflow:visible;color:var(--text,#11352b);">` +
+      `<path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${outline}" stroke-width="4.5" stroke-linejoin="round"/>` +
       `<circle cx="55" cy="44" r="8" fill="#fff" stroke="${k}" stroke-width="2"/>` +
       `<circle cx="73" cy="44" r="8" fill="#fff" stroke="${k}" stroke-width="2"/>` +
       `<circle cx="57" cy="46" r="3.4" fill="${k}"/><circle cx="75" cy="46" r="3.4" fill="${k}"/>` +

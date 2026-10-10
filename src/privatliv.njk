@@ -1,0 +1,57 @@
+---
+layout: layouts/base.njk
+title: Privatlivspolitik
+pageTitle: Privatlivspolitik · I stødet
+description: I stødet gemmer dine oplysninger på din egen enhed. Ingen konto, ingen sporing. Se hvad der gemmes, hvilke tjenester appen kontakter, og hvordan du sletter dine data.
+permalink: /privatliv/
+---
+<article class="prose">
+  <h1>Privatlivspolitik</h1>
+  <p class="lead">I stødet gemmer dine oplysninger på din egen enhed. Du opretter ingen konto, og vi sporer dig ikke.</p>
+
+  <h2>Kort fortalt</h2>
+  <ul>
+    <li>Alt, hvad appen gemmer, ligger lokalt på din telefon eller i din browser.</li>
+    <li>Du opretter ingen konto og logger ikke ind hos os.</li>
+    <li>Vi bruger ingen statistik, ingen sporing og ingen reklamer.</li>
+    <li>Vi modtager hverken dit elforbrug, dit Eloverblik-token eller dine indstillinger.</li>
+  </ul>
+
+  <h2>Det gemmer appen på din enhed</h2>
+  <p>Appen gemmer kun det, der skal til for at virke. Det ligger i enhedens lokale lager og bliver ikke sendt til alfanova.</p>
+  <ul>
+    <li><strong>Dine indstillinger:</strong> tema, prisområde, netselskab, eventuel egen tarif, elselskabets tillæg og hvor længe dine apparater kører.</li>
+    <li><strong>Dit Eloverblik-token:</strong> kun hvis du selv forbinder Eloverblik. Vi gemmer tokenet og det målepunkt, du har valgt.</li>
+    <li><strong>Dit forbrug:</strong> det forbrug, appen har hentet fra Eloverblik, gemmes som en kopi på enheden, så appen kan vise det uden at hente det igen.</li>
+    <li><strong>Priser og CO2-tal:</strong> hentede timepriser og CO2-tal gemmes, så appen også virker uden net.</li>
+    <li><strong>Dine point:</strong> point, mål du har nået, og hvor mange dage i træk du har brugt appen.</li>
+  </ul>
+
+  <h2>Tjenester appen kontakter</h2>
+  <p>Appen henter data direkte fra din enhed hos de tjenester, der er nævnt her. Det går ikke gennem vores server. Tjenesterne ser derfor din IP-adresse, som alle tjenester på nettet gør.</p>
+  <ul>
+    <li><strong>elprisenligenu.dk:</strong> timepriser på el. Appen sender dato og prisområde.</li>
+    <li><strong>Energi Data Service (api.energidataservice.dk):</strong> Energinets åbne data om CO2-udledning. Appen sender prisområde og tidsrum.</li>
+    <li><strong>Eloverblik (api.eloverblik.dk):</strong> kun hvis du forbinder Eloverblik. Appen sender dit token til Eloverblik for at hente dit eget forbrug.</li>
+    <li><strong>Google Fonts:</strong> appens skrifttyper hentes hos Google, som derfor ser din IP-adresse. Vi arbejder på at lægge skrifttyperne på vores egen server.</li>
+  </ul>
+  <p>Appen linker også til andre hjemmesider, for eksempel en ugeprognose. De kontaktes først, når du selv trykker på linket.</p>
+
+  <h2>Hjemmesiden</h2>
+  <p>Hjemmesiden {{ site.displayUrl | replace("https://", "") }} ligger på vores egen webserver bag Cloudflare. Som på alle hjemmesider registrerer serveren tekniske oplysninger i en log: IP-adresse, tidspunkt og hvilken side der blev hentet. Vi bruger kun loggen til drift og fejlsøgning, og den bliver løbende overskrevet.</p>
+  <p>Vi sætter ingen cookies til statistik eller markedsføring.</p>
+
+  <h2>Sådan sletter du dine data</h2>
+  <p>Dine data ligger hos dig. Derfor er det også dig, der sletter dem.</p>
+  <ul>
+    <li><strong>Afbryd Eloverblik:</strong> Tryk på <strong>Afbryd</strong> ud for Eloverblik i appen. Så fjernes dit token og dit målepunkt fra enheden.</li>
+    <li><strong>Slet tokenet hos Eloverblik:</strong> Log ind på eloverblik.dk med MitID, og slet tokenet under API-adgang. Så kan det ikke bruges mere.</li>
+    <li><strong>Slet alt:</strong> Slet appen fra din telefon. Bruger du I stødet i en browser, sletter du webstedsdata for {{ site.displayUrl | replace("https://", "") }} i browserens indstillinger. Så forsvinder også hentet forbrug, point og indstillinger.</li>
+  </ul>
+
+  <h2>Dataansvarlig og kontakt</h2>
+  <p>I stødet er lavet af <a href="{{ site.makerUrl }}">alfanova</a>, som er dataansvarlig for hjemmesiden. Har du spørgsmål om dine oplysninger, er du velkommen til at skrive til <a href="mailto:{{ site.contactEmail }}">{{ site.contactEmail }}</a>.</p>
+  <p>Er du utilfreds med vores svar, kan du klage til Datatilsynet på datatilsynet.dk.</p>
+
+  <p class="muted">Senest opdateret {{ site.privacyUpdated }}.</p>
+</article>

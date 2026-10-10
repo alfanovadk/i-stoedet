@@ -1,5 +1,6 @@
 ---
 layout: layouts/base.njk
+ogType: article
 ---
 {%- set a = apparater.bySlug(apparat) %}
 <article class="guide">
@@ -7,9 +8,9 @@ layout: layouts/base.njk
   <h1>{{ h1 }}</h1>
   <p class="lead">{{ a.resume }}</p>
   <aside class="savings-box">
-    <p>Typisk besparelse: <strong>{{ apparater.besparelse(a, 'typisk') | kr }} kr</strong> {{ a.enhed }}
-    {%- if a.frekvensOmAaret %} · ca. <strong>{{ apparater.besparelseOmAaret(a, 'typisk') | kr0 }} kr/år</strong>{% endif %}.</p>
-    <p class="muted">Spændvidde: {{ apparater.besparelse(a, 'lav') | kr }}–{{ apparater.besparelse(a, 'hoej') | kr }} kr {{ a.enhed }} (afhænger af dagens prisforskel).</p>
+    <p>Typisk besparelse: <strong>{{ apparater.besparelse(a, 'aar') | kr }} kr</strong> {{ a.enhed }}
+    {%- if a.frekvensOmAaret %} · ca. <strong>{{ apparater.besparelseOmAaret(a) | kr0 }} kr/år</strong>{% endif %}.</p>
+    <p class="muted">Spændvidde: {{ apparater.besparelse(a, 'sommer') | kr }} kr om sommeren, {{ apparater.besparelse(a, 'vinter') | kr }} kr om vinteren. Regnet som gennemsnit over {{ a.timer }} timer, ikke dyreste mod billigste time. <a href="/saadan-beregner-vi/">Se regnestykket</a>.</p>
   </aside>
   {%- if not a.kanFlyttes %}
   <p class="caveat"><strong>Kun hvis du kan flytte forbruget:</strong> {{ a.forudsaetning }}</p>
@@ -19,3 +20,16 @@ layout: layouts/base.njk
   {{ content | safe }}
   <p class="cta"><a class="nav-cta" href="{{ site.appPath }}">Se din egen besparelse i appen →</a></p>
 </article>
+{%- set articleLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": h1,
+  "description": description,
+  "inLanguage": "da",
+  "mainEntityOfPage": site.url + page.url,
+  "image": site.ogImage | assetUrl | absUrl(site.url),
+  "dateModified": page.inputPath | lastmod,
+  "author": { "@type": "Organization", "name": site.maker, "url": site.makerUrl },
+  "publisher": { "@id": site.makerUrl + "/#organization" }
+} %}
+<script type="application/ld+json">{{ articleLd | jsonld | safe }}</script>

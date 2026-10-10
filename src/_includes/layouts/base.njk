@@ -3,16 +3,46 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ pageTitle or (title + " · " + site.name) }}</title>
+{%- set fullTitle = pageTitle or (title + " · " + site.name) %}
+{%- set pageUrl = site.url + page.url %}
+{%- set ogImageUrl = site.ogImage | assetUrl | absUrl(site.url) %}
+<title>{{ fullTitle }}</title>
 <meta name="description" content="{{ description }}">
-{%- if robots %}<meta name="robots" content="{{ robots }}">{%- endif %}
-<link rel="canonical" href="{{ site.url }}{{ page.url }}">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ pageTitle or (title + ' · ' + site.name) }}">
+{%- if robots %}
+<meta name="robots" content="{{ robots }}">
+{%- endif %}
+{%- if not noCanonical %}
+<link rel="canonical" href="{{ pageUrl }}">
+<meta property="og:url" content="{{ pageUrl }}">
+{%- endif %}
+<meta property="og:type" content="{{ ogType | default('website') }}">
+<meta property="og:title" content="{{ fullTitle }}">
 <meta property="og:description" content="{{ description }}">
 <meta property="og:locale" content="da_DK">
 <meta property="og:site_name" content="{{ site.name }}">
+<meta property="og:image" content="{{ ogImageUrl }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ site.ogImageAlt }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ fullTitle }}">
+<meta name="twitter:description" content="{{ description }}">
+<meta name="twitter:image" content="{{ ogImageUrl }}">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/app/icon-192.png">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | assetUrl }}?v={{ '/assets/css/main.css' | assetVersion }}">
+{%- if not noCanonical %}
+{%- set ld = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", "@id": site.makerUrl + "/#organization", "name": site.maker, "url": site.makerUrl },
+    { "@type": "WebSite", "@id": site.url + "/#website", "url": site.url + "/", "name": site.name,
+      "description": site.description, "inLanguage": "da", "publisher": { "@id": site.makerUrl + "/#organization" } }
+  ]
+} %}
+<script type="application/ld+json">{{ ld | jsonld | safe }}</script>
+{%- endif %}
 </head>
 <body class="{{ bodyClass | default('') }}">
 <a class="skip-link" href="#main">Spring til hovedindhold</a>

@@ -19,7 +19,7 @@
 import { execFileSync } from "node:child_process";
 
 const HOST = process.env.VERIFY_HOST || "https://xn--i-stdet-t1a.dk";
-const ROUTES = ["/", "/spar/", "/spar/elbil/", "/spar/opvaskemaskine/", "/spar/vaskemaskine/", "/spar/varmepumpe/", "/saadan-beregner-vi/", "/om/", "/app/"];
+const ROUTES = ["/", "/spar/", "/spar/elbil/", "/spar/opvaskemaskine/", "/spar/vaskemaskine/", "/spar/varmepumpe/", "/saadan-beregner-vi/", "/om/", "/privatliv/", "/support/", "/app/"];
 
 let DEV_BROWSER;
 try {

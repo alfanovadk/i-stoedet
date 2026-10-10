@@ -11,33 +11,44 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 	root * /var/www/xn--i-stdet-t1a.dk/current
 	encode gzip zstd
 
-	# Caddy anvender header-direktiver i rækkefølge; sidste match vinder for samme
-	# felt. sw.js/manifest matcher BÅDE @appassets og @swmanifest, så @swmanifest
-	# SKAL stå sidst for at vinde (max-age=0). Rækkefølge er bevidst.
+	# Caddy kører ALLE header-direktiver der matcher, i fil-rækkefølge (navngivne
+	# matchere sorteres ikke); sidste match vinder for samme felt. Derfor står den
+	# bredeste regel (@html) FØRST og de mere specifikke bagefter. sw.js/manifest
+	# matcher BÅDE @appassets og @swmanifest, så @swmanifest SKAL stå sidst for at
+	# vinde (max-age=0). Rækkefølge er bevidst.
+
+	# HTML opdateres ofte → kort cache. `*/` er suffix-match på alle mappe-URL'er
+	# (/, /om/, /spar/elbil/, /app/); `*.html` dækker /404.html og /app/index.html.
+	@html path *.html */
+	header @html Cache-Control "public, max-age=300, must-revalidate"
+
+	# robots.txt + sitemap.xml: en time er rigeligt friskt for crawlere.
+	@crawl path /robots.txt /sitemap.xml
+	header @crawl Cache-Control "public, max-age=3600"
 
 	# PWA-moduler/ikoner: kort cache.
-	@appassets path /app/*.js /app/*.png /app/*.ico
+	@appassets path /app/*.js /app/*.png /app/*.ico /favicon.ico
 	header @appassets Cache-Control "public, max-age=3600"
 
-	# Marketing-assets (CSS/JS) er cache-bustet via ?v= → kan caches længere.
+	# Marketing-assets (CSS/JS/billeder) er cache-bustet via ?v= → kan caches længere.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=86400"
-
-	# HTML opdateres ofte → kort cache.
-	@html path *.html /
-	header @html Cache-Control "public, max-age=300, must-revalidate"
 
 	# sw.js + manifest skal være friske (ellers hænger PWA på en gammel app-skal).
 	# SIDST, så den overskriver @appassets for sw.js.
 	@swmanifest path /app/sw.js /app/manifest.webmanifest
 	header @swmanifest Cache-Control "public, max-age=0, must-revalidate"
 
-	# Sikkerheds-headers. >-prefix lader upstream overskrive. HSTS-ramp: start lavt.
+	# Sikkerheds-headers. >-prefix lader upstream overskrive.
+	# HSTS-ramp: 300 → 86400 (nu, trin 1) → 31536000 når et døgn har kørt uden
+	# problemer. Hæv først til et år når alle subdomæner med sikkerhed er HTTPS.
+	# X-Frame-Options DENY: sitet og appen skal aldrig indlejres i en frame.
 	# Bevidst INGEN restriktiv Content-Security-Policy: PWA'ens index.html bruger
 	# inline scripts; en streng script-src ville brække appen. Tilføj først CSP
 	# efter appens inline-JS er flyttet ud (uden for dette projekts scope).
 	header {
-		>Strict-Transport-Security "max-age=300"
+		>Strict-Transport-Security "max-age=86400"
+		>X-Frame-Options "DENY"
 		>X-Content-Type-Options "nosniff"
 		>Referrer-Policy "strict-origin-when-cross-origin"
 		>Permissions-Policy "geolocation=(), camera=(), microphone=()"
