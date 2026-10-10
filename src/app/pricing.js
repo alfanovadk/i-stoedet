@@ -6,16 +6,43 @@ export const ENERGINET = 14.375; // 11,5 øre ekskl. moms × 1,25 — system- + 
 export const MOMS = 1.25;
 
 // Nettariffer, øre/kWh inkl. moms. Tarifmodel 3.0.
-// Satser pr. jan 2026 — verificér årligt (justeres typisk 1/1 og 1/4).
-// Kilder: elforbrug.nu (vinter), eloversigt.dk (sommer).
+// Hver periode gælder fra `from` (YYYY-MM-DD) til næste periodes `from`.
+// Netselskaber skifter typisk satser 1/1, 1/4 og 1/10 — tilføj en ny periode.
+// Kilder: jan 2026 fra elforbrug.nu/eloversigt.dk; 2026-10-01 fra Energi Data
+// Service DatahubPricelist (Price × 1,25), verificeret 2026-10-10.
 export const DSO_TARIFFS = {
-  n1:       { navn:'N1',            winter:{lav:11,hoej:33,spids:99},  summer:{lav:11,hoej:17,spids:43} },
-  radius:   { navn:'Radius',        winter:{lav:12,hoej:37,spids:110}, summer:{lav:13,hoej:20,spids:52} },
-  cerius:   { navn:'Cerius',        winter:{lav:13,hoej:40,spids:120}, summer:{lav:14,hoej:22,spids:56} },
-  trefor:   { navn:'TREFOR El-net', winter:{lav:8, hoej:24,spids:73},  summer:{lav:5, hoej:8, spids:21} },
-  konstant: { navn:'Konstant',      winter:{lav:6, hoej:18,spids:54},  summer:{lav:8, hoej:11,spids:30} },
-  dinel:    { navn:'Dinel',         winter:{lav:10,hoej:30,spids:91},  summer:{lav:8, hoej:12,spids:30} },
+  n1:       { navn:'N1', periods:[
+    { from:'2026-01-01', winter:{lav:11,hoej:33,spids:99},  summer:{lav:11,hoej:17,spids:43} },
+  ]},
+  radius:   { navn:'Radius', periods:[
+    { from:'2026-01-01', winter:{lav:12,hoej:37,spids:110}, summer:{lav:13,hoej:20,spids:52} },
+    { from:'2026-10-01', winter:{lav:13.27,hoej:39.82,spids:119.45}, summer:{lav:13.27,hoej:19.91,spids:51.76} },
+  ]},
+  cerius:   { navn:'Cerius', periods:[
+    { from:'2026-01-01', winter:{lav:13,hoej:40,spids:120}, summer:{lav:14,hoej:22,spids:56} },
+    { from:'2026-10-01', winter:{lav:14.42,hoej:43.25,spids:129.75}, summer:{lav:14.42,hoej:21.63,spids:56.23} },
+  ]},
+  trefor:   { navn:'TREFOR El-net', periods:[
+    { from:'2026-01-01', winter:{lav:8, hoej:24,spids:73},  summer:{lav:5, hoej:8, spids:21} },
+    { from:'2026-10-01', winter:{lav:5.36,hoej:16.10,spids:48.29}, summer:{lav:5.36,hoej:8.05,spids:20.93} },
+  ]},
+  konstant: { navn:'Konstant', periods:[
+    { from:'2026-01-01', winter:{lav:6, hoej:18,spids:54},  summer:{lav:8, hoej:11,spids:30} },
+  ]},
+  dinel:    { navn:'Dinel', periods:[
+    { from:'2026-01-01', winter:{lav:10,hoej:30,spids:91},  summer:{lav:8, hoej:12,spids:30} },
+    { from:'2026-10-01', winter:{lav:7.69,hoej:23.07,spids:69.24}, summer:{lav:7.69,hoej:11.54,spids:30.00} },
+  ]},
 };
+
+// Tarif gældende på `date` (YYYY-MM-DD). En egen tarif ({winter, summer}
+// uden perioder) returneres uændret.
+export function tariffAt(tariff, date){
+  if (!tariff.periods) return tariff;
+  let cur = tariff.periods[0];
+  for (const p of tariff.periods) if (date >= p.from) cur = p;
+  return cur;
+}
 
 // monthIdx er 0-baseret (0=januar). Vinter okt–mar, sommer apr–sep.
 export const season = monthIdx => (monthIdx >= 3 && monthIdx <= 8) ? 'summer' : 'winter';
@@ -35,7 +62,7 @@ export function parseDK(s){
 export function componentsOf(rec, cfg){
   const spot = rec.DKK_per_kWh * 100 * MOMS;
   const t = parseDK(rec.time_start);
-  const net = nettarif(t.h, t.monthIdx, cfg.tariff);
+  const net = nettarif(t.h, t.monthIdx, tariffAt(cfg.tariff, rec.time_start.slice(0, 10)));
   const total = spot + ELAFGIFT + ENERGINET + net + cfg.markup;
   return { spot, elafgift:ELAFGIFT, energinet:ENERGINET, nettarif:net, markup:cfg.markup, total };
 }

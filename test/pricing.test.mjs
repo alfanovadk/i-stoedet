@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, ENERGINET, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay, tierClass,
+  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt,
 } from '../src/app/pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -15,20 +15,23 @@ test('season: oktober-marts er vinter, april-september er sommer', () => {
   assert.equal(season(11), 'winter');
 });
 
-test('DSO_TARIFFS indeholder de seks netselskaber med begge sæsoner', () => {
+test('DSO_TARIFFS: seks netselskaber, hver periode har begge sæsoner', () => {
   for (const key of ['n1','radius','cerius','trefor','konstant','dinel']) {
     const d = DSO_TARIFFS[key];
     assert.ok(d, `mangler ${key}`);
-    for (const s of ['winter','summer']) {
-      for (const band of ['lav','hoej','spids']) {
-        assert.equal(typeof d[s][band], 'number', `${key}.${s}.${band}`);
+    for (const p of d.periods) {
+      assert.match(p.from, /^\d{4}-\d{2}-\d{2}$/);
+      for (const s of ['winter','summer']) {
+        for (const band of ['lav','hoej','spids']) {
+          assert.equal(typeof p[s][band], 'number', `${key}.${p.from}.${s}.${band}`);
+        }
       }
     }
   }
 });
 
 test('nettarif: rigtige tidsbånd for N1 vinter', () => {
-  const t = DSO_TARIFFS.n1;
+  const t = tariffAt(DSO_TARIFFS.n1, '2026-01-15');
   assert.equal(nettarif(3, 0, t), 11);
   assert.equal(nettarif(10, 0, t), 33);
   assert.equal(nettarif(18, 0, t), 99);
@@ -36,13 +39,13 @@ test('nettarif: rigtige tidsbånd for N1 vinter', () => {
 });
 
 test('nettarif: N1 sommer afviger fra vinter', () => {
-  const t = DSO_TARIFFS.n1;
+  const t = tariffAt(DSO_TARIFFS.n1, '2026-01-15');
   assert.equal(nettarif(18, 5, t), 43);
   assert.equal(nettarif(3, 5, t), 11);
 });
 
 test('nettarif: spids-grænser er 17–20 inkl., 21 er høj', () => {
-  const t = DSO_TARIFFS.cerius;
+  const t = tariffAt(DSO_TARIFFS.cerius, '2026-01-15');
   assert.equal(nettarif(16, 0, t), 40);
   assert.equal(nettarif(17, 0, t), 120);
   assert.equal(nettarif(20, 0, t), 120);
@@ -179,4 +182,32 @@ test('seriesForDay: filtrerer på dayKey', () => {
     mkRec('2026-06-14T10:00:00+02:00'),
   ];
   assert.equal(seriesForDay(raw, '2026-6-13', CFG6).length, 1);
+});
+
+// Dated tariffs: DSOs change rates on 1/1, 1/4, 1/10. Values verified against
+// Energi Data Service DatahubPricelist (Price x 1.25) on 2026-10-10.
+const at = (iso, dso) => componentsOf({ DKK_per_kWh: 0.5, time_start: iso }, { markup: 0, tariff: DSO_TARIFFS[dso] }).nettarif;
+
+test('nettarif: vintersatser fra 1/10-2026 (spidslast kl. 17)', () => {
+  const iso = '2026-10-15T17:00:00+02:00';
+  assert.equal(at(iso, 'radius'), 119.45);
+  assert.equal(at(iso, 'cerius'), 129.75);
+  assert.equal(at(iso, 'trefor'), 48.29);
+  assert.equal(at(iso, 'dinel'), 69.24);
+  assert.equal(at(iso, 'n1'), 99);
+});
+
+test('nettarif: januar 2026 bruger stadig jan-2026-satserne', () => {
+  const iso = '2026-01-13T18:00:00+01:00';
+  assert.equal(at(iso, 'radius'), 110);
+  assert.equal(at(iso, 'trefor'), 73);
+});
+
+test('nettarif: sommer 2026 uændret', () => {
+  assert.equal(at('2026-07-01T18:00:00+02:00', 'radius'), 52);
+});
+
+test('tariffAt: egen tarif uden perioder returneres uændret', () => {
+  const custom = { winter:{lav:1,hoej:2,spids:3}, summer:{lav:1,hoej:2,spids:3} };
+  assert.equal(tariffAt(custom, '2026-10-15'), custom);
 });
