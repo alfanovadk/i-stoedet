@@ -133,8 +133,8 @@
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
-  datahubURL, liveFromDatahub
-} from './pricing.js?v=10';
+  datahubURL, liveFromDatahub, pickPrices
+} from './pricing.js?v=11';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
@@ -285,7 +285,7 @@ function loadState(){
 }
 function saveState(){
   const {theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
-  localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}));
+  try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
 }
 
 /* ===================== DATA ===================== */
@@ -294,13 +294,22 @@ function dayURL(d){const y=d.getFullYear(),m=pad(d.getMonth()+1),day=pad(d.getDa
 async function fetchDay(d){try{const r=await fetch(dayURL(d),{cache:'no-store'});
   if(!r.ok)return [];const j=await r.json();return Array.isArray(j)?j:[];}catch(e){return [];}}
 
+// Sidst hentede priser { region, ts, raw } — så appen kan vise dem offline eller ved API-fejl.
+const PRICE_CACHE_KEY='elpriser_price_cache';
+function loadPriceCache(){ try{ return JSON.parse(localStorage.getItem(PRICE_CACHE_KEY)||'null'); }catch(e){ return null; } }
+function applyPrices(a,b){
+  const today=nowDK(), tmr=addDays(today,1);
+  const {raw,staleTs}=pickPrices(a,b,loadPriceCache(),app.state.region,keyOf(today),keyOf(tmr));
+  app.raw=raw; app.staleTs=staleTs;
+  if(a.length){ try{ localStorage.setItem(PRICE_CACHE_KEY,JSON.stringify({region:app.state.region,ts:Date.now(),raw})); }catch(e){} }
+  return raw.length>0;
+}
 async function load(){
-  app.loading=true; app.error=null;
-  const today=nowDK(), tmr=nowDK(); tmr.setDate(tmr.getDate()+1);
+  app.error=null;
+  const today=nowDK(), tmr=addDays(today,1);
   try{
     const [a,b]=await Promise.all([fetchDay(today),fetchDay(tmr)]);
-    app.raw=[...a,...b];
-    if(!app.raw.length) throw new Error('ingen data');
+    if(!applyPrices(a,b)) throw new Error('ingen data');
     app.loading=false;
   }catch(e){ app.loading=false; app.error=e.message; }
   bumpStreak();
@@ -1536,12 +1545,18 @@ function toastHTML(th){
   if(!app.state.toast) return '';
   return `<div role="status" style="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom) + 12px);z-index:50;max-width:380px;width:calc(100% - 40px);background:${th.accent};color:${th.accentText};font-size:12.5px;font-weight:700;line-height:1.4;border-radius:14px;padding:11px 16px;box-shadow:0 10px 30px -10px rgba(0,0,0,.45);animation:pop .22s ease;text-align:center;">${esc(app.state.toast)}</div>`;
 }
+// Diskret note når de viste priser kommer fra cachen (offline eller API-fejl).
+function staleHTML(th){
+  if(!app.staleTs || app.loading || app.error) return '';
+  const t=nowDK(new Date(app.staleTs));
+  return `<div role="status" style="margin:0 0 10px;padding:8px 12px;border-radius:12px;background:${th.surface};border:1px solid ${th.border};color:${th.muted};font-size:12px;font-weight:600;text-align:center;">Ingen forbindelse · viser priser hentet kl. ${pad(t.getHours())}:${pad(t.getMinutes())}</div>`;
+}
 function render(){
   const th=THEMES[app.state.theme];
   document.body.style.background=th.bg;
   document.getElementById('theme-color').setAttribute('content',th.bg);
   const root=document.getElementById('app');
-  root.innerHTML=`<div class="tabcontent">${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
+  root.innerHTML=`<div class="tabcontent">${staleHTML(th)}${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
   const sr=document.getElementById('sheet-root');
   if(app.state.sheet){ document.getElementById('sheet').innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():sheetHTML()); sr.classList.add('open'); }
   else sr.classList.remove('open');
@@ -1715,9 +1730,22 @@ window.exportForbrugCSV=exportForbrugCSV;
 
 /* ===================== INIT ===================== */
 loadState();
+// Vis cachede priser med det samme (uden «ingen forbindelse»-note); load() henter friske.
+if(applyPrices([],[])){ app.loading=false; app.staleTs=null; }
 render();
 load();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
+// Hold visningen frisk mens appen står åben: re-render ved timeskifte (ny dag → hent igen),
+// hent morgendagens priser hvert 15. min fra kl. 13 til de er der, og prøv igen hvert 5. min
+// når priserne er gamle eller mangler. Rører ikke DOM mens et ark eller et inputfelt er i brug.
+let lastTickHour=nowDK().getHours();
+setInterval(()=>{
+  if(document.hidden || app.state.sheet || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'')) return;
+  const now=nowDK(), h=now.getHours(), m=now.getMinutes();
+  const hasTmr=app.raw.some(r=>parseDK(r.time_start).dayKey===keyOf(addDays(now,1)));
+  if(h!==lastTickHour){ lastTickHour=h; if(h===0) load(); else render(); }
+  else if((app.staleTs||app.error) ? m%5===0 : (!hasTmr && h>=13 && m%15===0)) load();
+}, 60*1000);
 if(!window.Capacitor?.isNativePlatform() && 'serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
 </script>
 </body>

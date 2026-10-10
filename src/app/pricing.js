@@ -176,3 +176,17 @@ export function nowDK(at = new Date()){
   for (const { type, value } of DK_PARTS.formatToParts(at)) p[type] = +value;
   return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
 }
+
+// Vælg prisdata efter et hentningsforsøg. Friske records vinder. Kunne dagens
+// priser ikke hentes (offline/API-fejl), bruges cachen hvis den dækker dagen for
+// samme prisområde; morgendagens genbruges fra cachen når de ikke kom med.
+// `cache` er { region, ts, raw } eller null. `staleTs` er cachens tidsstempel
+// når dagens priser stammer derfra, ellers null.
+export function pickPrices(todayRecs, tmrRecs, cache, region, todayKey, tmrKey){
+  const cached = key => (cache && cache.region === region)
+    ? cache.raw.filter(r => parseDK(r.time_start).dayKey === key) : [];
+  const stale = !todayRecs.length;
+  const today = stale ? cached(todayKey) : todayRecs;
+  const tmr = tmrRecs.length ? tmrRecs : cached(tmrKey);
+  return { raw:[...today, ...tmr], staleTs: stale && today.length ? cache.ts : null };
+}

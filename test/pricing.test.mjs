@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, energinetAt, regionFor, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub,
+  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub, pickPrices,
 } from '../src/app/pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -285,4 +285,27 @@ test('tariffAt/componentsOf: live-periode vinder, statisk tabel er fallback uden
   assert.equal(net('2026-10-15T17:00:00+02:00'), 100);       // live
   assert.equal(net('2026-11-15T17:00:00+01:00'), 119.45);    // after ValidTo -> static
   assert.equal(net('2026-01-13T18:00:00+01:00'), 110);       // before -> static
+});
+
+// Offline fallback: which price records to show after a fetch attempt.
+const day = (d, n = 2) => Array.from({ length: n }, (_, h) => ({ DKK_per_kWh: 0.5, time_start: `2026-10-${d}T0${h}:00:00+02:00` }));
+const CACHE = { region: 'DK1', ts: 1234, raw: [...day(10), ...day(11)] };
+
+test('pickPrices: friske priser vinder og er ikke markeret som gamle', () => {
+  const fresh = day(10, 3);
+  const r = pickPrices(fresh, [], CACHE, 'DK1', '2026-10-10', '2026-10-11');
+  assert.equal(r.staleTs, null);
+  assert.equal(r.raw.length, 3 + 2);            // tomorrow reused from cache
+});
+
+test('pickPrices: fejlet hentning falder tilbage til cachen for samme prisområde', () => {
+  const r = pickPrices([], [], CACHE, 'DK1', '2026-10-10', '2026-10-11');
+  assert.equal(r.raw.length, 4);
+  assert.equal(r.staleTs, 1234);
+});
+
+test('pickPrices: cache for andet prisområde eller anden dag bruges ikke', () => {
+  assert.deepEqual(pickPrices([], [], CACHE, 'DK2', '2026-10-10', '2026-10-11'), { raw: [], staleTs: null });
+  assert.deepEqual(pickPrices([], [], CACHE, 'DK1', '2026-10-12', '2026-10-13'), { raw: [], staleTs: null });
+  assert.deepEqual(pickPrices([], [], null, 'DK1', '2026-10-10', '2026-10-11'), { raw: [], staleTs: null });
 });
