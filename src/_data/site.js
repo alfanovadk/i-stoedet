@@ -11,6 +11,11 @@ export default {
   maker: "alfanova",
   makerUrl: "https://alfanova.dk",
   appPath: "/app/",
+  // PLADSHOLDER: skal erstattes med den rigtige kontakt-adresse FØR deploy.
+  // Bruges på /privatliv/ og /support/ (eneste sted adressen står).
+  contactEmail: "TODO-KONTAKT-EMAIL",
+  // Dato for seneste indholdsmæssige ændring af privatlivspolitikken.
+  privacyUpdated: "10. oktober 2026",
   ogImage: "/assets/img/og-image.png",
   ogImageAlt: "I stødet. Se hvornår strømmen er billig, og spar på det du alligevel bruger.",
   nav: [
@@ -18,5 +23,10 @@ export default {
     { href: "/saadan-beregner-vi/", label: "Sådan beregner vi" },
     { href: "/om/", label: "Om" },
     { href: "/app/", label: "Åbn app", cta: true },
+  ],
+  // Ekstra links der kun vises i footeren.
+  footerNav: [
+    { href: "/support/", label: "Support" },
+    { href: "/privatliv/", label: "Privatliv" },
   ],
 };

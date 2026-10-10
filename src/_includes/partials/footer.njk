@@ -2,5 +2,6 @@
   <p>{{ site.name }} · et værktøj fra <a href="{{ site.makerUrl }}">{{ site.maker }}</a>.</p>
   <nav aria-label="Footer">
     {%- for item in site.nav %}<a href="{{ item.href }}">{{ item.label }}</a> {% endfor %}
+    {%- for item in site.footerNav %}<a href="{{ item.href }}">{{ item.label }}</a> {% endfor %}
   </nav>
 </footer>
