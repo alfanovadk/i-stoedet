@@ -31,6 +31,9 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="/app/icon-192.png">
 <link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
+{%- if intro %}
+<script>try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&!sessionStorage.getItem("elly-intro")){sessionStorage.setItem("elly-intro","1");document.documentElement.classList.add("intro-on")}}catch(e){}</script>
+{%- endif %}
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | assetUrl }}?v={{ '/assets/css/main.css' | assetVersion }}">
 {%- if not noCanonical %}
 {%- set ld = {
@@ -45,6 +48,7 @@
 {%- endif %}
 </head>
 <body class="{{ bodyClass | default('') }}">
+{%- if intro %}{% include "partials/elly-intro.njk" %}{% endif %}
 <a class="skip-link" href="#main">Spring til hovedindhold</a>
 {% include "partials/header.njk" %}
 <main id="main">

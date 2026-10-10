@@ -529,3 +529,136 @@ strong { font-weight: 700; }
     box-shadow: 0 4px 14px rgba(52, 178, 123, .4) !important;
   }
 }
+
+/* =========================================================
+   ELLY INTRO (front page, once per session, ~5 s)
+   Markup: partials/elly-intro.njk. Shown only when the inline head
+   script sets html.intro-on. Only transform + opacity are animated.
+   Timeline (5 s): 0-0.9 rush in · 0.9-1.4 brake · 1.3-2.5 green ·
+   2.6-3.6 red (one slow fade in/out, no strobe) · 3.7-4.5 green payoff ·
+   4.5-5 overlay slides away.
+   ========================================================= */
+.ei { display: none; }
+html.intro-on .ei {
+  --ei-bg: var(--bg); --ei-ink: #11352b;
+  --ei-wash-g: #c9eedb; --ei-crest-g: #8fd5b3; --ei-outline: #11352b;
+  --ei-wash-r: #f9d2ca; --ei-crest-r: #f0a597;
+  --ei-line: rgba(17, 53, 43, .22); --ei-dust: #b9c9c0;
+  display: block; position: fixed; inset: 0; z-index: 1000; overflow: hidden;
+  background: var(--ei-bg); color: var(--ei-ink);
+  animation: ei-out 5s linear both;
+}
+@media (prefers-color-scheme: dark) {
+  html.intro-on .ei {
+    --ei-ink: #F3FAF6; --ei-outline: #e6f2ec;
+    --ei-wash-g: #12432f; --ei-crest-g: #1f6b4a; --ei-wash-r: #4b1d16; --ei-crest-r: #8a3226;
+    --ei-line: rgba(230, 242, 236, .22); --ei-dust: #3c5247;
+  }
+}
+@media (prefers-reduced-motion: reduce) { html.intro-on .ei { display: none; } }
+html.intro-on .ei.is-out { animation: ei-skip .35s ease-in both; }
+.ei-stage, .ei-wave, .ei-lines { position: absolute; inset: 0; }
+.ei-wave { top: 22%; width: 200%; animation: ei-rise 5s both; }
+.ei-wave svg { display: block; width: 100%; height: 100%; animation: ei-sway 2.4s linear infinite; }
+.ei-wave--g { color: var(--ei-wash-g); --c: var(--ei-crest-g); }
+.ei-wave--r { color: var(--ei-wash-r); --c: var(--ei-crest-r); animation-name: ei-rise, ei-red; }
+.ei-wave path { fill: currentColor; }
+.ei-wave .ei-crest { fill: var(--c); }
+.ei-elly use { stroke: var(--ei-outline); }
+.ei-lines { animation: ei-lines 5s both; }
+.ei-lines i {
+  position: absolute; left: 0; width: 34vw; height: 5px; border-radius: 5px;
+  background: var(--ei-line); animation: ei-line .42s linear infinite;
+}
+.ei-lines i:nth-child(1) { top: 30%; animation-delay: -.1s; }
+.ei-lines i:nth-child(2) { top: 38%; width: 22vw; animation-delay: -.3s; }
+.ei-lines i:nth-child(3) { top: 45%; animation-delay: -.2s; }
+.ei-lines i:nth-child(4) { top: 52%; width: 26vw; animation-delay: -.05s; }
+.ei-lines i:nth-child(5) { top: 60%; animation-delay: -.25s; }
+.ei-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center;
+}
+.ei-run { position: relative; animation: ei-run 5s both; }
+.ei-body { transform-origin: 50% 100%; animation: ei-body 5s both; }
+.ei-elly { display: block; width: min(42vw, 210px); height: auto; overflow: visible; }
+.ei-g { animation: ei-green 5s both; }
+.ei-r, .ei-mad { animation: ei-red 5s both; }
+.ei-happy { animation: ei-happy 5s both; }
+.ei-pupils { animation: ei-look 5s both; }
+.ei-spk { transform-box: fill-box; transform-origin: center; animation: ei-spk 5s both; }
+.ei-fx { position: absolute; left: 30%; bottom: 4%; }
+.ei-fx b {
+  position: absolute; width: 34px; height: 34px; margin: -17px; border-radius: 50%;
+  background: var(--ei-dust); opacity: 0; animation: ei-puff 5s both;
+}
+.ei-fx b:nth-child(1) { --x: -90px; --y: -30px; }
+.ei-fx b:nth-child(2) { --x: -50px; --y: -70px; width: 26px; height: 26px; }
+.ei-fx b:nth-child(3) { --x: -130px; --y: -8px; width: 22px; height: 22px; }
+.ei-fx .ei-spark { width: 18px; height: 5px; margin: -2px; border-radius: 3px; background: #FFD23F; }
+.ei-fx b:nth-child(4) { --x: 70px; --y: -46px; rotate: -30deg; }
+.ei-fx b:nth-child(5) { --x: 96px; --y: -6px; rotate: -8deg; }
+.ei-caps { display: grid; width: 100%; max-width: 640px; min-height: 6.5em; }
+.ei-cap { grid-area: 1 / 1; margin: 0; opacity: 0; }
+.ei-cap strong { display: block; font-size: clamp(2rem, 8vw, 3.4rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+.ei-cap span { display: block; margin-top: .4em; font-size: clamp(1.05rem, 4vw, 1.35rem); font-weight: 600; }
+.ei-cap--1 { animation: ei-cap1 5s both; }
+.ei-cap--2 { animation: ei-cap2 5s both; }
+.ei-cap--3 { animation: ei-cap3 5s both; }
+.ei-skip {
+  position: absolute; top: 16px; right: 16px; z-index: 2;
+  font: inherit; font-size: .9375rem; font-weight: 700; color: var(--ei-ink);
+  background: var(--ei-bg); border: 2px solid currentColor; border-radius: 999px;
+  padding: 8px 18px; cursor: pointer;
+}
+.ei-skip:focus-visible { outline: 3px solid #FFD23F; outline-offset: 3px; }
+
+@keyframes ei-out { 0%, 90% { opacity: 1; transform: none; animation-timing-function: ease-in; } 100% { opacity: 0; transform: translateY(-12%); visibility: hidden; } }
+@keyframes ei-skip { to { opacity: 0; transform: translateY(-8%); visibility: hidden; } }
+@keyframes ei-rise { 0%, 13% { transform: translateY(100%); } 30%, 100% { transform: none; } }
+@keyframes ei-sway { to { transform: translateX(-50%); } }
+@keyframes ei-lines { 0%, 12% { opacity: 1; } 18%, 100% { opacity: 0; } }
+@keyframes ei-line { from { transform: translateX(110vw); } to { transform: translateX(-40vw); } }
+@keyframes ei-run {
+  0% { transform: translateX(-90vw); animation-timing-function: linear; }
+  12% { transform: translateX(-12vw); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+  22% { transform: translateX(4vw); animation-timing-function: ease-in-out; }
+  29%, 100% { transform: none; }
+}
+@keyframes ei-body {
+  0%, 12% { transform: rotate(10deg) skewX(-16deg) scale(1.3, .86); }
+  16% { transform: rotate(-16deg) skewX(12deg) scale(.8, 1.14); }
+  23% { transform: rotate(5deg) scale(1.1, .9); }
+  30%, 32% { transform: none; }
+  37% { transform: translateY(-16%) scale(.96, 1.05); }
+  41% { transform: scale(1.08, .92); }
+  45% { transform: translateY(-7%); }
+  49%, 53% { transform: none; }
+  57% { transform: scale(1.05, .95) rotate(-4deg); }
+  63% { transform: rotate(4deg); }
+  69% { transform: rotate(-3deg); }
+  74% { transform: none; }
+  80% { transform: translateY(-14%) rotate(-5deg) scale(.96, 1.05); }
+  85% { transform: scale(1.06, .94); }
+  89%, 100% { transform: none; }
+}
+@keyframes ei-green { 0%, 21% { opacity: 0; } 27%, 50% { opacity: 1; } 55%, 72% { opacity: 0; } 77%, 100% { opacity: 1; } }
+@keyframes ei-red { 0%, 50% { opacity: 0; } 55%, 72% { opacity: 1; } 77%, 100% { opacity: 0; } }
+@keyframes ei-happy { 0%, 50% { opacity: 1; } 53%, 73% { opacity: 0; } 76%, 100% { opacity: 1; } }
+@keyframes ei-look { 0%, 14% { transform: translateX(2.4px); } 22%, 100% { transform: none; } }
+@keyframes ei-spk {
+  0%, 27% { opacity: 0; transform: scale(0); }
+  32% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+  48% { opacity: 1; transform: scale(1) rotate(90deg); }
+  52%, 76% { opacity: 0; transform: scale(0); }
+  81% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+  100% { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+@keyframes ei-puff {
+  0%, 13% { opacity: 0; transform: scale(.3); }
+  15% { opacity: .9; transform: scale(.6); }
+  29%, 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(1.5); }
+}
+@keyframes ei-cap1 { 0%, 26% { opacity: 0; transform: translateY(24px) scale(.92); } 31%, 49% { opacity: 1; transform: none; } 53%, 100% { opacity: 0; transform: translateY(-16px); } }
+@keyframes ei-cap2 { 0%, 53% { opacity: 0; transform: translateY(24px) scale(.92); } 57%, 71% { opacity: 1; transform: none; } 75%, 100% { opacity: 0; transform: translateY(-16px); } }
+@keyframes ei-cap3 { 0%, 75% { opacity: 0; transform: translateY(24px) scale(.92); } 80%, 100% { opacity: 1; transform: none; } }

@@ -1,0 +1,46 @@
+{#- Front-page intro (~5 s). Hidden unless the inline head script adds
+    html.intro-on (JS on, no reduced motion, first visit this session).
+    Animation lives in main.css («ELLY INTRO»); site.js handles skip + removal. -#}
+<div class="ei" id="elly-intro">
+  <div class="ei-stage" aria-hidden="true">
+    <div class="ei-wave ei-wave--g"><svg viewBox="0 0 1200 400" preserveAspectRatio="none"><path class="ei-crest" d="M0 30 Q150 0 300 30 T600 30 T900 30 T1200 30 V400 H0Z"/><path d="M0 48 Q150 18 300 48 T600 48 T900 48 T1200 48 V400 H0Z"/></svg></div>
+    <div class="ei-wave ei-wave--r"><svg viewBox="0 0 1200 400" preserveAspectRatio="none"><path class="ei-crest" d="M0 30 Q150 0 300 30 T600 30 T900 30 T1200 30 V400 H0Z"/><path d="M0 48 Q150 18 300 48 T600 48 T900 48 T1200 48 V400 H0Z"/></svg></div>
+    <div class="ei-lines"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="ei-center">
+      <div class="ei-run">
+        <div class="ei-fx"><b class="ei-dust"></b><b class="ei-dust"></b><b class="ei-dust"></b><b class="ei-spark"></b><b class="ei-spark"></b></div>
+        <div class="ei-body">
+          <svg viewBox="0 0 120 120" class="ei-elly">
+            <defs>
+              <path id="ei-b" d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" stroke-width="4.5" stroke-linejoin="round"/>
+              <radialGradient id="ei-gg"><stop offset="35%" stop-color="#34B27B" stop-opacity=".8"/><stop offset="100%" stop-color="#34B27B" stop-opacity="0"/></radialGradient>
+              <radialGradient id="ei-gr"><stop offset="35%" stop-color="#E5604D" stop-opacity=".8"/><stop offset="100%" stop-color="#E5604D" stop-opacity="0"/></radialGradient>
+            </defs>
+            <circle class="ei-g" cx="62" cy="60" r="58" fill="url(#ei-gg)"/>
+            <circle class="ei-r" cx="62" cy="60" r="58" fill="url(#ei-gr)"/>
+            <path class="ei-spk" d="M104 18 l2.4 7 l7 2.4 l-7 2.4 l-2.4 7 l-2.4 -7 l-7 -2.4 l7 -2.4 z" fill="#7CE0A8"/>
+            <path class="ei-spk" d="M14 34 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" fill="#34B27B"/>
+            <path class="ei-spk" d="M96 92 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" fill="#7CE0A8"/>
+            <use href="#ei-b" fill="#FFD23F"/>
+            <use class="ei-g" href="#ei-b" fill="#34B27B"/>
+            <use class="ei-r" href="#ei-b" fill="#E5604D"/>
+            <circle cx="55" cy="44" r="8" fill="#fff" stroke="#11352b" stroke-width="2"/>
+            <circle cx="73" cy="44" r="8" fill="#fff" stroke="#11352b" stroke-width="2"/>
+            <g class="ei-pupils" fill="#11352b"><circle cx="57" cy="46" r="3.4"/><circle cx="75" cy="46" r="3.4"/></g>
+            <path class="ei-happy" d="M53 55 Q64 71 75 55 Z" fill="#11352b" stroke="#11352b" stroke-width="2.4" stroke-linejoin="round"/>
+            <g class="ei-mad" stroke="#11352b" stroke-linecap="round" fill="none">
+              <path d="M53 60 l4.6 -5 l4.6 5 l4.6 -5 l4.6 5 l4.6 -5" stroke-width="2.6" stroke-linejoin="round"/>
+              <path d="M47 33 L61 41 M81 33 L67 41" stroke-width="3.2"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="ei-caps">
+        <p class="ei-cap ei-cap--1"><strong>Grøn strøm!</strong><span>Der er masser af den</span></p>
+        <p class="ei-cap ei-cap--2"><strong>Rød strøm</strong><span>Det er dyrt</span></p>
+        <p class="ei-cap ei-cap--3"><strong>Find den grønne bølge</strong><span>Brug strømmen, når den er grøn og billig.</span></p>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="ei-skip">Spring over</button>
+</div>
