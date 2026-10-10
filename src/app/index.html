@@ -11,11 +11,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Unbounded:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>I stødet</title>
 <style>
+  /* Self-hostede fonte (OFL): ingen kald til Google, virker offline. Kun det aktive temas fonte hentes. */
+  @font-face{font-family:'Figtree';font-style:normal;font-weight:400 900;font-display:swap;src:url(fonts/figtree.woff2) format('woff2');}
+  @font-face{font-family:'Fredoka';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/fredoka.woff2) format('woff2');}
+  @font-face{font-family:'Baloo 2';font-style:normal;font-weight:500 800;font-display:swap;src:url(fonts/baloo2.woff2) format('woff2');}
+  @font-face{font-family:'Unbounded';font-style:normal;font-weight:400 900;font-display:swap;src:url(fonts/unbounded.woff2) format('woff2');}
+  @font-face{font-family:'Space Grotesk';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/space-grotesk.woff2) format('woff2');}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{font-family:'Figtree',-apple-system,BlinkMacSystemFont,sans-serif;color:#11352b;
@@ -32,6 +35,8 @@
     font:inherit;font-weight:700;font-size:10.5px;cursor:pointer;border-radius:13px;transition:color .15s,background .15s;}
   .tabbtn .ic{font-size:20px;line-height:1;}
   button{font-family:inherit}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  :focus-visible{outline:2px solid currentColor;outline-offset:2px}
   @keyframes slideup{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
   @keyframes fadein{0%{opacity:0}100%{opacity:1}}
   @keyframes pop{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
@@ -51,9 +56,15 @@
   .char{transform-box:fill-box;transform-origin:center}
   .bolt{transform-box:fill-box;transform-origin:center}
   .eye,.pupil{transform-box:fill-box;transform-origin:center}
-  .brow,.mouth-mad,.spark,.sparkle{opacity:0}
+  .brow,.mouth-mad,.spark,.sparkle,.glow{opacity:0}
+  /* Glød = et statisk sløret lag bag Elly; kun dets opacity animeres (ingen repaint pr. frame). */
+  .glow{filter:blur(9px);transform-box:fill-box;transform-origin:center}
+  .cheap .glow{fill:#34B27B;opacity:.4}
+  .expensive .glow{fill:#E5604D;opacity:.4}
+  .charge .glow{fill:#FFD23F;opacity:.4}
   /* statisk pris-tier-udtryk (farve/ansigt) — IKKE animation, så tier er synlig uden bevægelse */
   .cheap .bolt{fill:#34B27B}
+  .expensive .bolt{fill:#E5604D}
   .expensive .eye{transform:scaleY(.5)}
   .expensive .mouth-happy{opacity:0}
   .expensive .mouth-mad{opacity:1}
@@ -61,6 +72,10 @@
 
   /* ===== ELLY MASCOT — bevægelse (kun når brugeren tillader animation) ===== */
   @media (prefers-reduced-motion: no-preference){
+    /* render() genskaber DOM'en. Negativ delay ud fra sidens ur (--elly-t sættes i render)
+       lader hver animation fortsætte i samme fase i stedet for at starte forfra. */
+    .elly,.elly *{animation-delay:calc(-1 * var(--elly-t,0s)) !important}
+    @keyframes glowPulse{0%,100%{opacity:.25}50%{opacity:.7}}
     @keyframes blink{0%,46%,54%,100%{transform:scaleY(1)}50%{transform:scaleY(.12)}}
     @keyframes pupilHide{0%,46%,54%,100%{opacity:1}50%{opacity:0}}
     .blink .eye{animation:blink 4s ease-in-out infinite}
@@ -77,8 +92,6 @@
       40%{transform:translateY(-24px) scale(.9,1.15)}
       70%{transform:translateY(0) scale(1.1,.9)}
       85%{transform:translateY(0) scale(.98,1.02)}}
-    @keyframes glowGreen{0%,100%{filter:drop-shadow(0 0 2px rgba(52,178,123,.4))}
-      50%{filter:drop-shadow(0 0 12px rgba(52,178,123,.85))}}
     @keyframes sparklePop{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.1)}}
     @keyframes cheapDance{
       0%{transform:translateY(0) scale(1,1) rotate(0)}
@@ -90,30 +103,32 @@
       60%{transform:translateY(0) scale(1.05) rotate(-20deg)}
       90%{transform:translateY(0) scale(1.05) rotate(380deg)}
       100%{transform:translateY(0) scale(1) rotate(360deg)}}
-    .cheap{animation:glowGreen 1s ease-in-out infinite}
+    .cheap .glow{animation:glowPulse 1.6s ease-in-out infinite}
     .cheap .char{animation:cheapDance 2.8s ease-in-out infinite;transform-origin:center}
     .cheap .eye{animation:blink 3.4s ease-in-out infinite}
     .cheap .pupil{animation:pupilHide 3.4s ease-in-out infinite}
     .cheap .sparkle{transform-box:fill-box;transform-origin:center;animation:sparklePop 1s ease-in-out infinite}
-    .cheap .sparkle:nth-of-type(2){animation-delay:.33s}
-    .cheap .sparkle:nth-of-type(3){animation-delay:.66s}
+    .cheap .sparkle:nth-of-type(5){animation-delay:calc(.33s - var(--elly-t,0s)) !important}
+    .cheap .sparkle:nth-of-type(6){animation-delay:calc(.66s - var(--elly-t,0s)) !important}
 
     @keyframes buzz{0%,100%{transform:translate(0,0) rotate(0)}
       20%{transform:translate(-1.8px,1px) rotate(-3deg)}
       40%{transform:translate(1.8px,-1px) rotate(3deg)}
       60%{transform:translate(-1.2px,-1px) rotate(-2deg)}
       80%{transform:translate(1.2px,1px) rotate(2deg)}}
-    @keyframes zapRed{0%,100%{fill:#E5604D}40%{fill:#FF2F52}70%{fill:#ffc2cc}}
-    @keyframes glowRed{0%,100%{filter:drop-shadow(0 0 2px rgba(229,96,77,.5))}
-      50%{filter:drop-shadow(0 0 14px rgba(255,47,82,.95))}}
-    @keyframes crackle{0%,100%{opacity:0}45%{opacity:0}50%{opacity:1}55%{opacity:0}}
-    .expensive{animation:glowRed .3s ease-in-out infinite}
-    .expensive .char{animation:buzz .17s linear infinite}
-    .expensive .bolt{animation:zapRed .35s steps(1) infinite}
+    /* Dyr: rolig rystelse + langsom puls. Intet skifter hurtigere end ca. 1 gang i sekundet
+       (WCAG 2.3.1 kræver under 3 blink/s); gnisterne glimter kort hvert 2,4 s. */
+    @keyframes zapRed{0%,100%{fill:#E5604D}50%{fill:#F0806F}}
+    @keyframes crackle{0%,100%{opacity:0}44%{opacity:0}50%{opacity:1}58%{opacity:0}}
+    .expensive .glow{animation:glowPulse 1.2s ease-in-out infinite}
+    .expensive .char{animation:buzz .6s linear infinite}
+    .expensive .bolt{animation:zapRed 1.2s ease-in-out infinite}
+    .expensive .spark{animation:crackle 2.4s linear infinite}
+    .expensive .spark:nth-of-type(2){animation-delay:calc(.8s - var(--elly-t,0s)) !important}
+    .expensive .spark:nth-of-type(3){animation-delay:calc(1.6s - var(--elly-t,0s)) !important}
 
     @keyframes charge{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-    @keyframes glowY{0%,100%{filter:drop-shadow(0 0 0 rgba(255,210,63,0))}50%{filter:drop-shadow(0 0 10px rgba(255,210,63,.95))}}
-    .charge{animation:glowY .6s ease-in-out infinite}
+    .charge .glow{animation:glowPulse .9s ease-in-out infinite}
     .charge .char{animation:charge .6s ease-in-out infinite}
 
     @keyframes cheer{0%{transform:rotate(0) scale(1)}35%{transform:rotate(-18deg) scale(1.05)}70%{transform:rotate(380deg) scale(1.05)}100%{transform:rotate(360deg) scale(1)}}
@@ -126,21 +141,24 @@
 </style>
 </head>
 <body>
+  <h1 class="sr-only">I stødet · elpriser time for time</h1>
   <div id="app"><div class="skel">Henter elpriser…</div></div>
-  <div id="sheet-root"><div class="sheet-back" onclick="closeSettings()"></div><div class="sheet" id="sheet"></div></div>
+  <div id="sheet-root"><div class="sheet-back" onclick="closeSettings()"></div><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Indstillinger" tabindex="-1"></div></div>
 
 <script type="module">
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
   datahubURL, liveFromDatahub, pickPrices, validRecords, validLive
-} from './pricing.js?v=11';
+} from './pricing.js?v=12';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
-  dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily
-} from './forbrug-analyse.js?v=7';
+  dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily, costCompare
+} from './forbrug-analyse.js?v=8';
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
+import { ellySVG } from './elly.js?v=1';
+import { futurePool as poolFrom, viewCore, keyOf } from './view.js?v=1';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -206,33 +224,11 @@ const THEMES={
 };
 
 /* Elly-mascot state machine — stateClass styres af CSS (se <style>), markup fra volt-animationer.html */
-function ellySVG(stateClass, size, stroke){
-  stroke = stroke || '#11352b';
-  return `<svg viewBox="0 0 120 120" class="${stateClass}" width="${size}" height="${size}" style="display:block;overflow:visible;flex-shrink:0;">
-    <path class="spark" d="M99 24 l-6 8 l5 1 l-6 9" fill="none" stroke="#FF2F52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-    <path class="spark" d="M22 40 l7 6 l-4 3 l7 6" fill="none" stroke="#FF6B83" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-    <path class="spark" d="M92 84 l-2 9 l-5 -3 l-1 10" fill="none" stroke="#FF2F52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-    <path class="sparkle" d="M100 22 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" fill="#34B27B"></path>
-    <path class="sparkle" d="M20 36 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 l5 -1.6 z" fill="#7CE0A8"></path>
-    <path class="sparkle" d="M90 96 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 l5 -1.6 z" fill="#34B27B"></path>
-    <g class="char">
-      <path class="bolt" d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${stroke}" stroke-width="4.5" stroke-linejoin="round"></path>
-      <circle class="eye eye-l" cx="55" cy="44" r="8" fill="#fff" stroke="${stroke}" stroke-width="2"></circle>
-      <circle class="eye eye-r" cx="73" cy="44" r="8" fill="#fff" stroke="${stroke}" stroke-width="2"></circle>
-      <circle class="pupil pupil-l" cx="57" cy="46" r="3.4" fill="${stroke}"></circle>
-      <circle class="pupil pupil-r" cx="75" cy="46" r="3.4" fill="${stroke}"></circle>
-      <path class="mouth-mad" d="M53 60 l4.6 -5 l4.6 5 l4.6 -5 l4.6 5 l4.6 -5" stroke="${stroke}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
-      <path class="brow brow-l" d="M47 33 L61 41" stroke="${stroke}" stroke-width="3.2" stroke-linecap="round"></path>
-      <path class="brow brow-r" d="M81 33 L67 41" stroke="${stroke}" stroke-width="3.2" stroke-linecap="round"></path>
-      <path class="mouth-happy" d="M54 56 Q64 64 74 56" stroke="${stroke}" stroke-width="3" fill="none" stroke-linecap="round"></path>
-    </g>
-  </svg>`;
-}
 function ellyState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'cheer'; return app.loading ? 'charge' : tierClass(V.nowTier); }
 
 /* ===================== APP STATE ===================== */
 const app={
-  state:{ theme:'soft', region:'DK1', markup:8, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', sheet:null,
+  state:{ theme:'soft', region:'DK1', markup:8, fastpris:0, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', sheet:null,
     tab:'nu', showProfiles:false,
     selectedHour:null,
     dso:'n1',
@@ -287,8 +283,8 @@ function loadState(){
   app.state.region=regionFor(app.state.dso, app.state.region);
 }
 function saveState(){
-  const {theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
-  try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
+  const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
+  try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
 }
 
 /* ===================== DATA ===================== */
@@ -324,15 +320,9 @@ async function load(){
   fetchRecentConsumption();
 }
 
-function keyOf(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 
 /* ===================== BEREGNINGER ===================== */
-function futurePool(){
-  const now=nowDK(), cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours());
-  return app.raw.map(r=>{const t=parseDK(r.time_start);
-      return {h:t.h,dayKey:t.dayKey,dow:t.dow,total:totalOf(r,cfg()),dateObj:new Date(t.y,t.monthIdx,t.d,t.h)};})
-    .filter(x=>x.dateObj>=cutoff).sort((a,b)=>a.dateObj-b.dateObj);
-}
+function futurePool(){ return poolFrom(app.raw, cfg(), nowDK()); }
 function sameDay(r,d){return r.dayKey===keyOf(d);}
 function isTomorrow(r){const d=nowDK();d.setDate(d.getDate()+1);return sameDay(r,d);}
 function winStr(w){if(!w)return '—';return pad(w.from.h)+'–'+pad((w.to.h+1)%24);}
@@ -758,28 +748,13 @@ function claimBtn(th, apKey, radius){
 }
 
 function computeView(){
-  const now=nowDK(), nowH=now.getHours();
-  const todayList=seriesForDay(app.raw, keyOf(now), cfg());
-  const tmr=nowDK(); tmr.setDate(tmr.getDate()+1);
-  const tmrList=seriesForDay(app.raw, keyOf(tmr), cfg());
-  const hasToday=todayList.length>0, hasTmr=tmrList.length>0;
-  const todayVals=todayList.map(x=>x.total);
-  const [loT,hiT]=hasToday?loHi(todayVals):[0,1];
-
-  const byHour=h=>todayList.find(x=>x.h===h);
-  const nowEntry=byHour(nowH);
-  const nowTotal=nowEntry?nowEntry.total:(todayVals[0]??0);
-  const nowTier=tierOf(nowTotal,loT,hiT);
-  const peak=hasToday?Math.max(...todayVals):0;
-
-  let ce=nowH; while(ce<24 && byHour(ce) && tierOf(byHour(ce).total,loT,hiT)===0) ce++;
-  const cheapEnd=pad(Math.min(ce,24))+':00';
-  let nc=-1; for(let h=nowH;h<24;h++){const e=byHour(h); if(e && tierOf(e.total,loT,hiT)===0){nc=h;break;}}
-  const nextCheap=nc>=0?pad(nc)+':00':'i morgen';
+  const now=nowDK();
+  const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,peak,cheapEndH,nextCheapH,dayAvg,score}=viewCore(app.raw,cfg(),now);
+  const cheapEnd=pad(Math.min(cheapEndH,24))+':00';
+  const nextCheap=nextCheapH>=0?pad(nextCheapH)+':00':'i morgen';
   const cheapUntil = nowTier===0?cheapEnd:nextCheap;
 
   const pool=futurePool();
-  const dayAvg=todayVals.length?todayVals.reduce((a,b)=>a+b,0)/todayVals.length:0;
   const mkAp=(key,name,verb,len,kwh)=>{const w=bestWindow(pool,len);
     const saveKr=Math.max(0,(dayAvg-(w?w.avg:dayAvg))/100*kwh);
     return {key,name,sub:len+' timers '+verb,win:winStr(w),when:whenText(w),price:kr(w?w.avg:0),save:saveKr.toFixed(0)};};
@@ -789,7 +764,6 @@ function computeView(){
     mkAp('vask','Vasketøj','program',app.state.vaskH,KWH.vask)
   ];
   const savedToday=Math.round(appliances.reduce((a,b)=>a+(+b.save),0));
-  const score=hasToday?Math.round(Math.max(0,Math.min(100,(peak-nowTotal)/Math.max(1,peak-loT)*100))):0;
 
   const showToday=app.state.chartTab==='today';
   return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapEnd,nextCheap,
@@ -812,7 +786,7 @@ function chartHTML(list,th,nowH,opts){
     const col=th.pal[tierOf(p,lo,hi)];
     const isNow=hr===nowH;
     const isSel=hr===app.state.selectedHour;
-    return `<div class="bar" onclick="selectHour(${hr})" title="kl ${pad(hr)}:00 · ${kr(p)} kr" style="flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;cursor:pointer;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}${isSel?'outline:2px solid '+th.ring+';outline-offset:1px;':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</div>`;
+    return `<button type="button" class="bar" onclick="selectHour(${hr})" aria-pressed="${isSel}" aria-label="kl ${pad(hr)}: ${kr(p)} kr${isNow?', nu':''}" title="kl ${pad(hr)}:00 · ${kr(p)} kr" style="border:0;padding:0;font:inherit;flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;cursor:pointer;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}${isSel?'outline:2px solid '+th.ring+';outline-offset:1px;':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</button>`;
   }).join('');
   return `<div><div style="display:flex;align-items:flex-end;gap:${gap}px;height:${H}px;padding-top:14px;">${bars}</div>
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis};">
@@ -828,7 +802,7 @@ function ringSectors(th){
     const [x1i,y1i]=polar(rIn,a1),  [x0i,y0i]=polar(rIn,a0);
     const sel=i===app.state.selectedHour;
     const d=`M${x0o} ${y0o} A${rOut} ${rOut} 0 0 1 ${x1o} ${y1o} L${x1i} ${y1i} A${rIn} ${rIn} 0 0 0 ${x0i} ${y0i} Z`;
-    paths+=`<path d="${d}" fill="${th.ring}" fill-opacity="${sel?0.28:0}" stroke="${sel?th.ring:'none'}" stroke-width="${sel?2:0}" style="cursor:pointer;" onclick="selectHour(${i})"></path>`;
+    paths+=`<path d="${d}" fill="${th.ring}" fill-opacity="${sel?0.28:0}" stroke="${sel?th.ring:'none'}" stroke-width="${sel?2:0}" style="cursor:pointer;" onclick="selectHour(${i})" tabindex="0" role="button" aria-pressed="${sel}" aria-label="kl ${pad(i)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectHour(${i});}"></path>`;
   }
   return `<svg viewBox="0 0 230 230" width="230" height="230" style="position:absolute;left:0;top:0;">${paths}</svg>`;
 }
@@ -932,7 +906,7 @@ function pointTeaser(th){
 function viewSoft(V){
   const th=THEMES.soft;
   const [btxt,bcol]=badgeFor(V,th);
-  const brand=`${ellySVG(ellyState(V),26,'#11352b')}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:#11352b;">I stødet</span>`;
+  const brand=`${ellySVG('blink',26,'#11352b')}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:#11352b;">I stødet</span>`;
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #e3ede8;border-radius:14px;padding:9px 12px;">
       <span style="font-size:19px;width:22px;text-align:center;">${fa(APP_ICON[ap.key],'#11352b')}</span>
@@ -963,7 +937,7 @@ function viewSoft(V){
 
 function viewBold(V){
   const th=THEMES.bold;
-  const brand=`${ellySVG(ellyState(V),26,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:#EAF2E9;letter-spacing:-.01em;">I STØDET</span>`;
+  const brand=`${ellySVG('blink',26,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:#EAF2E9;letter-spacing:-.01em;">I STØDET</span>`;
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#131A22;border:1px solid #222e38;border-radius:12px;padding:9px 12px;">
       <span style="font-size:19px;width:22px;text-align:center;">${fa(APP_ICON[ap.key],'#C6FF3D')}</span>
@@ -997,7 +971,7 @@ function viewBold(V){
 
 function viewPlay(V){
   const th=THEMES.play;
-  const brand=`${ellySVG(ellyState(V),26,'#2a2140')}<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:#2a2140;">I stødet</span>`;
+  const brand=`${ellySVG('blink',26,'#2a2140')}<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:#2a2140;">I stødet</span>`;
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid #efe4f8;border-radius:14px;padding:8px 12px;">
       <span style="font-size:20px;width:23px;text-align:center;">${fa(APP_ICON[ap.key],'#6C4BD8')}</span>
@@ -1022,9 +996,9 @@ function viewPlay(V){
 
 /* ===================== POINT-FANE ===================== */
 function brandFor(th){
-  if(app.state.theme==='bold') return `${ellySVG('mid',26,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:${th.text};letter-spacing:-.01em;">I STØDET</span>`;
-  if(app.state.theme==='play') return `${ellySVG('mid',26,'#2a2140')}<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:${th.text};">I stødet</span>`;
-  return `${ellySVG('mid',26,'#11352b')}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:${th.text};">I stødet</span>`;
+  if(app.state.theme==='bold') return `${ellySVG('blink',26,'#0C1117')}<span style="font-family:'Unbounded',sans-serif;font-weight:800;font-size:15px;color:${th.text};letter-spacing:-.01em;">I STØDET</span>`;
+  if(app.state.theme==='play') return `${ellySVG('blink',26,'#2a2140')}<span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:${th.text};">I stødet</span>`;
+  return `${ellySVG('blink',26,'#11352b')}<span style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:18px;color:${th.text};">I stødet</span>`;
 }
 function pointView(V){
   const th=THEMES[app.state.theme];
@@ -1205,6 +1179,10 @@ function sheetHTML(){
     <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
       <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Tillæg pr. kWh</div><div style="font-size:12px;color:${th.muted};">Inkl. moms</div></div>
       ${step('adjMarkup(-1)','−')}<span style="min-width:78px;text-align:center;font-weight:800;font-size:15px;">${app.state.markup} øre</span>${step('adjMarkup(1)','+')}</div>
+    ${lbl('SAMMENLIGN MED FASTPRIS')}
+    <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
+      <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Din fastpris pr. kWh</div><div style="font-size:12px;color:${th.muted};">Samlet pris inkl. afgifter, tariffer og moms. Bruges på Forbrug-fanen.</div></div>
+      ${step('adjFastpris(-5)','−')}<span style="min-width:78px;text-align:center;font-weight:800;font-size:15px;">${app.state.fastpris>0?kr(app.state.fastpris)+' kr':'Ikke sat'}</span>${step('adjFastpris(5)','+')}</div>
     ${lbl('APPARATER — VARIGHED I TIMER')}
     <div style="display:flex;flex-direction:column;gap:9px;">
       ${apRow(APP_ICON.bil,'Bil — ladning','bilH',app.state.bilH)}
@@ -1350,6 +1328,20 @@ function co2Card(th, type, range){
     ${partial}</div>`;
 }
 
+// Dagens forbrug: hvad det kostede til timepris, og hvad det ville have kostet til brugerens fastpris.
+function fastprisCard(th, hourlyKwh, prices){
+  const box=inner=>`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:16px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:${th.muted};margin-bottom:8px;">VARIABEL MOD FAST PRIS</div>${inner}</div>`;
+  if(!(app.state.fastpris>0)) return box(`<div style="font-size:13px;line-height:1.5;color:${th.muted};">Har du en fastprisaftale, eller overvejer du en? Indtast prisen under <button onclick="openSettings()" style="border:none;background:none;padding:0;font:inherit;font-weight:700;color:${th.accent};cursor:pointer;text-decoration:underline;">Indstillinger</button>, så viser vi forskellen for dagens forbrug.</div>`);
+  const c=costCompare(hourlyKwh, prices, app.state.fastpris);
+  if(!c) return box(`<div style="font-size:13px;line-height:1.5;color:${th.muted};">Der mangler timepriser eller forbrug for denne dag, så vi kan ikke sammenligne.</div>`);
+  const line=(label,val,strong)=>`<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0;color:${strong?th.text:th.muted};font-weight:${strong?800:600};"><span>${label}</span><span style="color:${th.text};">${val}</span></div>`;
+  const cheaper=c.diffKr>=0, d=Math.abs(c.diffKr).toFixed(2).replace('.',',');
+  return box(`${line('Timepris, som du brugte strømmen', c.variableKr.toFixed(2).replace('.',',')+' kr')}
+    ${line('Fastpris på '+kr(app.state.fastpris)+' kr/kWh', c.fixedKr.toFixed(2).replace('.',',')+' kr')}
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid ${th.border};">${line(cheaper?'Timepris var billigere':'Fastpris ville have været billigere', d+' kr', true)}</div>
+    <div style="font-size:11px;color:${th.muted};margin-top:6px;line-height:1.45;">${c.kwh.toFixed(1).replace('.',',')} kWh til i snit ${kr(c.avgOre)} kr/kWh. Abonnement er ikke med, og timeprisen bruger dit nuværende netselskab og tillæg.</div>`);
+}
 function forbrugView(){
   const th=THEMES[app.state.theme];
   const ev=app.state.eloverblik;
@@ -1448,7 +1440,7 @@ function forbrugView(){
   <div style="display:flex;gap:8px;margin-top:8px;">
     ${statCard(th,'Højeste '+unitName,maxRow?`${maxRow.kwh.toFixed(agg==='Month'?0:1)} kWh`:'—',maxLabel)}
     ${statCard(th,countLabel,`${totals.days}`)}
-  </div>`;
+  </div>${agg==='Hour' ? fastprisCard(th, rows.map(r=>r.kwh), prices) : ''}`;
 
   // år-over-år
   const lyRange={ from:new Date(range.from.getFullYear()-1,range.from.getMonth(),range.from.getDate()),
@@ -1535,7 +1527,7 @@ function tabContent(){
   if(app.loading) return `<div class="skel">${ellySVG('charge',72,th.text)}<div style="margin-top:14px;">Henter elpriser…</div></div>`;
   if(app.error) return `<div style="padding:40px 6px;text-align:center;color:${th.text};">
       <div style="margin-bottom:10px;">${fa('bolt',th.muted,38)}</div>
-      <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${app.error}).<br>Tjek forbindelsen.</p>
+      <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${esc(app.error)}).<br>Tjek forbindelsen.</p>
       <button onclick="load()" style="margin-top:14px;padding:12px 22px;border:none;border-radius:14px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;cursor:pointer;">Prøv igen</button></div>`;
   if(app.state.tab==='forbrug') return forbrugView();
   const V=computeView();
@@ -1556,16 +1548,46 @@ function staleHTML(th){
   const t=nowDK(new Date(app.staleTs));
   return `<div role="status" style="margin:0 0 10px;padding:8px 12px;border-radius:12px;background:${th.surface};border:1px solid ${th.border};color:${th.muted};font-size:12px;font-weight:600;text-align:center;">Ingen forbindelse · viser priser hentet kl. ${pad(t.getHours())}:${pad(t.getMinutes())}</div>`;
 }
+// Fokus overlever en re-render: elementet findes igen via sin onclick-attribut.
+function focusKey(){ const a=document.activeElement; return a && a!==document.body ? a.getAttribute('onclick') : null; }
+function restoreFocus(key){
+  if(!key) return;
+  const el=[...document.querySelectorAll('#app [onclick],#sheet [onclick]')].find(e=>e.getAttribute('onclick')===key);
+  if(el) el.focus({preventScroll:true});
+}
 function render(){
   const th=THEMES[app.state.theme];
+  const fk=focusKey(), sheetWasOpen=document.getElementById('sheet-root').classList.contains('open');
+  document.documentElement.style.setProperty('--elly-t',(performance.now()/1000).toFixed(2)+'s');
   document.body.style.background=th.bg;
   document.getElementById('theme-color').setAttribute('content',th.bg);
   const root=document.getElementById('app');
   root.innerHTML=`<div class="tabcontent">${staleHTML(th)}${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
   const sr=document.getElementById('sheet-root');
-  if(app.state.sheet){ document.getElementById('sheet').innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():sheetHTML()); sr.classList.add('open'); }
-  else sr.classList.remove('open');
+  const sheet=document.getElementById('sheet');
+  if(app.state.sheet){
+    sheet.innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():sheetHTML());
+    sheet.setAttribute('aria-label', app.state.sheet==='pointInfo'?'Sådan virker point':'Indstillinger');
+    sr.classList.add('open');
+  } else sr.classList.remove('open');
+  if(app.state.sheet && !sheetWasOpen) sheet.focus({preventScroll:true});   // nyåbnet ark: fokus ind i dialogen
+  else restoreFocus(fk);
 }
+// Escape lukker arket (eller den valgte time); Tab holdes inde i et åbent ark.
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(app.state.sheet){ closeSettings(); document.querySelector('#app [aria-label="Indstillinger"]')?.focus(); }
+    else if(app.state.selectedHour!=null) selectHour(null);
+    return;
+  }
+  if(e.key!=='Tab' || !app.state.sheet) return;
+  const sheet=document.getElementById('sheet');
+  const f=[...sheet.querySelectorAll('button,a[href],input,select,textarea,[tabindex="0"]')].filter(x=>!x.disabled);
+  if(!f.length) return;
+  const first=f[0], last=f[f.length-1], a=document.activeElement;
+  if(e.shiftKey && (a===first || a===sheet)){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && (a===last || !sheet.contains(a))){ e.preventDefault(); first.focus(); }
+});
 
 /* ===================== ACTIONS (global) ===================== */
 function setTab(t){
@@ -1689,6 +1711,13 @@ function disconnectEloverblik(){
 }
 function setChartTab(t){app.state.chartTab=t;app.state.selectedHour=null;render();}
 function selectHour(h){ app.state.selectedHour = (h===null || h===app.state.selectedHour) ? null : h; render(); }
+// Fastpris i øre/kWh. Første tryk på + starter ved 2,00 kr (en typisk samlet pris); 0 = ikke sat.
+function adjFastpris(d){
+  const cur=Number.isFinite(app.state.fastpris)?app.state.fastpris:0;
+  app.state.fastpris = (cur<=0 && d>0) ? 200 : Math.max(0,Math.min(600,cur+d));
+  if(app.state.fastpris<50) app.state.fastpris=0;
+  saveState();render();
+}
 function adjMarkup(d){app.state.markup=Math.max(0,Math.min(60,app.state.markup+d));saveState();render();}
 function adjAp(key,d){const lim={bilH:[1,12],opvaskH:[1,6],vaskH:[1,6]}[key];
   app.state[key]=Math.max(lim[0],Math.min(lim[1],app.state[key]+d));saveState();render();}
@@ -1722,7 +1751,7 @@ function logClaim(apparat){
 }
 window.logClaim=logClaim;
 window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
-window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjAp=adjAp;
+window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;

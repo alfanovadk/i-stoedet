@@ -11,6 +11,7 @@ const srcDir = join(repoRoot, APP_DIR);
 rmSync(wwwDir, { recursive: true, force: true });
 mkdirSync(wwwDir, { recursive: true });
 for (const f of RUNTIME_FILES) {
+  mkdirSync(dirname(join(wwwDir, f)), { recursive: true });
   copyFileSync(join(srcDir, f), join(wwwDir, f));
 }
 console.log(`build-www: kopierede ${RUNTIME_FILES.length} filer fra ${APP_DIR}/ → www/`);

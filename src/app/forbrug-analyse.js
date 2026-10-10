@@ -161,3 +161,20 @@ export function toCSV(rows){
   }
   return lines.join('\n');
 }
+
+// Variabel pris mod fastpris for ét døgn. `hourlyKwh` og `prices` er arrays pr.
+// time (prices i øre/kWh inkl. alt), `fixedOre` er brugerens fastpris i øre/kWh.
+// Kun timer med både forbrug og pris tælles med, så de to beløb dækker samme kWh.
+// Returnerer null når der ikke er noget at sammenligne.
+export function costCompare(hourlyKwh, prices, fixedOre){
+  if(!Array.isArray(hourlyKwh) || !Array.isArray(prices) || !(fixedOre > 0)) return null;
+  let kwh = 0, variableOre = 0;
+  for(let h = 0; h < hourlyKwh.length; h++){
+    const k = +hourlyKwh[h], p = +prices[h];
+    if(!(k > 0) || !(p > 0)) continue;
+    kwh += k; variableOre += k * p;
+  }
+  if(!(kwh > 0)) return null;
+  const variableKr = variableOre / 100, fixedKr = kwh * fixedOre / 100;
+  return { kwh, variableKr, fixedKr, diffKr: fixedKr - variableKr, avgOre: variableOre / kwh };
+}

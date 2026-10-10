@@ -27,7 +27,7 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 	header @crawl Cache-Control "public, max-age=3600"
 
 	# PWA-moduler/ikoner: kort cache.
-	@appassets path /app/*.js /app/*.png /app/*.ico /favicon.ico
+	@appassets path /app/*.js /app/*.png /app/*.ico /app/fonts/* /favicon.ico
 	header @appassets Cache-Control "public, max-age=3600"
 
 	# Marketing-assets (CSS/JS/billeder) er cache-bustet via ?v= → kan caches længere.

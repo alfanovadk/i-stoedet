@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   aggregateByDay, aggregateByMonth, dayProfile, weekdayProfile,
   periodTotals, pctChange, tierSplit, toCSV, weekdayOf, monthKeyOf,
-  co2Footprint, avgIntensity, co2FootprintDaily,
+  co2Footprint, avgIntensity, co2FootprintDaily, costCompare,
 } from '../src/app/forbrug-analyse.js';
 
 test('aggregateByDay: summerer time-arrays pr. dag', () => {
@@ -217,4 +217,26 @@ test('co2FootprintDaily: tomt input → 0 (ingen division-med-0)', () => {
   assert.equal(r.kg, 0);
   assert.equal(r.gPerKwh, 0);
   assert.equal(r.days, 0);
+});
+
+test('costCompare: variabel mod fast pris for samme kWh', () => {
+  // 2 kWh at 50 øre + 1 kWh at 300 øre = 4,00 kr variable; 3 kWh at 200 øre = 6,00 kr fixed.
+  const r = costCompare([2, 0, 1], [50, 999, 300], 200);
+  assert.equal(r.kwh, 3);
+  assert.equal(r.variableKr, 4);
+  assert.equal(r.fixedKr, 6);
+  assert.equal(r.diffKr, 2);              // positive = variable was cheaper
+  assert.ok(Math.abs(r.avgOre - 400 / 3) < 1e-9);
+});
+
+test('costCompare: timer uden pris tælles ikke med i nogen af beløbene', () => {
+  const r = costCompare([1, 1], [100, 0], 100);
+  assert.deepEqual([r.kwh, r.variableKr, r.fixedKr, r.diffKr], [1, 1, 1, 0]);
+});
+
+test('costCompare: null uden priser, uden fastpris eller uden forbrug', () => {
+  assert.equal(costCompare([1, 1], null, 200), null);
+  assert.equal(costCompare([1, 1], [100, 100], 0), null);
+  assert.equal(costCompare([0, null], [100, 100], 200), null);
+  assert.equal(costCompare(null, [100], 200), null);
 });
