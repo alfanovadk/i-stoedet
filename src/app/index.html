@@ -149,8 +149,8 @@
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
-  datahubURL, liveFromDatahub, pickPrices, validRecords, validLive
-} from './pricing.js?v=12';
+  datahubURL, liveFromDatahub, pickPrices, validRecords, validLive, liveSource
+} from './pricing.js?v=13';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
@@ -251,8 +251,21 @@ let liveTariffs=(()=>{ try{
   }catch(e){ return {}; } })();
 function currentTariff(){
   if(app.state.dso === 'custom') return app.state.customTariff;
-  const key=DSO_TARIFFS[app.state.dso] ? app.state.dso : 'n1', live=liveTariffs[key];
-  return live ? { ...DSO_TARIFFS[key], live: live.periods } : DSO_TARIFFS[key];
+  const key=DSO_TARIFFS[app.state.dso] ? app.state.dso : 'n1';
+  const live=liveSource(liveTariffs[key], snapshotTariffs.dso[key], snapshotTariffs.ts);
+  return live ? { ...DSO_TARIFFS[key], live } : DSO_TARIFFS[key];
+}
+// tariffs.json: DatahubPricelist pr. seneste deploy (scripts/fetch-tariffs.mjs). Giver web-appen
+// API'ets tariffer uden /eds-proxyen; en nyere live-hentning vinder (se liveSource).
+let snapshotTariffs={ ts:0, dso:{} };
+async function loadSnapshotTariffs(){
+  try{
+    const r=await fetch('tariffs.json'); if(!r.ok) return;
+    const j=await r.json(), ts=Date.parse(j.fetched);
+    if(!j || typeof j.dso!=='object' || !Number.isFinite(ts)) return;
+    snapshotTariffs={ ts, dso:Object.fromEntries(Object.entries(j.dso).filter(([k,v])=>DSO_TARIFFS[k] && validLive(v))) };
+    render(); shareWidget();
+  }catch(e){ /* non-blocking: statisk tabel bruges */ }
 }
 async function refreshLiveTariff(){
   const key=app.state.dso, url=datahubURL(key, isoDate(addDays(nowDK(),-400)), EDS_BASE);
@@ -1832,6 +1845,7 @@ loadState();
 // Vis cachede priser med det samme (uden «ingen forbindelse»-note); load() henter friske.
 try{ if(applyPrices([],[])){ app.loading=false; app.staleTs=null; } }catch(e){ app.raw=[]; }
 render();
+loadSnapshotTariffs();
 await initSecureToken();   // no-op på web; på iOS hentes tokenet fra Keychain før første forbrugskald
 load();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});

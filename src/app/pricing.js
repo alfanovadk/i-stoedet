@@ -208,3 +208,12 @@ export function pickPrices(todayRecs, tmrRecs, cache, region, todayKey, tmrKey){
   const tmr = tmrRecs.length ? tmrRecs : cached(tmrKey);
   return { raw:[...today, ...tmr], staleTs: stale && today.length ? (Number.isFinite(cache.ts) ? cache.ts : null) : null };
 }
+
+// Vælg kilden til live-tariffer for ét netselskab. `cached` er appens egen hentning
+// ({ ts, periods }), `snapshot` er perioderne fra tariffs.json (hentet ved seneste
+// deploy, `snapshotTs` i ms). Den nyeste gyldige kilde vinder; null = brug den statiske tabel.
+export function liveSource(cached, snapshot, snapshotTs){
+  const cachedOk = !!cached && validLive(cached.periods), snapshotOk = validLive(snapshot);
+  if (cachedOk && (!snapshotOk || cached.ts >= snapshotTs)) return cached.periods;
+  return snapshotOk ? snapshot : null;
+}
