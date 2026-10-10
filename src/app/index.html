@@ -132,8 +132,8 @@
 <script type="module">
 "use strict";
 import {
-  DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf
-} from './pricing.js?v=8';
+  DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor
+} from './pricing.js?v=9';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
@@ -261,6 +261,7 @@ function loadState(){
   app.state.analyseMsg=null;
   app.state.analyseLoading=false;
   app.state.toast='';
+  app.state.region=regionFor(app.state.dso, app.state.region);
 }
 function saveState(){
   const {theme,region,markup,bilH,opvaskH,vaskH,dso,customTariff,eloverblik}=app.state;
@@ -1151,7 +1152,9 @@ function sheetHTML(){
       ${card('play','Legende &amp; gamificeret','Spil, score, badges',['#6C4BD8','#2BC48A','#FFB020'])}
     </div>
     ${lbl('PRISOMRÅDE')}
-    <div style="display:flex;gap:9px;margin-bottom:24px;">${pill('DK1','DK1 · Vest')}${pill('DK2','DK2 · Øst')}</div>
+    ${app.state.dso==='custom'
+      ? `<div style="display:flex;gap:9px;margin-bottom:24px;">${pill('DK1','DK1 · Vest')}${pill('DK2','DK2 · Øst')}</div>`
+      : `<div style="font-size:14px;font-weight:700;margin-bottom:24px;">${app.state.region==='DK1'?'DK1 · Vest':'DK2 · Øst'} <span style="font-weight:500;color:${th.muted};">· følger dit netselskab</span></div>`}
     ${lbl('NETSELSKAB')}
     <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:${app.state.dso==='custom'?'14px':'24px'};">
       ${Object.entries(DSO_TARIFFS).map(([key,d])=>{
@@ -1598,7 +1601,11 @@ function openPointInfo(){app.state.sheet='pointInfo';render();}
 function closeSettings(){app.state.sheet=null;render();}
 function setTheme(t){app.state.theme=t;saveState();render();}
 function setRegion(r){app.state.region=r;saveState();load();}
-function setDso(key){ app.state.dso=key; saveState(); render(); }
+function setDso(key){
+  const region=regionFor(key, app.state.region), changed=region!==app.state.region;
+  app.state.dso=key; app.state.region=region; saveState();
+  changed ? load() : render();
+}
 function adjCustom(seasonKey,band,d){
   const v=app.state.customTariff[seasonKey][band];
   app.state.customTariff[seasonKey][band]=Math.max(0,Math.min(400,v+d));

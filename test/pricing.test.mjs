@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
-  componentsOf, totalOf, ELAFGIFT, ENERGINET, MOMS,
+  componentsOf, totalOf, ELAFGIFT, energinetAt, regionFor, MOMS,
   tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt,
 } from '../src/app/pricing.js';
 
@@ -75,7 +75,7 @@ test('componentsOf: enkeltkomponenter er korrekte', () => {
   const c = componentsOf(REC, CFG);
   assert.equal(c.spot, 0.50 * 100 * MOMS);
   assert.equal(c.elafgift, ELAFGIFT);
-  assert.equal(c.energinet, ENERGINET);
+  assert.equal(c.energinet, 14.375);
   assert.equal(c.nettarif, 99);
   assert.equal(c.markup, 8);
 });
@@ -99,7 +99,7 @@ test('totalOf reagerer på valgt DSO', () => {
 
 test('konstanter har de verificerede 2026-værdier', () => {
   assert.equal(ELAFGIFT, 1.0);
-  assert.equal(ENERGINET, 14.375);
+  assert.equal(energinetAt('2026-06-01'), 14.375);
   assert.equal(MOMS, 1.25);
 });
 
@@ -210,4 +210,26 @@ test('nettarif: sommer 2026 uændret', () => {
 test('tariffAt: egen tarif uden perioder returneres uændret', () => {
   const custom = { winter:{lav:1,hoej:2,spids:3}, summer:{lav:1,hoej:2,spids:3} };
   assert.equal(tariffAt(custom, '2026-10-15'), custom);
+});
+
+// Energinet net+system tariff (DatahubPricelist 40000 + 41000), verified 2026-10-10.
+test('energinetAt: 14,375 i 2026, 13,125 fra 1/1-2027', () => {
+  assert.equal(energinetAt('2026-12-31'), 14.375);
+  assert.equal(energinetAt('2027-01-01'), 13.125);
+  const c = componentsOf({ DKK_per_kWh: 0.5, time_start: '2027-01-02T10:00:00+01:00' }, { markup: 0, tariff: DSO_TARIFFS.n1 });
+  assert.equal(c.energinet, 13.125);
+});
+
+// Konstant: gross C_FBTNTR_B minus discount C_FBTNTR_R, in both seasons.
+test('nettarif: Konstant bruger nettosatser i begge sæsoner', () => {
+  assert.equal(at('2026-10-15T17:00:00+02:00', 'konstant'), 55.66);
+  assert.equal(at('2026-07-01T18:00:00+02:00', 'konstant'), 24);
+  assert.equal(at('2027-07-01T18:00:00+02:00', 'konstant'), 24.11);
+});
+
+test('regionFor: netselskab bestemmer prisområde, egen tarif beholder valget', () => {
+  for (const k of ['radius', 'cerius']) assert.equal(regionFor(k, 'DK1'), 'DK2');
+  for (const k of ['n1', 'trefor', 'konstant', 'dinel']) assert.equal(regionFor(k, 'DK2'), 'DK1');
+  assert.equal(regionFor('custom', 'DK2'), 'DK2');
+  assert.equal(regionFor('ukendt', 'DK1'), 'DK1');
 });
