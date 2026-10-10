@@ -2,39 +2,65 @@
 layout: layouts/base.njk
 title: Sådan beregner vi besparelsen
 pageTitle: Sådan beregner vi · I stødet
-description: Sådan beregner I stødet besparelsestallene ud fra kWh og prisforskelle, og hvad tallene faktisk dækker.
+description: Sådan beregner I stødet besparelsestallene ud fra kWh, køretid og prisforskellen mellem aften og nat, og hvad tallene faktisk dækker.
 permalink: /saadan-beregner-vi/
 ---
+{%- set opvask = apparater.bySlug('opvaskemaskine') %}
+{%- set elbil = apparater.bySlug('elbil') %}
 <article class="prose">
   <h1>Sådan beregner vi besparelsen</h1>
 
   <p>Vi vil gerne være ærlige om, hvad tallene dækker. Her er regnestykket bag de besparelser, du ser i I stødet.</p>
 
   <h2>Grundlæggende regnestykke</h2>
-  <p>Besparelsen beregnes sådan her: <strong>apparatets forbrug i kWh ganget med prisforskellen</strong> mellem de dyre og de billige timer på dagen.</p>
-  <p>Eksempel: En opvaskemaskine bruger ca. 1,0 kWh pr. opvask. Hvis forskellen mellem den dyreste og den billigste time på dagen er 1,10 kr/kWh, er den potentielle besparelse 1,10 kr pr. opvask, du flytter.</p>
+  <p>Besparelsen beregnes sådan her: <strong>de kWh du kan flytte, ganget med prisforskellen mellem to tidsvinduer</strong>. Det ene vindue er de timer, apparatet typisk kører uden styring. Det andet er de billigste sammenhængende timer af samme længde.</p>
+  <p>Vi bruger gennemsnitsprisen i hvert vindue. Vi sammenligner altså ikke døgnets dyreste time med døgnets billigste time. Det ville overdrive, for et apparat der kører i flere timer, rammer aldrig kun den ene time.</p>
+  <p>Eksempel: En elbil lader {{ elbil.kwh | kr0 }} kWh på ca. {{ elbil.timer }} timer. Sætter du den til kl. {{ elbil.typiskStart }}, lader den i aftenens dyreste timer. Lader den i stedet i nattens {{ elbil.timer }} billigste timer, er forskellen i gennemsnit ca. {{ apparater.prisforskel(elbil, 'aar') | kr }} kr/kWh over året. Det giver ca. {{ apparater.besparelse(elbil, 'aar') | kr0 }} kr pr. fuld opladning.</p>
 
-  <h2>Tre niveauer for prisforskellen</h2>
-  <p>Prisforskellen varierer fra dag til dag. Vi viser tre niveauer:</p>
+  <h2>Hvor kommer prisforskellen fra?</h2>
+  <p>Kun to dele af elprisen ændrer sig i løbet af døgnet. Resten er ens alle timer og betyder ikke noget for, hvornår du bør bruge strømmen.</p>
   <ul>
-    <li><strong>Lav (0,40 kr/kWh):</strong> En flad dag med lille forskel mellem timer.</li>
-    <li><strong>Typisk (1,10 kr/kWh):</strong> En almindelig dansk hverdag.</li>
-    <li><strong>Høj (2,50 kr/kWh):</strong> En dag med stor prisforskel, typisk på kolde vinterdage med høj efterspørgsel.</li>
+    <li><strong>Nettariffen.</strong> Den er lav om natten fra kl. 00 til 06, høj om dagen og højest i spidslasten fra kl. 17 til 21. Vi regner med N1's satser fra januar 2026. Forskellen mellem aften og nat er {{ (apparater.tarif.vinter.spids - apparater.tarif.vinter.lav) | kr }} kr/kWh om vinteren og {{ (apparater.tarif.sommer.spids - apparater.tarif.sommer.lav) | kr }} kr/kWh om sommeren, inkl. moms.</li>
+    <li><strong>Spotprisen.</strong> Den er typisk lavest om natten og højest om aftenen. Vi lægger et forsigtigt tillæg på {{ apparater.spotTillaeg.vinter.aften | kr }} kr/kWh om aftenen om vinteren og {{ apparater.spotTillaeg.sommer.aften | kr }} kr/kWh om sommeren. Det er en antagelse, ikke en måling.</li>
   </ul>
-  <p>Det typiske niveau er det mest ærlige gennemsnit at bruge til årsberegninger. De tre niveauer giver dig en fornemmelse af spændvidden.</p>
+  <p>Vinter er oktober til marts. Sommer er april til september. Det typiske tal er et simpelt gennemsnit af de to halvår.</p>
 
-  <h2>Hvor kommer kWh-tallene fra?</h2>
-  <p>Vi bruger realistiske 2026-gennemsnit for danske husstande. De er ikke perfekte. Dit forbrug afhænger af din maskine, dit varmesystem og dine vaner. Men de er ærlige udgangspunkter.</p>
+  <h2>Tallene pr. apparat</h2>
+  <table class="savings-table">
+    <thead>
+      <tr>
+        <th>Apparat</th>
+        <th>Flyttes</th>
+        <th>Typisk vindue</th>
+        <th>Billigste vindue</th>
+        <th>Forskel sommer / vinter</th>
+      </tr>
+    </thead>
+    <tbody>
+    {%- for a in apparater.liste %}
+      <tr>
+        <td>{{ a.navn }}</td>
+        <td>{{ apparater.flytbarKwh(a) | tal }} kWh</td>
+        <td>kl. {{ apparater.vindueTekst(a.typiskStart, a.timer) }}</td>
+        <td>kl. {{ apparater.vindueTekst(apparater.billigsteVindue(a.timer, 'vinter').start, a.timer) }}</td>
+        <td>{{ apparater.prisforskel(a, 'sommer') | kr }} / {{ apparater.prisforskel(a, 'vinter') | kr }} kr/kWh</td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table>
+
+  <h2>Det har vi antaget</h2>
   <ul>
-    <li>Elbil: 50 kWh pr. fuld opladning (typisk dansk elbil)</li>
-    <li>Opvaskemaskine: 1,0 kWh pr. opvask</li>
-    <li>Vaskemaskine: 0,9 kWh pr. vask ved 40°C</li>
-    <li>Varmepumpe og varmt vand: 15 kWh pr. dag (gennemsnit)</li>
+    <li><strong>Elbil:</strong> {{ elbil.kwh | kr0 }} kWh pr. fuld opladning på en 11 kW hjemmelader. {{ elbil.frekvensOmAaret }} fulde opladninger om året, ca. 16.000 km.</li>
+    <li><strong>Opvaskemaskine:</strong> {{ opvask.kwh | tal }} kWh pr. opvask på et eco-program på ca. {{ opvask.timer }} timer. Startes typisk efter aftensmaden.</li>
+    <li><strong>Vaskemaskine:</strong> 0,9 kWh pr. vask ved 40°C. Startes typisk sidst på eftermiddagen.</li>
+    <li><strong>Varmepumpe og varmt vand:</strong> 15 kWh pr. dag i gennemsnit. Vi regner kun med, at 4,5 kWh kan flyttes ud af aftenens timer. Et hus skal varmes hele døgnet.</li>
   </ul>
-  <p>Tallene verificeres, når Energistyrelsen og netselskaberne udgiver nye forbrugsnøgletal. Senest opdateret januar 2026.</p>
+  <p>Tallene er forsigtige med vilje. Bor du hos Radius eller Cerius, er forskellen mellem aften og nat større end hos N1. Bor du hos TREFOR, Konstant eller Dinel, er den mindre. Kører dine apparater allerede uden for spidslasten, er der mindre at hente.</p>
+  <p>Tariffer ændrer sig flere gange om året. Tallene her er senest gennemgået i oktober 2026 og er vejledende.</p>
 
   <h2>Hvad appen regner på</h2>
-  <p>Besparelsesguider er baseret på gennemsnit. Appen gør det personligt. Når du åbner I stødet, henter den de faktiske timepriser for i dag og i morgen, og viser hvornår det er billigst hos dig. Regnestykket er det samme, men med det rigtige tal for netop den dag.</p>
+  <p>Besparelsesguiderne er baseret på gennemsnit. Appen gør det personligt. Når du åbner I stødet, henter den de faktiske timepriser for i dag og i morgen, og den bruger tarifferne fra dit eget netselskab. Så ser du, hvornår det er billigst hos dig.</p>
   <p>Det er forskellen på at kende et gennemsnit og at kende situationen i dag.</p>
 
   <p class="cta"><a class="nav-cta" href="{{ site.appPath }}">Se priserne i dag i appen →</a></p>

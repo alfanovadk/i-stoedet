@@ -35,6 +35,8 @@ module.exports = function (eleventyConfig) {
   // kr-formatering: 12.34 -> "12,34". Bruges i besparelses-tal.
   eleventyConfig.addFilter("kr", (n) => Number(n).toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
   eleventyConfig.addFilter("kr0", (n) => Number(n).toLocaleString("da-DK", { maximumFractionDigits: 0 }));
+  // tal: dansk decimalkomma uden tvungne decimaler (4.5 -> "4,5", 50 -> "50"). Til kWh.
+  eleventyConfig.addFilter("tal", (n) => Number(n).toLocaleString("da-DK", { maximumFractionDigits: 2 }));
 
   // ── Ikoner: KUN Font Awesome (genbruger PWA'ens paths) + Elly-maskotten. Ingen emojis. ──
   // {% icon "car", 28 %}  ·  {% elly 88 %}

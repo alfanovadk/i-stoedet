@@ -7,9 +7,12 @@ pageTitle: Spar på elbil-opladning · I stødet
 description: Sådan flytter du elbil-opladning til de billige timer, og hvad det realistisk sparer dig.
 permalink: /spar/elbil/
 ---
-<p>Elbilen er dit største enkeltpotentiale, når du vil flytte forbrug til de billige timer. En fuld opladning på 50 kWh koster meget forskelligt afhængigt af, hvornår du lader. Besparelses-boksen ovenfor viser regnestykket: forbrug ganget med prisforskellen mellem dyre og billige timer.</p>
+{%- set a = apparater.bySlug('elbil') %}
+<p>Elbilen er dit største enkeltpotentiale, når du vil flytte forbrug til de billige timer. En fuld opladning på {{ a.kwh | kr0 }} kWh koster meget forskelligt afhængigt af, hvornår du lader.</p>
 
-<p>Den typiske prisforskel på en dansk hverdag ligger omkring 1,10 kr/kWh. Det giver en besparelse på ca. 55 kr pr. fuld opladning, du lykkes med at flytte. En god dag med stor prisforskel kan give mere. En flad dag med lille spred giver mindre.</p>
+<p>En opladning tager flere timer. Derfor regner vi ikke med forskellen mellem døgnets dyreste og billigste time. Vi sammenligner {{ a.timer }} timers opladning fra kl. {{ a.typiskStart }}, når du kommer hjem, med de {{ a.timer }} billigste sammenhængende timer om natten. Over året er forskellen i gennemsnit ca. {{ apparater.prisforskel(a, 'aar') | kr }} kr/kWh. Det giver ca. {{ apparater.besparelse(a, 'aar') | kr0 }} kr pr. fuld opladning, du flytter.</p>
+
+<p>Om vinteren er forskellen større, ca. {{ apparater.besparelse(a, 'vinter') | kr0 }} kr pr. opladning. Om sommeren er den mindre, ca. {{ apparater.besparelse(a, 'sommer') | kr0 }} kr. Lader du allerede om natten, har du hentet gevinsten.</p>
 
 <h2>Sådan gør du det i praksis</h2>
 <p>Du behøver ikke tjekke priser selv. De fleste elbiler og hjemmeladere kan styre starttidspunktet automatisk.</p>
@@ -22,4 +25,6 @@ permalink: /spar/elbil/
 <p>Det kræver ikke, at du holder øje med priserne dag for dag. Du sætter det op én gang og sparer automatisk de gange, du husker at sætte til om aftenen.</p>
 
 <h2>Hvad kan du realistisk forvente?</h2>
-<p>Gevinsten afhænger af to ting: hvor meget du lader, og hvor stor prisforskellen er den dag. Lader du 90 gange om året med en gennemsnitlig besparelse på 55 kr pr. gang, er det knap 5.000 kr over et år. Det er et realistisk skøn, ikke et garanteret tal. Prisforskellen varierer, og ikke alle opladninger er fulde. Se tallene i boksen ovenfor som et ærligt gennemsnit.</p>
+<p>Gevinsten afhænger af to ting: hvor meget du lader, og hvor stor prisforskellen er den dag. Vi regner med {{ a.frekvensOmAaret }} fulde opladninger om året. Det svarer til ca. {{ (a.kwh * a.frekvensOmAaret) | kr0 }} kWh eller godt 16.000 km. Med ca. {{ apparater.besparelse(a, 'aar') | kr0 }} kr pr. gang bliver det ca. {{ apparater.besparelseOmAaret(a) | kr0 }} kr over et år.</p>
+
+<p>Det er et forsigtigt skøn, ikke et garanteret tal. Prisforskellen varierer, og dit netselskab har betydning. Kører du mere, eller har dit netselskab stor forskel på nat og aften, er gevinsten større. En flad dag med lille spred giver mindre.</p>

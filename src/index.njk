@@ -42,13 +42,13 @@ permalink: /
 <section class="section">
   <div class="container">
     <h2 class="section__title">Hvad kan du reelt spare?</h2>
-    <p>Tallene nedenfor er typiske gennemsnit. Gevinsten afhænger af, hvor stor prisforskellen er den dag.</p>
+    <p>Tallene nedenfor er forsigtige årsgennemsnit. Gevinsten er størst om vinteren og afhænger af, hvor stor prisforskellen er den dag.</p>
     <div class="card-grid">
       {%- for a in apparater.liste %}
       <a class="card" href="/spar/{{ a.slug }}/">
         <div class="card__icon">{% icon a.icon, 30 %}</div>
         <h3>{{ a.navn }}</h3>
-        <div class="savings-amount">{{ apparater.besparelse(a, 'typisk') | kr }} kr</div>
+        <div class="savings-amount">{{ apparater.besparelse(a, 'aar') | kr }} kr</div>
         <p class="muted">{{ a.enhed }}</p>
         <p>{{ a.resume }}</p>
       </a>
