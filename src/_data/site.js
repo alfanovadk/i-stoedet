@@ -9,7 +9,7 @@ export default {
   appPath: "/app/",
   nav: [
     { href: "/spar/", label: "Sådan sparer du" },
-    { href: "/saadan-beregner-vi/", label: "Sådan regner vi" },
+    { href: "/saadan-beregner-vi/", label: "Sådan beregner vi" },
     { href: "/om/", label: "Om" },
     { href: "/app/", label: "Åbn app", cta: true },
   ],

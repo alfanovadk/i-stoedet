@@ -17,8 +17,8 @@ permalink: /spar/elbil/
 <h2>Sådan gør du det i praksis</h2>
 <p>Du behøver ikke tjekke priser selv. De fleste elbiler og hjemmeladere kan styre starttidspunktet automatisk.</p>
 <ul>
-  <li><strong>Bil-appen:</strong> Mange elbiler har en "natladeplan" eller "tidsstyret opladning" i appen. Du sætter ønskede afslutnings-tidspunkt (fx 07:00) og sætter bilen til at starte sent.</li>
-  <li><strong>Lader-timeren:</strong> Har din lader et tilhørende app (Easee, Zaptec, Wallbox osv.), kan du typisk sætte et tidsvindue direkte der.</li>
+  <li><strong>Bil-appen:</strong> Mange elbiler har en "natladeplan" eller "tidsstyret opladning" i appen. Du sætter det ønskede sluttidspunkt (fx 07:00) og sætter bilen til at starte sent.</li>
+  <li><strong>Lader-timeren:</strong> Har din lader en tilhørende app (Easee, Zaptec, Wallbox osv.), kan du typisk sætte et tidsvindue direkte der.</li>
   <li><strong>Prisbaseret opladning:</strong> Easee og Tibber har begge mulighed for at lade automatisk i de billigste timer. Det kræver lidt opsætning, men er den mest præcise løsning.</li>
 </ul>
 
@@ -27,4 +27,4 @@ permalink: /spar/elbil/
 <h2>Hvad kan du realistisk forvente?</h2>
 <p>Gevinsten afhænger af to ting: hvor meget du lader, og hvor stor prisforskellen er den dag. Vi regner med {{ a.frekvensOmAaret }} fulde opladninger om året. Det svarer til ca. {{ (a.kwh * a.frekvensOmAaret) | kr0 }} kWh eller godt 16.000 km. Med ca. {{ apparater.besparelse(a, 'aar') | kr0 }} kr pr. gang bliver det ca. {{ apparater.besparelseOmAaret(a) | kr0 }} kr over et år.</p>
 
-<p>Det er et forsigtigt skøn, ikke et garanteret tal. Prisforskellen varierer, og dit netselskab har betydning. Kører du mere, eller har dit netselskab stor forskel på nat og aften, er gevinsten større. En flad dag med lille spred giver mindre.</p>
+<p>Det er et forsigtigt skøn, ikke et garanteret tal. Prisforskellen varierer, og dit netselskab har betydning. Kører du mere, eller har dit netselskab stor forskel på nat og aften, er gevinsten større. En flad dag med lille spredning giver mindre.</p>
