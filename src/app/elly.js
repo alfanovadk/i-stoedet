@@ -21,6 +21,11 @@ function body(outline, ink, mood = 1, look = 0){
       <path class="mouth-happy" d="M54 56 Q64 ${my} 74 56" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"></path>`;
 }
 
+// Glød pr. tilstand som radial gradient (blød kant uden CSS-filter: WebKit på iOS
+// anvender ikke `filter` på SVG-børn). Samme id'er i hver Elly — definitionerne er ens.
+const GLOWS = [['cheap', '#34B27B'], ['expensive', '#E5604D'], ['charge', '#FFD23F']].map(([state, color]) =>
+  `<radialGradient id="elly-glow-${state}"><stop offset="35%" stop-color="${color}" stop-opacity=".85"></stop><stop offset="100%" stop-color="${color}" stop-opacity="0"></stop></radialGradient>`).join('');
+
 // App-udgaven: tilstandsklasse (cheap|mid|expensive|charge|cheer|blink) + de
 // ekstra dele som CSS'en tænder pr. tilstand (glød, gnister, sur mund, bryn).
 // Rent dekorativ → skjult for skærmlæsere. `opts.mood` og `opts.look` gør
@@ -28,7 +33,8 @@ function body(outline, ink, mood = 1, look = 0){
 export function ellySVG(stateClass, size, stroke, opts = {}){
   stroke = stroke || INK;
   return `<svg viewBox="0 0 120 120" class="elly ${stateClass}" width="${size}" height="${size}" aria-hidden="true" focusable="false" style="display:block;overflow:visible;flex-shrink:0;">
-    <circle class="glow" cx="62" cy="60" r="36"></circle>
+    <defs>${GLOWS}</defs>
+    <circle class="glow" cx="62" cy="60" r="50"></circle>
     <path class="spark" d="M99 24 l-6 8 l5 1 l-6 9" fill="none" stroke="#FF2F52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
     <path class="spark" d="M22 40 l7 6 l-4 3 l7 6" fill="none" stroke="#FF6B83" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
     <path class="spark" d="M92 84 l-2 9 l-5 -3 l-1 10" fill="none" stroke="#FF2F52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>

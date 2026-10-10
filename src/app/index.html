@@ -57,11 +57,10 @@
   .bolt{transform-box:fill-box;transform-origin:center}
   .eye,.pupil{transform-box:fill-box;transform-origin:center}
   .brow,.mouth-mad,.spark,.sparkle,.glow{opacity:0}
-  /* Glød = et statisk sløret lag bag Elly; kun dets opacity animeres (ingen repaint pr. frame). */
-  .glow{filter:blur(9px);transform-box:fill-box;transform-origin:center}
-  .cheap .glow{fill:#34B27B;opacity:.4}
-  .expensive .glow{fill:#E5604D;opacity:.4}
-  .charge .glow{fill:#FFD23F;opacity:.4}
+  /* Glød = en radial gradient bag Elly (se elly.js); kun dens opacity animeres (ingen repaint pr. frame). */
+  .cheap .glow{fill:url(#elly-glow-cheap);opacity:.5}
+  .expensive .glow{fill:url(#elly-glow-expensive);opacity:.5}
+  .charge .glow{fill:url(#elly-glow-charge);opacity:.5}
   /* statisk pris-tier-udtryk (farve/ansigt) — IKKE animation, så tier er synlig uden bevægelse */
   .cheap .bolt{fill:#34B27B}
   .expensive .bolt{fill:#E5604D}
@@ -75,7 +74,7 @@
     /* render() genskaber DOM'en. Negativ delay ud fra sidens ur (--elly-t sættes i render)
        lader hver animation fortsætte i samme fase i stedet for at starte forfra. */
     .elly,.elly *{animation-delay:calc(-1 * var(--elly-t,0s)) !important}
-    @keyframes glowPulse{0%,100%{opacity:.25}50%{opacity:.7}}
+    @keyframes glowPulse{0%,100%{opacity:.3}50%{opacity:.8}}
     @keyframes blink{0%,46%,54%,100%{transform:scaleY(1)}50%{transform:scaleY(.12)}}
     @keyframes pupilHide{0%,46%,54%,100%{opacity:1}50%{opacity:0}}
     .blink .eye{animation:blink 4s ease-in-out infinite}
@@ -158,7 +157,7 @@ import {
   dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily, costCompare
 } from './forbrug-analyse.js?v=8';
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
-import { ellySVG } from './elly.js?v=2';
+import { ellySVG } from './elly.js?v=3';
 import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=3';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
@@ -297,7 +296,8 @@ function shareWidget(){
 // Begge Eloverblik-tokens (refresh + det korte access-token) ligger samlet i Keychain som JSON.
 const TOKEN_KEY='eloverblik_tokens', REVOKED_KEY='elpriser_token_revoked';
 let secureToken=false;   // true når Keychain er bekræftet brugbar — først da fjernes tokens fra localStorage
-let keychainHasToken=false;
+let keychainHasToken=!!NativeStore;   // ukendt indtil læst: antag at der kan ligge et token
+let tokenInitDone=false;               // intet slettes i Keychain før opstarten har læst den
 const tokenBlob=()=>{ const {refreshToken,accessToken,accessTokenExp}=app.state.eloverblik; return JSON.stringify({refreshToken,accessToken,accessTokenExp}); };
 const setRevoked=on=>{ try{ on ? localStorage.setItem(REVOKED_KEY,'1') : localStorage.removeItem(REVOKED_KEY); }catch(e){} };
 async function initSecureToken(){
@@ -307,9 +307,10 @@ async function initSecureToken(){
     // tilbagekaldte token bliver ALDRIG læst ind (markøren bliver stående til sletningen lykkes).
     if(localStorage.getItem(REVOKED_KEY)){ await NativeStore.keychainRemove({key:TOKEN_KEY}); setRevoked(false); }
     const legacy=app.state.eloverblik.refreshToken||'';
-    const stored=(await NativeStore.keychainGet({key:TOKEN_KEY})).value;
+    // Ligger der et token i localStorage, er det skrevet i fallback og dermed nyere end Keychains.
+    const stored=legacy ? null : (await NativeStore.keychainGet({key:TOKEN_KEY})).value;
     if(stored){
-      const t=JSON.parse(stored);
+      let t=null; try{ t=JSON.parse(stored); }catch(e){}   // korrupt værdi: behandles som intet token og ryddes
       if(t && typeof t.refreshToken==='string' && t.refreshToken){
         Object.assign(app.state.eloverblik,{ refreshToken:t.refreshToken,
           accessToken:typeof t.accessToken==='string'?t.accessToken:'', accessTokenExp:Number.isFinite(t.accessTokenExp)?t.accessTokenExp:0 });
@@ -319,11 +320,13 @@ async function initSecureToken(){
     } else if(legacy){
       // Flyt eksisterende tokens: skriv, læs tilbage, og slip først localStorage-kopien når de er ens.
       const blob=tokenBlob();
+      keychainHasToken=true;   // der kan ligge et ældre token, også hvis skrivningen fejler
       await NativeStore.keychainSet({key:TOKEN_KEY,value:blob});
-      secureToken=keychainHasToken=(await NativeStore.keychainGet({key:TOKEN_KEY})).value===blob;
+      secureToken=(await NativeStore.keychainGet({key:TOKEN_KEY})).value===blob;
     } else secureToken=true;
+    tokenInitDone=true;
     if(secureToken) saveState();
-  }catch(e){ secureToken=false; }
+  }catch(e){ secureToken=false; tokenInitDone=true; }
 }
 function saveState(){
   const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff}=app.state;
@@ -335,11 +338,13 @@ function saveState(){
       setRevoked(false);
       NativeStore.keychainSet({key:TOKEN_KEY,value:blob}).then(()=>{ keychainHasToken=true; })
         .catch(()=>{ secureToken=false; saveState(); });   // Keychain fejlede: fald tilbage til localStorage
-    } else if(keychainHasToken || localStorage.getItem(REVOKED_KEY)){
-      // «Afbryd»: markér som tilbagekaldt indtil Keychain har bekræftet sletningen.
-      setRevoked(true);
-      NativeStore.keychainRemove({key:TOKEN_KEY}).then(()=>{ keychainHasToken=false; setRevoked(false); }).catch(()=>{});
     }
+  }
+  // «Afbryd» skal nå Keychain uanset om vi kører sikkert eller i fallback: markér som tilbagekaldt
+  // indtil Keychain har bekræftet sletningen, så et gammelt token aldrig læses ind igen.
+  if(NativeStore && tokenInitDone && !app.state.eloverblik.refreshToken && (keychainHasToken || localStorage.getItem(REVOKED_KEY))){
+    setRevoked(true);
+    NativeStore.keychainRemove({key:TOKEN_KEY}).then(()=>{ keychainHasToken=false; setRevoked(false); }).catch(()=>{});
   }
   try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
   shareWidget();   // netselskab/tillæg ændrer prisen widget'en viser

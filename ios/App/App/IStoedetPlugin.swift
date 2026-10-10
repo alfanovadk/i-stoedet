@@ -28,8 +28,8 @@ public class IStoedetPlugin: CAPPlugin, CAPBridgedPlugin {
     /// so «slet appen» really removes the Eloverblik tokens.
     override public func load() {
         let defaults = UserDefaults.standard
-        if !defaults.bool(forKey: "keychainInitialised") {
-            KeychainStore.removeAll()
+        // Only mark it done when the purge succeeded, so a failed attempt is retried next launch.
+        if !defaults.bool(forKey: "keychainInitialised"), KeychainStore.removeAll() {
             defaults.set(true, forKey: "keychainInitialised")
         }
     }
