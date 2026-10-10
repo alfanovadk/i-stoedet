@@ -1,0 +1,54 @@
+---
+layout: layouts/base.njk
+title: Support
+pageTitle: Support og kontakt · I stødet
+description: Få hjælp til I stødet. Kontakt os, og find svar på de mest almindelige spørgsmål om Eloverblik, priser og hvor præcise tallene er.
+permalink: /support/
+---
+<article class="prose">
+  <h1>Support</h1>
+  <p class="lead">Har du brug for hjælp til I stødet, eller har du fundet en fejl? Skriv til os.</p>
+
+  <h2>Kontakt</h2>
+  <p>Skriv til <a href="mailto:{{ site.contactEmail }}">{{ site.contactEmail }}</a>. Fortæl gerne, hvilken telefon eller browser du bruger, og hvad der skete. Så kan vi hjælpe dig hurtigere.</p>
+
+  <h2>Ofte stillede spørgsmål</h2>
+
+  <h3>Hvordan forbinder jeg Eloverblik?</h3>
+  <p>Du skal bruge et token fra Eloverblik. Det er en adgangsnøgle, som giver appen lov til at hente dit eget forbrug.</p>
+  <ol>
+    <li>Åbn eloverblik.dk, og log ind med MitID.</li>
+    <li>Åbn menuen, og vælg API-adgang.</li>
+    <li>Opret et token, og giv det et navn, for eksempel "I stødet".</li>
+    <li>Kopiér hele token-teksten.</li>
+    <li>Indsæt den i appen under Eloverblik, og vælg dit målepunkt.</li>
+  </ol>
+  <p>Tokenet gemmes kun på din egen enhed.</p>
+
+  <h3>Mit token virker ikke. Hvad gør jeg?</h3>
+  <p>Tjek først, at du har fået hele teksten med. Tokenet er meget langt. Et token udløber også efter et stykke tid. Hvis det er udløbet, opretter du et nyt på eloverblik.dk og indsætter det i appen.</p>
+  <p>Eloverblik er indimellem langsom eller ude af drift. Får du en fejl, selvom tokenet er rigtigt, hjælper det ofte at prøve igen lidt senere.</p>
+
+  <h3>Hvor kommer tallene fra?</h3>
+  <ul>
+    <li><strong>Timepriser:</strong> spotpriserne hentes fra elprisenligenu.dk.</li>
+    <li><strong>Tariffer og afgifter:</strong> nettariffer, Energinets tariffer og elafgift er lagt ind i appen ud fra netselskabernes og Energinets offentlige prislister.</li>
+    <li><strong>CO2:</strong> tallene kommer fra Energinets åbne data på Energi Data Service.</li>
+    <li><strong>Dit forbrug:</strong> hentes fra Eloverblik, hvis du har forbundet det.</li>
+  </ul>
+
+  <h3>Hvor præcise er priserne?</h3>
+  <p>Priserne er vejledende. Tariffer og afgifter ændrer sig flere gange om året, og vi opdaterer dem i appen med en dato. Lige efter en ændring kan appen derfor vise en sats, der er på vej ud.</p>
+  <p>Dit elselskabs tillæg og abonnement kender vi ikke på forhånd. Du kan selv indtaste tillægget i appen. Det er altid din elregning, der gælder.</p>
+
+  <h3>Er I stødet en del af Energinet eller Eloverblik?</h3>
+  <p>Nej. I stødet er et uafhængigt værktøj fra <a href="{{ site.makerUrl }}">alfanova</a>. Vi er ikke tilknyttet Energinet, Eloverblik, netselskaberne eller noget elselskab. Vi bruger deres offentligt tilgængelige data.</p>
+
+  <h3>Appen viser ingen priser for i morgen</h3>
+  <p>Morgendagens priser bliver først offentliggjort om eftermiddagen dagen før. Prøv igen senere på dagen.</p>
+
+  <h3>Hvordan sletter jeg mine data?</h3>
+  <p>Dine data ligger kun på din egen enhed. Du kan læse, hvordan du sletter dem, i vores <a href="/privatliv/">privatlivspolitik</a>.</p>
+
+  <p class="cta"><a class="nav-cta" href="{{ site.appPath }}">Åbn appen →</a></p>
+</article>
