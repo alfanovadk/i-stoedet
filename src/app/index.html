@@ -393,6 +393,7 @@ async function load(){
   render();
   shareWidget();
   scheduleDaily();
+  if(!app.error) setTimeout(maybeShowNotifIntro, 1200);   // lad brugeren se priserne først
   refreshLiveTariff();
   // Forbrugs-hentning er gated på stale-guard'en (se shouldRefreshConsumption) — den hitter
   // IKKE DataHub på hvert load()/visibilitychange, kun hvis cache mangler eller er stale.
@@ -1196,6 +1197,30 @@ function wizardHTML(th){
 
 // «Sådan virker point»-modal — genbruger sheet-overlayet (app.state.sheet==='pointInfo').
 // Åbnes fra teaser-linjen under apparaterne OG fra Point-siden.
+// Introduktion til den daglige besked, vist én gang ved første start i iOS-appen. iOS'
+// tilladelsesdialog vises kun én gang, så den åbnes først, når brugeren selv siger ja her.
+const NOTIF_INTRO_KEY='elpriser_notif_intro';
+function notifIntroHTML(){
+  const th=THEMES[app.state.theme];
+  const sh=document.getElementById('sheet'); sh.style.background=th.sheetBg; sh.style.color=th.text;
+  return `
+    <div style="width:40px;height:5px;border-radius:99px;background:${th.border};margin:6px auto 18px;"></div>
+    <div style="display:flex;justify-content:center;margin-bottom:12px;">${ellySVG('cheap',84,th.text,{mood:1,look:0})}</div>
+    <h2 style="margin:0 0 8px;text-align:center;font-weight:800;font-size:21px;">Vil du vide, hvornår strømmen er billig i morgen?</h2>
+    <p style="margin:0 0 20px;text-align:center;font-size:14px;line-height:1.55;color:${th.muted};">Vi sender dig én besked om dagen med morgendagens billigste tidsrum og prisen. Så kan du planlægge vask, opvask og opladning, uden at åbne appen.</p>
+    <button onclick="acceptNotifIntro()" style="width:100%;padding:15px 0;border:none;border-radius:16px;background:${th.accent};color:${th.accentText};font:inherit;font-weight:800;font-size:15px;cursor:pointer;">Ja tak, giv mig besked</button>
+    <button onclick="dismissNotifIntro()" style="width:100%;padding:13px 0;margin-top:8px;border:none;border-radius:16px;background:transparent;color:${th.muted};font:inherit;font-weight:700;font-size:14px;cursor:pointer;">Ikke nu</button>
+    <p style="margin:12px 0 0;text-align:center;font-size:11.5px;line-height:1.5;color:${th.muted};">Du kan altid ændre det under Indstillinger › Notifikationer.</p>`;
+}
+function markNotifIntroDone(){ try{ localStorage.setItem(NOTIF_INTRO_KEY,'1'); }catch(e){} }
+function maybeShowNotifIntro(){
+  if(!Notifier || dailySettings().on || app.state.sheet) return;
+  try{ if(localStorage.getItem(NOTIF_INTRO_KEY)) return; }catch(e){ return; }
+  markNotifIntroDone();   // vises højst én gang, også hvis appen lukkes med arket åbent
+  app.state.sheet='notifIntro'; render();
+}
+async function acceptNotifIntro(){ app.state.sheet=null; await setDailyOn(true); render(); }
+function dismissNotifIntro(){ app.state.sheet=null; render(); }
 function pointInfoHTML(){
   const th=THEMES[app.state.theme];
   const sh=document.getElementById('sheet'); sh.style.background=th.sheetBg; sh.style.color=th.text;
@@ -1647,8 +1672,8 @@ function render(){
   const sr=document.getElementById('sheet-root');
   const sheet=document.getElementById('sheet');
   if(app.state.sheet){
-    sheet.innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():sheetHTML());
-    sheet.setAttribute('aria-label', app.state.sheet==='pointInfo'?'Sådan virker point':'Indstillinger');
+    sheet.innerHTML=(app.state.sheet==='pointInfo'?pointInfoHTML():(app.state.sheet==='notifIntro'?notifIntroHTML():sheetHTML()));
+    sheet.setAttribute('aria-label', app.state.sheet==='pointInfo'?'Sådan virker point':(app.state.sheet==='notifIntro'?'Daglig besked om billig strøm':'Indstillinger'));
     sr.classList.add('open');
   } else sr.classList.remove('open');
   if(app.state.sheet && !sheetWasOpen) sheet.focus({preventScroll:true});   // nyåbnet ark: fokus ind i dialogen
@@ -1889,7 +1914,7 @@ function logClaim(apparat){
 }
 window.logClaim=logClaim;
 window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
-window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.setDailyOn=setDailyOn;window.adjDailyHour=adjDailyHour;window.adjAp=adjAp;
+window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.setDailyOn=setDailyOn;window.acceptNotifIntro=acceptNotifIntro;window.dismissNotifIntro=dismissNotifIntro;window.adjDailyHour=adjDailyHour;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
