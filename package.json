@@ -23,16 +23,17 @@
   "dependencies": {
     "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/local-notifications": "8.3.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
     "@11ty/eleventy-img": "^6.0.4",
-    "@udstillerguide/11ty-media": "file:../../ug-11ty-plugins/packages/media",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
+    "@udstillerguide/11ty-media": "file:../../ug-11ty-plugins/packages/media",
     "sharp": "^0.35.1"
   }
 }

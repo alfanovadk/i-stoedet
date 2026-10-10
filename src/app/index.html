@@ -159,6 +159,7 @@ import {
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
 import { ellySVG } from './elly.js?v=3';
 import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=3';
+import { planDaily, DAILY_IDS } from './notifications.js?v=1';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -228,7 +229,7 @@ function ellyState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'c
 
 /* ===================== APP STATE ===================== */
 const app={
-  state:{ theme:'soft', region:'DK1', markup:8, fastpris:0, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', sheet:null,
+  state:{ theme:'soft', region:'DK1', markup:8, fastpris:0, notifications:{ daily:{ on:false, hour:14 } }, bilH:4, opvaskH:2, vaskH:3, chartTab:'today', sheet:null,
     tab:'nu', showProfiles:false,
     selectedHour:null,
     dso:'n1',
@@ -342,7 +343,7 @@ async function initSecureToken(){
   }catch(e){ secureToken=false; tokenInitDone=true; }
 }
 function saveState(){
-  const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff}=app.state;
+  const {theme,region,markup,fastpris,notifications,bilH,opvaskH,vaskH,dso,customTariff}=app.state;
   let eloverblik=app.state.eloverblik;
   if(secureToken){
     const has=!!eloverblik.refreshToken, blob=tokenBlob();
@@ -359,8 +360,9 @@ function saveState(){
     setRevoked(true);
     NativeStore.keychainRemove({key:TOKEN_KEY}).then(()=>{ keychainHasToken=false; setRevoked(false); }).catch(()=>{});
   }
-  try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
+  try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,notifications,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
   shareWidget();   // netselskab/tillæg ændrer prisen widget'en viser
+  scheduleDaily();
 }
 
 /* ===================== DATA ===================== */
@@ -390,6 +392,7 @@ async function load(){
   bumpStreak();
   render();
   shareWidget();
+  scheduleDaily();
   refreshLiveTariff();
   // Forbrugs-hentning er gated på stale-guard'en (se shouldRefreshConsumption) — den hitter
   // IKKE DataHub på hvert load()/visibilitychange, kun hvis cache mangler eller er stale.
@@ -1256,6 +1259,7 @@ function sheetHTML(){
     <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
       <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Tillæg pr. kWh</div><div style="font-size:12px;color:${th.muted};">Inkl. moms</div></div>
       ${step('adjMarkup(-1)','−')}<span style="min-width:78px;text-align:center;font-weight:800;font-size:15px;">${app.state.markup} øre</span>${step('adjMarkup(1)','+')}</div>
+    ${Notifier ? notificationsHTML(th,lbl,step) : ''}
     ${lbl('SAMMENLIGN MED FASTPRIS')}
     <div style="display:flex;align-items:center;gap:12px;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
       <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Din fastpris pr. kWh</div><div style="font-size:12px;color:${th.muted};">Samlet pris inkl. afgifter, tariffer og moms. Bruges på Forbrug-fanen.</div></div>
@@ -1789,6 +1793,62 @@ function disconnectEloverblik(){
 function setChartTab(t){app.state.chartTab=t;app.state.selectedHour=null;render();}
 function selectHour(h){ app.state.selectedHour = (h===null || h===app.state.selectedHour) ? null : h; render(); }
 // Fastpris i øre/kWh. Første tryk på + starter ved 2,00 kr (en typisk samlet pris); 0 = ikke sat.
+// ===== Notifikationer (kun iOS-appen; web-push på iPhone er for upålidelig til v1) =====
+// Planen laves af notifications.js; her oversættes den til LocalNotifications-kald.
+const Notifier=window.Capacitor?.isNativePlatform() ? (window.Capacitor.Plugins?.LocalNotifications||null) : null;
+function dailySettings(){
+  const d=app.state.notifications?.daily;
+  return { on:!!(d&&d.on), hour:Number.isInteger(d&&d.hour)?d.hour:14 };
+}
+let scheduling=Promise.resolve();
+function scheduleDaily(){
+  if(!Notifier) return;
+  // Kæd kaldene, så to hurtige ændringer ikke planlægger oven i hinanden.
+  scheduling=scheduling.then(async()=>{
+    try{
+      await Notifier.cancel({ notifications:DAILY_IDS.map(id=>({id})) });
+      const now=nowDK(), plan=planDaily(dailySettings(), app.raw, cfg(), now);
+      if(!plan.length) return;
+      // atDK er dansk vægur; omregn til rigtig tid uanset enhedens tidszone.
+      await Notifier.schedule({ notifications:plan.map(p=>({ id:p.id, title:p.title, body:p.body,
+        schedule:{ at:new Date(Date.now()+(p.atDK-now)), allowWhileIdle:true } })) });
+    }catch(e){ /* non-blocking: appen virker uden notifikationer */ }
+  });
+}
+async function setDailyOn(on){
+  if(on && Notifier){
+    try{
+      const p=await Notifier.requestPermissions();
+      if(p.display!=='granted'){
+        app.state.toast='Notifikationer er slået fra for I stødet. Slå dem til under Indstillinger på din iPhone.';
+        render(); clearTimeout(app.toastTimer); app.toastTimer=setTimeout(()=>{ app.state.toast=''; render(); }, 5000);
+        return;
+      }
+    }catch(e){ return; }
+  }
+  app.state.notifications={ ...app.state.notifications, daily:{ ...dailySettings(), on } };
+  saveState(); render();
+}
+function adjDailyHour(d){
+  const s=dailySettings();
+  app.state.notifications={ ...app.state.notifications, daily:{ ...s, hour:Math.max(13,Math.min(22,s.hour+d)) } };
+  saveState(); render();
+}
+function notificationsHTML(th,lbl,step){
+  const s=dailySettings();
+  const toggle=`<button onclick="setDailyOn(${!s.on})" role="switch" aria-checked="${s.on}" aria-label="Daglig besked om morgendagens priser" style="flex-shrink:0;width:52px;height:30px;border-radius:99px;border:none;padding:3px;cursor:pointer;background:${s.on?th.accent:th.border};transition:background .15s;">
+      <span style="display:block;width:24px;height:24px;border-radius:50%;background:#fff;transform:translateX(${s.on?22:0}px);transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.25);"></span></button>`;
+  return `${lbl('NOTIFIKATIONER')}
+    <div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:12px 14px;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">Morgendagens priser</div><div style="font-size:12px;color:${th.muted};">En besked hver dag om, hvornår strømmen er billigst i morgen.</div></div>
+        ${toggle}</div>
+      ${s.on?`<div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid ${th.border};">
+        <div style="flex:1;font-weight:700;font-size:14px;">Tidspunkt</div>
+        ${step('adjDailyHour(-1)','−')}<span style="min-width:78px;text-align:center;font-weight:800;font-size:15px;">kl. ${String(s.hour).padStart(2,'0')}:00</span>${step('adjDailyHour(1)','+')}</div>
+      <div style="font-size:11px;color:${th.muted};margin-top:8px;line-height:1.45;">Priserne for i morgen kommer ved 13-tiden. Åbn appen efter det, så får beskeden de præcise tal.</div>`:''}
+    </div>`;
+}
 function adjFastpris(d){
   const cur=Number.isFinite(app.state.fastpris)?app.state.fastpris:0;
   app.state.fastpris = (cur<=0 && d>0) ? 200 : Math.max(0,Math.min(600,cur+d));
@@ -1829,7 +1889,7 @@ function logClaim(apparat){
 }
 window.logClaim=logClaim;
 window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
-window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.adjAp=adjAp;
+window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.setDailyOn=setDailyOn;window.adjDailyHour=adjDailyHour;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
 window.selectHour=selectHour;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
