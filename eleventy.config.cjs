@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { execFileSync } = require("node:child_process");
 const { assetUrl: assetUrlFn } = require("@udstillerguide/11ty-media/lib/asset-url");
 
 module.exports = function (eleventyConfig) {
@@ -30,6 +31,28 @@ module.exports = function (eleventyConfig) {
     } catch (e) {
       return "0";
     }
+  });
+
+  // Browsere henter /favicon.ico fra roden uanset <link>; genbrug appens ikon.
+  eleventyConfig.addPassthroughCopy({ "src/app/favicon.ico": "favicon.ico" });
+
+  // absUrl: gør en rod-relativ sti absolut (og:image/JSON-LD kræver fuld URL).
+  // Allerede absolutte URL'er (MEDIA_URL sat) returneres uændret.
+  eleventyConfig.addFilter("absUrl", (p, base) => (/^https?:\/\//.test(p) ? p : base + p));
+  // jsonld: sikker serialisering til <script type="application/ld+json">.
+  eleventyConfig.addFilter("jsonld", (obj) => JSON.stringify(obj).replace(/</g, "\\u003c"));
+  // lastmod: dato (YYYY-MM-DD) for sidste git-commit der rørte kildefilen.
+  // Fallback er build-dagen (ucommittet fil eller build uden git-historik).
+  const lastmodCache = new Map();
+  eleventyConfig.addFilter("lastmod", (inputPath) => {
+    if (lastmodCache.has(inputPath)) return lastmodCache.get(inputPath);
+    let d = "";
+    try {
+      d = execFileSync("git", ["log", "-1", "--format=%cs", "--", inputPath], { cwd: __dirname, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch (e) { /* no git: fall through */ }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) d = new Date().toISOString().slice(0, 10);
+    lastmodCache.set(inputPath, d);
+    return d;
   });
 
   // kr-formatering: 12.34 -> "12,34". Bruges i besparelses-tal.

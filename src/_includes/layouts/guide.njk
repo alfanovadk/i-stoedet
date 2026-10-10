@@ -1,5 +1,6 @@
 ---
 layout: layouts/base.njk
+ogType: article
 ---
 {%- set a = apparater.bySlug(apparat) %}
 <article class="guide">
@@ -19,3 +20,16 @@ layout: layouts/base.njk
   {{ content | safe }}
   <p class="cta"><a class="nav-cta" href="{{ site.appPath }}">Se din egen besparelse i appen →</a></p>
 </article>
+{%- set articleLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": h1,
+  "description": description,
+  "inLanguage": "da",
+  "mainEntityOfPage": site.url + page.url,
+  "image": site.ogImage | assetUrl | absUrl(site.url),
+  "dateModified": page.inputPath | lastmod,
+  "author": { "@type": "Organization", "name": site.maker, "url": site.makerUrl },
+  "publisher": { "@id": site.makerUrl + "/#organization" }
+} %}
+<script type="application/ld+json">{{ articleLd | jsonld | safe }}</script>
