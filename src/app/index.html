@@ -133,7 +133,7 @@
 "use strict";
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
-  datahubURL, liveFromDatahub, pickPrices
+  datahubURL, liveFromDatahub, pickPrices, validRecords, validLive
 } from './pricing.js?v=11';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
@@ -249,7 +249,10 @@ const app={
 // (Caddy), native kalder API'et direkte (CapacitorHttp omgår CORS).
 const EDS_BASE=window.Capacitor?.isNativePlatform() ? EDS : '/eds';
 const LIVE_TARIFF_KEY='elpriser_live_tariff', LIVE_TARIFF_TTL=24*3600*1000;
-let liveTariffs=(()=>{ try{ return JSON.parse(localStorage.getItem(LIVE_TARIFF_KEY)||'{}'); }catch(e){ return {}; } })();
+let liveTariffs=(()=>{ try{
+    const all=JSON.parse(localStorage.getItem(LIVE_TARIFF_KEY)||'{}')||{};
+    return Object.fromEntries(Object.entries(all).filter(([,v])=>v && Number.isFinite(v.ts) && validLive(v.periods)));
+  }catch(e){ return {}; } })();
 function currentTariff(){
   if(app.state.dso === 'custom') return app.state.customTariff;
   const key=DSO_TARIFFS[app.state.dso] ? app.state.dso : 'n1', live=liveTariffs[key];
@@ -292,7 +295,7 @@ function saveState(){
 function dayURL(d){const y=d.getFullYear(),m=pad(d.getMonth()+1),day=pad(d.getDate());
   return `https://www.elprisenligenu.dk/api/v1/prices/${y}/${m}-${day}_${app.state.region}.json`;}
 async function fetchDay(d){try{const r=await fetch(dayURL(d),{cache:'no-store'});
-  if(!r.ok)return [];const j=await r.json();return Array.isArray(j)?j:[];}catch(e){return [];}}
+  if(!r.ok)return [];return validRecords(await r.json());}catch(e){return [];}}
 
 // Sidst hentede priser { region, ts, raw } — så appen kan vise dem offline eller ved API-fejl.
 const PRICE_CACHE_KEY='elpriser_price_cache';
@@ -1068,6 +1071,8 @@ function mereView(){
       <span style="color:${th.accent};font-weight:800;">→</span></button>
     ${card(`<div style="font-weight:700;font-size:14px;color:${th.text};margin-bottom:4px;">Om appen</div>
       <div style="font-size:12.5px;line-height:1.5;color:${th.muted};">«I stødet» viser dagens og morgendagens spotpris inkl. afgifter, moms og dit netselskabs tarif. Forbind Eloverblik for at se dit eget forbrug. Alle data bliver på din egen enhed.</div>`)}
+    ${card(linkRow('https://xn--i-stdet-t1a.dk/privatliv/','clipboard-check','Privatliv','Hvad appen gemmer, og hvordan du sletter det'))}
+    ${card(linkRow('https://xn--i-stdet-t1a.dk/support/','lightbulb','Hjælp og kontakt','Spørgsmål, svar og support'))}
     ${card(`<div style="font-size:12px;color:${th.muted};line-height:1.6;">Opdateret ${now.toLocaleString('da-DK',{weekday:'short',hour:'2-digit',minute:'2-digit'})}<br>Spotpris fra <strong style="color:${th.text};">elprisenligenu.dk</strong></div>`)}
   </div>`;
 }
@@ -1731,7 +1736,7 @@ window.exportForbrugCSV=exportForbrugCSV;
 /* ===================== INIT ===================== */
 loadState();
 // Vis cachede priser med det samme (uden «ingen forbindelse»-note); load() henter friske.
-if(applyPrices([],[])){ app.loading=false; app.staleTs=null; }
+try{ if(applyPrices([],[])){ app.loading=false; app.staleTs=null; } }catch(e){ app.raw=[]; }
 render();
 load();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});

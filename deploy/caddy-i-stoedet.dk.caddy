@@ -55,6 +55,25 @@ xn--i-stdet-t1a.dk, www.xn--i-stdet-t1a.dk {
 		-Server
 	}
 
+	# Same-origin-proxy til Energi Data Service. API'et sender ingen CORS-headers,
+	# så PWA'en kan ikke kalde det direkte fra browseren. Appen henter nettariffer
+	# (DatahubPricelist) og CO2 (CO2Emis) via /eds/dataset/…. Kun GET, kun
+	# /dataset/*, ingen cookies videre. Upstreams egen Cache-Control (60 s) gælder.
+	@eds {
+		method GET
+		path /eds/dataset/*
+	}
+	handle @eds {
+		uri strip_prefix /eds
+		reverse_proxy https://api.energidataservice.dk {
+			header_up Host api.energidataservice.dk
+			header_up -Cookie
+			header_up -Origin
+			header_up -Referer
+			header_down -Set-Cookie
+		}
+	}
+
 	file_server
 
 	handle_errors {

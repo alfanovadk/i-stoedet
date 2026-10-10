@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, energinetAt, regionFor, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub, pickPrices,
+  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub, pickPrices, validRecords, validLive,
 } from '../src/app/pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -308,4 +308,29 @@ test('pickPrices: cache for andet prisområde eller anden dag bruges ikke', () =
   assert.deepEqual(pickPrices([], [], CACHE, 'DK2', '2026-10-10', '2026-10-11'), { raw: [], staleTs: null });
   assert.deepEqual(pickPrices([], [], CACHE, 'DK1', '2026-10-12', '2026-10-13'), { raw: [], staleTs: null });
   assert.deepEqual(pickPrices([], [], null, 'DK1', '2026-10-10', '2026-10-11'), { raw: [], staleTs: null });
+});
+
+// Cached third-party data must never be able to break the app on start.
+test('validRecords: kun velformede prisrecords slipper igennem', () => {
+  const ok = { DKK_per_kWh: 0.5, time_start: '2026-10-10T00:00:00+02:00' };
+  assert.deepEqual(validRecords([ok, null, {}, { ...ok, DKK_per_kWh: 'x' }, { ...ok, time_start: 5 }, { ...ok, time_start: 'nonsense' }]), [ok]);
+  for (const bad of [null, undefined, 'x', {}, 5]) assert.deepEqual(validRecords(bad), []);
+});
+
+test('validLive: afviser misdannede live-perioder', () => {
+  const p = { from: '2026-10-01', to: null, hourly: Array(24).fill(10) };
+  assert.equal(validLive([p, { ...p, to: '2027-01-01' }]), true);
+  assert.equal(validLive([]), false);
+  for (const bad of [null, {}, [null], [{ ...p, hourly: Array(23).fill(1) }], [{ ...p, hourly: Array(24).fill(NaN) }], [{ ...p, from: 20261001 }], [{ ...p, to: 5 }]])
+    assert.equal(validLive(bad), false);
+});
+
+test('pickPrices: misdannet cache giver tom visning i stedet for en exception', () => {
+  for (const cache of [{ region: 'DK1', ts: 1, raw: 'x' }, { region: 'DK1', ts: 1, raw: [null, {}] }, { region: 'DK1' }, 'x'])
+    assert.deepEqual(pickPrices([], [], cache, 'DK1', '2026-10-10', '2026-10-11'), { raw: [], staleTs: null });
+});
+
+test('liveFromDatahub: records uden gyldige priser giver ingen periode', () => {
+  const junk = { ChargeType: 'D03', ChargeTypeCode: 'X', ValidFrom: '2026-10-01T00:00:00', ValidTo: null, Price1: 'abc' };
+  assert.deepEqual(liveFromDatahub([junk, null, { ChargeType: 'D03', ChargeTypeCode: 'X' }], ['X']), []);
 });

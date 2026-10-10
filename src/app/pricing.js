@@ -67,8 +67,9 @@ export function datahubURL(dso, since, base = 'https://api.energidataservice.dk'
 // [{from, to, hourly[24]}] i øre inkl. moms. En periode kræver en record for
 // hver kode; flade tariffer har kun Price1.
 export function liveFromDatahub(records, codes){
-  const recs = records.filter(r => r.ChargeType === 'D03' && codes.includes(r.ChargeTypeCode))
-    .map(r => ({ r, from:r.ValidFrom.slice(0, 10), to:r.ValidTo ? r.ValidTo.slice(0, 10) : null }));
+  const recs = (Array.isArray(records) ? records : [])
+    .filter(r => r && r.ChargeType === 'D03' && codes.includes(r.ChargeTypeCode) && typeof r.ValidFrom === 'string')
+    .map(r => ({ r, from:r.ValidFrom.slice(0, 10), to:typeof r.ValidTo === 'string' ? r.ValidTo.slice(0, 10) : null }));
   const out = [];
   for (const from of [...new Set(recs.map(x => x.from))].sort()){
     const parts = codes.map(c => recs.find(x => x.r.ChargeTypeCode === c && from >= x.from && (!x.to || from < x.to)));
@@ -76,9 +77,26 @@ export function liveFromDatahub(records, codes){
     const ends = [...parts.map(x => x.to), ...recs.map(x => x.from).filter(f => f > from)].filter(Boolean).sort();
     const hourly = Array.from({ length:24 }, (_, h) =>
       Math.round(parts.reduce((sum, x) => sum + (x.r['Price' + (h + 1)] ?? x.r.Price1), 0) * 100 * MOMS * 100) / 100);
-    out.push({ from, to:ends[0] ?? null, hourly });
+    const period = { from, to:ends[0] ?? null, hourly };
+    if (validLive([period])) out.push(period);
   }
   return out;
+}
+
+// Data fra tredjeparts-API'er caches i localStorage. De valideres både før de
+// gemmes og når de læses, så et misdannet svar aldrig kan vælte appen ved start.
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+export function validLive(periods){
+  return Array.isArray(periods) && periods.length > 0 && periods.every(p =>
+    p && typeof p.from === 'string' && ISO_DAY.test(p.from) &&
+    (p.to === null || (typeof p.to === 'string' && ISO_DAY.test(p.to))) &&
+    Array.isArray(p.hourly) && p.hourly.length === 24 && p.hourly.every(Number.isFinite));
+}
+export function validRecords(records){
+  return Array.isArray(records)
+    ? records.filter(r => r && Number.isFinite(r.DKK_per_kWh) &&
+        typeof r.time_start === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:/.test(r.time_start))
+    : [];
 }
 
 export const energinetAt = date => periodAt(ENERGINET_PERIODS, date).ore;
@@ -184,9 +202,9 @@ export function nowDK(at = new Date()){
 // når dagens priser stammer derfra, ellers null.
 export function pickPrices(todayRecs, tmrRecs, cache, region, todayKey, tmrKey){
   const cached = key => (cache && cache.region === region)
-    ? cache.raw.filter(r => parseDK(r.time_start).dayKey === key) : [];
+    ? validRecords(cache.raw).filter(r => parseDK(r.time_start).dayKey === key) : [];
   const stale = !todayRecs.length;
   const today = stale ? cached(todayKey) : todayRecs;
   const tmr = tmrRecs.length ? tmrRecs : cached(tmrKey);
-  return { raw:[...today, ...tmr], staleTs: stale && today.length ? cache.ts : null };
+  return { raw:[...today, ...tmr], staleTs: stale && today.length ? (Number.isFinite(cache.ts) ? cache.ts : null) : null };
 }

@@ -13,7 +13,7 @@ export default {
   appPath: "/app/",
   // PLADSHOLDER: skal erstattes med den rigtige kontakt-adresse FØR deploy.
   // Bruges på /privatliv/ og /support/ (eneste sted adressen står).
-  contactEmail: "TODO-KONTAKT-EMAIL",
+  contactEmail: "hej@alfanova.dk",
   // Dato for seneste indholdsmæssige ændring af privatlivspolitikken.
   privacyUpdated: "10. oktober 2026",
   ogImage: "/assets/img/og-image.png",
