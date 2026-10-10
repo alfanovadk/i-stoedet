@@ -356,6 +356,14 @@ strong { font-weight: 700; }
 .hero .btn { font-size: 1.1rem; padding: 14px 32px; }
 /* Elly-maskotten i hero'en (eneste ikke-FA-grafik). */
 .hero__elly { margin-bottom: 14px; line-height: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes elly-float { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+  @keyframes elly-blink { 0%, 46%, 54%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.12); } }
+  @keyframes elly-pupil { 0%, 46%, 54%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .hero__elly svg { animation: elly-float 3.4s ease-in-out infinite; }
+  .hero__elly .eye { transform-box: fill-box; transform-origin: center; animation: elly-blink 4.2s ease-in-out infinite; }
+  .hero__elly .pupil { animation: elly-pupil 4.2s ease-in-out infinite; }
+}
 /* FA-ikon på apparat-kortene — accent-grøn via currentColor. */
 .card__icon { color: var(--accent); margin-bottom: 12px; line-height: 0; }
 /* FA-ikon i guide-header + spar-tabel. */

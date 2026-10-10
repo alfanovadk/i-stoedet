@@ -84,7 +84,8 @@
     @keyframes float{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
     .idle .char,.mid .char{animation:float 3s ease-in-out infinite}
     .idle .eye,.mid .eye{animation:blink 4s ease-in-out infinite}
-    .idle .pupil,.mid .pupil{animation:pupilHide 4s ease-in-out infinite}
+    @keyframes glance{0%,84%,100%{transform:translateX(0)}87%,90%{transform:translateX(-2.2px)}93%,96%{transform:translateX(2.2px)}}
+    .idle .pupil,.mid .pupil{animation:pupilHide 4s ease-in-out infinite, glance 16s ease-in-out infinite}
 
     @keyframes hop{
       0%,100%{transform:translateY(0) scale(1,1)}
@@ -157,8 +158,8 @@ import {
   dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily, costCompare
 } from './forbrug-analyse.js?v=8';
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
-import { ellySVG } from './elly.js?v=1';
-import { futurePool as poolFrom, viewCore, keyOf } from './view.js?v=1';
+import { ellySVG } from './elly.js?v=2';
+import { futurePool as poolFrom, viewCore, keyOf } from './view.js?v=2';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -749,7 +750,7 @@ function claimBtn(th, apKey, radius){
 
 function computeView(){
   const now=nowDK();
-  const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,peak,cheapEndH,nextCheapH,dayAvg,score}=viewCore(app.raw,cfg(),now);
+  const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,peak,cheapEndH,nextCheapH,dayAvg,score,mood,look}=viewCore(app.raw,cfg(),now);
   const cheapEnd=pad(Math.min(cheapEndH,24))+':00';
   const nextCheap=nextCheapH>=0?pad(nextCheapH)+':00':'i morgen';
   const cheapUntil = nowTier===0?cheapEnd:nextCheap;
@@ -767,7 +768,7 @@ function computeView(){
 
   const showToday=app.state.chartTab==='today';
   return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapEnd,nextCheap,
-    appliances,savedToday,score,streak:STREAK,
+    appliances,savedToday,score,streak:STREAK,elly:{mood,look},
     todayList,tmrList,hasToday,hasTmr,
     chartList:showToday?todayList:tmrList,chartNowH:showToday?nowH:-1,
     regionLabel:app.state.region==='DK1'?'DK1 · VEST':'DK2 · ØST',regionShort:app.state.region,
@@ -921,7 +922,7 @@ function viewSoft(V){
         <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:${bcol};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;">${btxt}</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:#6b7d74;">kr/kWh</span></div>
         <p style="margin:8px 0 0;font-size:12.5px;line-height:1.45;color:#46554d;">${nowCopy(V)}</p>
-      </div>${ellySVG(ellyState(V),66,'#11352b')}
+      </div>${ellySVG(ellyState(V),66,'#11352b',V.elly)}
     </div>
     <h3 style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:15px;color:#11352b;margin:16px 0 9px;">Hvornår skal vi tænde for…</h3>
     ${pointTeaser(th)}
@@ -951,7 +952,7 @@ function viewBold(V){
     <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:22px;padding:16px 18px 15px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:12px;color:#C6FF3D;letter-spacing:.1em;">${V.nowTier===0?'BILLIGT NU':(V.nowTier===1?'MIDDEL NU':'DYRT NU')}</span>
-        ${ellySVG(ellyState(V),40,'#0C1117')}
+        ${ellySVG(ellyState(V),40,'#0C1117',V.elly)}
       </div>
       <div style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:60px;line-height:.82;color:#EAF2E9;margin:10px 0 0;letter-spacing:-.04em;">${V.nowKr}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-weight:800;font-size:13px;color:#7E8C99;">kr / kWh</span>
@@ -984,7 +985,7 @@ function viewPlay(V){
     <div style="background:#fff;border:1.5px solid #efe4f8;border-radius:22px;padding:14px 16px 6px;box-shadow:0 14px 34px -22px rgba(108,75,216,.6);">
       <div style="max-width:150px;margin:0 auto 8px;">${tabsHTML(th)}</div>
       <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
-        ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${ellySVG(ellyState(V),52,'#2a2140')}</div>`:''}
+        ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${ellySVG(ellyState(V),52,'#2a2140',V.elly)}</div>`:''}
       </div>
       <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+''}</p>
       ${detailHTML(V,th)}
@@ -1744,6 +1745,7 @@ function logClaim(apparat){
   const prices=Array(24).fill(0); V.todayList.forEach(x=>{ if(x.h>=0&&x.h<24) prices[x.h]=x.total; });
   const claim={ id, apparat, dato:keyOf(now), startHour:now.getHours(), varighed, tierVedStart:V.nowTier, prices, status:'pending', point:0 };
   existing.push(claim); saveClaims(existing);
+  if(V.nowTier===0){ app.cheerUntil=Date.now()+1600; setTimeout(()=>render(), 1700); }
   app.state.toast='Sat i gang — verificeres når dit forbrug er klar (1-2 dage)';
   render();
   clearTimeout(app.toastTimer);

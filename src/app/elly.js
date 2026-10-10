@@ -4,20 +4,28 @@
 // styres af CSS-klasser i appen (se «ELLY MASCOT» i index.html).
 const INK = '#11352b';
 
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, +v || 0));
+
 // Krop + ansigt. `outline` er lynets omrids, `ink` er ansigtets streger.
-function body(outline, ink){
+// `mood` (0–1) bøjer munden: 1 = stort smil, 0,5 = lige streg, 0 = sur.
+// `look` (-1–1) flytter pupillerne vandret: negativ = venstre, positiv = højre.
+function body(outline, ink, mood = 1, look = 0){
+  const my = (56 + (clamp(mood, 0, 1) * 2 - 1) * 8).toFixed(1).replace(/\.0$/, '');
+  const dx = clamp(look, -1, 1) * 2.4;
+  const px = x => (x + dx).toFixed(1).replace(/\.0$/, '');
   return `<path class="bolt" d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="#FFD23F" stroke="${outline}" stroke-width="4.5" stroke-linejoin="round"></path>
       <circle class="eye eye-l" cx="55" cy="44" r="8" fill="#fff" stroke="${ink}" stroke-width="2"></circle>
       <circle class="eye eye-r" cx="73" cy="44" r="8" fill="#fff" stroke="${ink}" stroke-width="2"></circle>
-      <circle class="pupil pupil-l" cx="57" cy="46" r="3.4" fill="${ink}"></circle>
-      <circle class="pupil pupil-r" cx="75" cy="46" r="3.4" fill="${ink}"></circle>
-      <path class="mouth-happy" d="M54 56 Q64 64 74 56" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"></path>`;
+      <circle class="pupil pupil-l" cx="${px(57)}" cy="46" r="3.4" fill="${ink}"></circle>
+      <circle class="pupil pupil-r" cx="${px(75)}" cy="46" r="3.4" fill="${ink}"></circle>
+      <path class="mouth-happy" d="M54 56 Q64 ${my} 74 56" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"></path>`;
 }
 
 // App-udgaven: tilstandsklasse (cheap|mid|expensive|charge|cheer|blink) + de
 // ekstra dele som CSS'en tænder pr. tilstand (glød, gnister, sur mund, bryn).
-// Rent dekorativ → skjult for skærmlæsere.
-export function ellySVG(stateClass, size, stroke){
+// Rent dekorativ → skjult for skærmlæsere. `opts.mood` og `opts.look` gør
+// udtrykket glidende inden for tilstanden (se body()).
+export function ellySVG(stateClass, size, stroke, opts = {}){
   stroke = stroke || INK;
   return `<svg viewBox="0 0 120 120" class="elly ${stateClass}" width="${size}" height="${size}" aria-hidden="true" focusable="false" style="display:block;overflow:visible;flex-shrink:0;">
     <circle class="glow" cx="62" cy="60" r="36"></circle>
@@ -28,7 +36,7 @@ export function ellySVG(stateClass, size, stroke){
     <path class="sparkle" d="M20 36 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 l5 -1.6 z" fill="#7CE0A8"></path>
     <path class="sparkle" d="M90 96 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 l5 -1.6 z" fill="#34B27B"></path>
     <g class="char">
-      ${body(stroke, stroke)}
+      ${body(stroke, stroke, opts.mood, opts.look)}
       <path class="mouth-mad" d="M53 60 l4.6 -5 l4.6 5 l4.6 -5 l4.6 5 l4.6 -5" stroke="${stroke}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
       <path class="brow brow-l" d="M47 33 L61 41" stroke="${stroke}" stroke-width="3.2" stroke-linecap="round"></path>
       <path class="brow brow-r" d="M81 33 L67 41" stroke="${stroke}" stroke-width="3.2" stroke-linecap="round"></path>

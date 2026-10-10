@@ -37,5 +37,9 @@ export function viewCore(raw, cfg, now){
 
   const dayAvg = todayVals.length ? todayVals.reduce((a, b) => a + b, 0) / todayVals.length : 0;
   const score = hasToday ? Math.round(Math.max(0, Math.min(100, (peak - nowTotal) / Math.max(1, peak - loT) * 100))) : 0;
-  return { nowH, todayList, tmrList, hasToday, hasTmr, loT, hiT, nowTotal, nowTier, peak, cheapEndH, nextCheapH, dayAvg, score };
+  // Ellys udtryk: mood 1 = dagens billigste time, 0 = dagens dyreste. look er hvor langt
+  // fremme den næste billige time ligger (0 = nu, 1 = 8+ timer eller først i morgen).
+  const mood = hasToday ? 1 - Math.max(0, Math.min(1, (nowTotal - loT) / Math.max(1, hiT - loT))) : 1;
+  const look = !hasToday || nowTier === 0 ? 0 : (nextCheapH < 0 ? 1 : Math.min(1, (nextCheapH - nowH) / 8));
+  return { nowH, todayList, tmrList, hasToday, hasTmr, loT, hiT, nowTotal, nowTier, peak, cheapEndH, nextCheapH, dayAvg, score, mood, look };
 }

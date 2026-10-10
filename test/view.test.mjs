@@ -63,3 +63,14 @@ test('viewCore: ingen data giver neutrale tal uden exception', () => {
   const v = viewCore([], CFG, at(10));
   assert.deepEqual([v.hasToday, v.hasTmr, v.nowTotal, v.nowTier, v.peak, v.score, v.dayAvg], [false, false, 0, 0, 0, 0, 0]);
 });
+
+test('viewCore: Ellys humør og blik følger prisen', () => {
+  const night = viewCore([...TODAY, ...TMR], CFG, at(3));
+  assert.deepEqual([night.mood, night.look], [1, 0]);              // cheapest hour: happy, looks at you
+  const noon = viewCore([...TODAY, ...TMR], CFG, at(12));
+  assert.ok(noon.mood > 0.4 && noon.mood < 0.7, 'mid price, mid mood: ' + noon.mood);
+  assert.equal(noon.look, 1);                                       // no cheap hours left today
+  const peak = viewCore([...TODAY, ...TMR], CFG, at(18));
+  assert.deepEqual([peak.mood, peak.look], [0, 1]);
+  assert.deepEqual([viewCore([], CFG, at(3)).mood, viewCore([], CFG, at(3)).look], [1, 0]);
+});

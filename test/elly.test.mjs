@@ -27,3 +27,22 @@ test('app og site deler ansigtets geometri', () => {
   const face = s => [...s.matchAll(/class="(?:eye|pupil|mouth-happy)[^"]*"[^>]*?(?:cx="(\d+)" cy="(\d+)"|d="([^"]+)")/g)].map(m => m.slice(1).join(','));
   assert.deepEqual(face(ellyStatic(10)), face(ellySVG('mid', 10)));
 });
+
+const mouth = s => s.match(/class="mouth-happy" d="([^"]+)"/)[1];
+const pupils = s => [...s.matchAll(/class="pupil[^"]*" cx="([\d.]+)"/g)].map(m => +m[1]);
+
+test('ellySVG: mood bøjer munden fra smil til sur', () => {
+  assert.equal(mouth(ellySVG('cheap', 10, null, { mood: 1 })), 'M54 56 Q64 64 74 56');
+  assert.equal(mouth(ellySVG('mid', 10, null, { mood: 0.5 })), 'M54 56 Q64 56 74 56');
+  assert.equal(mouth(ellySVG('mid', 10, null, { mood: 0 })), 'M54 56 Q64 48 74 56');
+  assert.equal(mouth(ellySVG('mid', 10)), 'M54 56 Q64 64 74 56', 'default is the happy face');
+  assert.equal(mouth(ellySVG('mid', 10, null, { mood: 7 })), 'M54 56 Q64 64 74 56', 'clamped');
+});
+
+test('ellySVG: look flytter pupillerne, uden for øjet kommer de ikke', () => {
+  assert.deepEqual(pupils(ellySVG('mid', 10)), [57, 75]);
+  assert.deepEqual(pupils(ellySVG('mid', 10, null, { look: 1 })), [59.4, 77.4]);
+  assert.deepEqual(pupils(ellySVG('mid', 10, null, { look: -1 })), [54.6, 72.6]);
+  assert.deepEqual(pupils(ellySVG('mid', 10, null, { look: 99 })), [59.4, 77.4]);
+  assert.deepEqual(pupils(ellySVG('mid', 10, null, { look: 'x' })), [57, 75]);
+});
