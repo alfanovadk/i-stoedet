@@ -7,38 +7,83 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0DE0055A4E357E16E52A7E8A /* PriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		49643AE909CF397318FEAE7C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2209357ABE6EE1E17869C886 /* Foundation.framework */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
-		B4A1E5F32EA9D00100C0FFEE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */; };
-		B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */; };
-		B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		A8D3A1A7CBDA36FF6F4E3DF4 /* IStoedetWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B94EDF38C2667C0EF9FF489 /* IStoedetWidget.swift */; };
 		B4A1E5F12EA9D00100C0FFEE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B4A1E5F02EA9D00100C0FFEE /* PrivacyInfo.xcprivacy */; };
+		B4A1E5F32EA9D00100C0FFEE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */; };
+		B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */; };
+		B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */; };
+		EE07BD50E8184C16D5455B41 /* IStoedetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		D06A8C349428A28B3B83E7B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAB36D6BDD7E07B0EBA53ABB;
+			remoteInfo = IStoedetWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A51260B4FE4AD302CE788474 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EE07BD50E8184C16D5455B41 /* IStoedetWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0712219A1DC478E2370CCBEE /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2209357ABE6EE1E17869C886 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IStoedetWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
-		B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IStoedetPlugin.swift; sourceTree = "<group>"; };
-		B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		8330C7423E1817A96263030B /* PriceStoreCheck.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStoreCheck.swift; sourceTree = "<group>"; };
+		8B94EDF38C2667C0EF9FF489 /* IStoedetWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IStoedetWidget.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		95ACA7C7F30E39D4A5DCE50C /* IStoedetWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = IStoedetWidget.entitlements; sourceTree = "<group>"; };
 		B4A1E5F02EA9D00100C0FFEE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IStoedetPlugin.swift; sourceTree = "<group>"; };
+		B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		CA063540EA33EEFA17219A5E /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; path = README.md; sourceTree = "<group>"; };
+		D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStore.swift; sourceTree = "<group>"; };
+		F0F199469FA5C7D5EEDEAB9B /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		09BC5C894CD86ABD2FEDA3EA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49643AE909CF397318FEAE7C /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -56,6 +101,8 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
+				5CE8EB1E5EF97E1B413C4EFC /* Frameworks */,
+				6C229CAE67C4F33B29A13A2E /* IStoedetWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -63,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -82,8 +130,39 @@
 				B4A1E5F02EA9D00100C0FFEE /* PrivacyInfo.xcprivacy */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				F0F199469FA5C7D5EEDEAB9B /* App.entitlements */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		5CE8EB1E5EF97E1B413C4EFC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BF0F4F4F1DAEF56F8590202E /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6C229CAE67C4F33B29A13A2E /* IStoedetWidget */ = {
+			isa = PBXGroup;
+			children = (
+				D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */,
+				8B94EDF38C2667C0EF9FF489 /* IStoedetWidget.swift */,
+				0712219A1DC478E2370CCBEE /* Info.plist */,
+				95ACA7C7F30E39D4A5DCE50C /* IStoedetWidget.entitlements */,
+				CA063540EA33EEFA17219A5E /* README.md */,
+				8330C7423E1817A96263030B /* PriceStoreCheck.swift */,
+			);
+			name = IStoedetWidget;
+			path = IStoedetWidget;
+			sourceTree = "<group>";
+		};
+		BF0F4F4F1DAEF56F8590202E /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				2209357ABE6EE1E17869C886 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -96,10 +175,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				A51260B4FE4AD302CE788474 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				429F1E206A465B3E10D73E08 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -108,6 +189,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6A6B0248D59B3CEB36C16B3 /* Build configuration list for PBXNativeTarget "IStoedetWidget" */;
+			buildPhases = (
+				5C437252271AB9BBC79671FD /* Sources */,
+				09BC5C894CD86ABD2FEDA3EA /* Frameworks */,
+				254180FE9C35446511F28100 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = IStoedetWidget;
+			productName = IStoedetWidget;
+			productReference = 2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -142,11 +240,19 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		254180FE9C35446511F28100 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3021FED79650016851F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -175,7 +281,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5C437252271AB9BBC79671FD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0DE0055A4E357E16E52A7E8A /* PriceStore.swift in Sources */,
+				A8D3A1A7CBDA36FF6F4E3DF4 /* IStoedetWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		429F1E206A465B3E10D73E08 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = IStoedetWidget;
+			target = CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */;
+			targetProxy = D06A8C349428A28B3B83E7B2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -311,9 +435,10 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 7HP79DYM29;
 				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -334,9 +459,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 7HP79DYM29;
 				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -351,6 +477,63 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
+		};
+		63540DA1EDA921D06A7E3BB1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = IStoedetWidget/IStoedetWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E4C998DD06A64E2385DBB910 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = IStoedetWidget/IStoedetWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -369,6 +552,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6A6B0248D59B3CEB36C16B3 /* Build configuration list for PBXNativeTarget "IStoedetWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63540DA1EDA921D06A7E3BB1 /* Release */,
+				E4C998DD06A64E2385DBB910 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

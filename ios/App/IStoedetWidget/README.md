@@ -4,14 +4,19 @@ Hjemmeskærms-widget, der viser prisen lige nu og det næste billige tidsrum.
 
 ## Status
 
-Koden er skrevet og kontrolleret uden Xcode. Widget-targetet er **ikke** oprettet i
-Xcode-projektet endnu, så widget'en er ikke med i appen, før trinene nedenfor er udført.
+Widget'en er et target (`IStoedetWidget`) i `ios/App/App.xcodeproj` og bliver indlejret i
+appen (`App.app/PlugIns/IStoedetWidget.appex`). Projektet bygger til simulator med Xcode 27,
+og appen skriver prisdata til den delte App Group, når den kører i simulatoren.
 
 | Del | Fil | Kontrolleret hvordan |
 |---|---|---|
 | Datamodel og time-logik | `PriceStore.swift` | Kompileret og kørt: `PriceStoreCheck.swift` (alle kontroller består) |
-| Visning og konfiguration | `IStoedetWidget.swift` | Typechecket mod WidgetKit og SwiftUI med `swiftc` |
-| Appen sender data | `../App/IStoedetPlugin.swift` (`setWidgetData`) | Ikke bygget. JS-siden er testet (`widgetPayload` i `test/view.test.mjs`) |
+| Visning og konfiguration | `IStoedetWidget.swift` | Bygget i widget-targetet. Visningen er renderet til billeder og set igennem |
+| Appen sender data | `../App/IStoedetPlugin.swift` (`setWidgetData`) | Kørt i simulator: data ligger i App Group-containeren |
+| JS-format | `widgetPayload()` i `src/app/view.js` | `test/view.test.mjs` |
+
+Ikke kontrolleret: widget'en er ikke lagt på en hjemmeskærm og set køre dér, og der er ikke
+bygget med rigtig signering til en fysisk iPhone.
 
 Kør logik-kontrollen fra repo-roden (kræver kun Swift-kommandolinjeværktøjerne):
 
@@ -19,19 +24,13 @@ Kør logik-kontrollen fra repo-roden (kræver kun Swift-kommandolinjeværktøjer
 swiftc ios/App/IStoedetWidget/PriceStore.swift ios/App/IStoedetWidget/PriceStoreCheck.swift -o /tmp/pricestore-check && /tmp/pricestore-check
 ```
 
-## Sådan kommer widget'en med i appen (kræver Xcode, ca. 10 minutter)
+## Det der mangler før TestFlight og App Store
 
-1. Åbn `ios/App/App.xcodeproj`. Vælg **File › New › Target › Widget Extension**.
-   Navn: `IStoedetWidget`. Fravælg «Include Live Activity» og «Include Configuration App Intent».
-2. Slet de Swift-filer, Xcode opretter i den nye gruppe. Tilføj i stedet `PriceStore.swift`
-   og `IStoedetWidget.swift` fra denne mappe til targetet `IStoedetWidget`.
-   `PriceStoreCheck.swift` og denne README skal **ikke** med i noget target.
-3. Sæt widget-targetets **Minimum Deployments** til iOS 15.0, som appen.
-4. Tilføj capability **App Groups** på BÅDE targetet `App` og targetet `IStoedetWidget`,
-   og opret gruppen `group.dk.alfanova.istoedet` på begge. Navnet skal matche
-   `IStoedetPlugin.appGroup` og `PriceStore.appGroup`.
-5. Byg og kør på en iPhone eller i simulatoren. Åbn appen én gang, så den sender priser.
-   Tilføj derefter widget'en fra hjemmeskærmen.
+1. Åbn projektet i Xcode med Apple-kontoen for team `7HP79DYM29` og byg til en iPhone.
+   Automatisk signering opretter så App ID'et `dk.alfanova.istoedet.widget` og App Group'en
+   `group.dk.alfanova.istoedet` i udviklerportalen. Det kan ikke gøres uden kontoen.
+2. Åbn appen én gang, så den sender priser. Tilføj derefter widget'en fra hjemmeskærmen
+   og tjek, at prisen passer med appen.
 
 ## Sådan hænger det sammen
 
@@ -41,6 +40,7 @@ swiftc ios/App/IStoedetWidget/PriceStore.swift ios/App/IStoedetWidget/PriceStore
   og pris i øre/kWh.
 - Pluginet gemmer JSON'en i den delte App Group og beder WidgetKit om at opdatere.
 - Widget'en henter intet selv. Den laver én tidslinje-post pr. kendt time og skifter derfor
-  selv pris hver time. Når de kendte timer er brugt op, viser den «Åbn I stødet».
-- Uden App Group-capability skriver appen til sit eget lager, og widget'en ser ingen data.
-  Appen selv påvirkes ikke.
+  selv pris hver time. Når de kendte timer er brugt op, beder den brugeren åbne appen.
+- App Group'en står i `../App/App.entitlements` og `IStoedetWidget.entitlements`. Navnet
+  skal matche `IStoedetPlugin.appGroup` og `PriceStore.appGroup`.
+- `PriceStoreCheck.swift` og denne README ligger i mappen, men er ikke med i noget target.

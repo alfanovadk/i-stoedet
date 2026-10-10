@@ -59,22 +59,26 @@ struct PriceWidgetView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Circle().fill(Self.tierColors[entry.tier]).frame(width: 8, height: 8)
-                Text(entry.price == nil ? "Åbn I stødet" : Self.tierLabels[entry.tier])
+                Text(entry.price == nil ? "I stødet" : Self.tierLabels[entry.tier])
                     .font(.caption2.weight(.bold))
                     .foregroundColor(Self.ink.opacity(0.7))
             }
             Spacer(minLength: 0)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(priceText)
-                    .font(.system(size: family == .systemSmall ? 38 : 44, weight: .heavy, design: .rounded))
-                    .foregroundColor(Self.ink)
-                    .minimumScaleFactor(0.6)
-                Text("kr/kWh").font(.caption.weight(.semibold)).foregroundColor(Self.ink.opacity(0.6))
-            }
-            if let window = windowText {
-                Text(window).font(.caption.weight(.semibold)).foregroundColor(Self.ink.opacity(0.8))
-            } else if entry.price == nil {
-                Text("for at hente priser").font(.caption).foregroundColor(Self.ink.opacity(0.6))
+            if entry.price == nil {
+                Text("Åbn appen for at hente dagens priser.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundColor(Self.ink.opacity(0.7))
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(priceText)
+                        .font(.system(size: family == .systemSmall ? 38 : 44, weight: .heavy, design: .rounded))
+                        .foregroundColor(Self.ink)
+                        .minimumScaleFactor(0.6)
+                    Text("kr/kWh").font(.caption.weight(.semibold)).foregroundColor(Self.ink.opacity(0.6))
+                }
+                if let window = windowText {
+                    Text(window).font(.caption.weight(.semibold)).foregroundColor(Self.ink.opacity(0.8))
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
