@@ -43,6 +43,14 @@ enum KeychainStore {
         return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
 
+    /// Deletes everything this app has stored. A Keychain without items counts as success.
+    @discardableResult
+    static func removeAll() -> Bool {
+        let all: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service]
+        let status = SecItemDelete(all as CFDictionary)
+        return status == errSecSuccess || status == errSecItemNotFound
+    }
+
     /// Deletes the value. A missing key counts as success.
     @discardableResult
     static func remove(_ key: String) -> Bool {

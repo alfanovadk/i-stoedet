@@ -23,6 +23,17 @@ public class IStoedetPlugin: CAPPlugin, CAPBridgedPlugin {
     static let appGroup = "group.dk.alfanova.istoedet"
     static let widgetKey = "widgetData"
 
+    /// Keychain items survive deleting the app; UserDefaults do not. On the first
+    /// launch after an install, drop anything a previous installation left behind,
+    /// so «slet appen» really removes the Eloverblik tokens.
+    override public func load() {
+        let defaults = UserDefaults.standard
+        if !defaults.bool(forKey: "keychainInitialised") {
+            KeychainStore.removeAll()
+            defaults.set(true, forKey: "keychainInitialised")
+        }
+    }
+
     @objc func keychainGet(_ call: CAPPluginCall) {
         guard let key = call.getString("key") else { call.reject("key mangler"); return }
         // NSNull when the key does not exist, so JS sees { value: null }.

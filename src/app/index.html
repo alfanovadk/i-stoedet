@@ -286,7 +286,6 @@ function loadState(){
 // iOS-appen gemmer Eloverblik-tokenet i Keychain (app-lokalt plugin, se ios/App/App/IStoedetPlugin.swift).
 // Web og en native-app uden pluginet beholder tokenet i localStorage som hidtil.
 const NativeStore=window.Capacitor?.isNativePlatform() ? (window.Capacitor.Plugins?.IStoedet||null) : null;
-const TOKEN_KEY='eloverblik_refresh';
 // Del de kommende timepriser med iOS-widget'en (no-op på web og uden pluginet).
 function shareWidget(){
   if(!NativeStore?.setWidgetData || !app.raw.length) return;
@@ -295,17 +294,33 @@ function shareWidget(){
     NativeStore.setWidgetData({json}).catch(()=>{});
   }catch(e){}
 }
-let secureToken=false;   // true når Keychain er bekræftet brugbar — først da fjernes tokenet fra localStorage
+// Begge Eloverblik-tokens (refresh + det korte access-token) ligger samlet i Keychain som JSON.
+const TOKEN_KEY='eloverblik_tokens', REVOKED_KEY='elpriser_token_revoked';
+let secureToken=false;   // true når Keychain er bekræftet brugbar — først da fjernes tokens fra localStorage
+let keychainHasToken=false;
+const tokenBlob=()=>{ const {refreshToken,accessToken,accessTokenExp}=app.state.eloverblik; return JSON.stringify({refreshToken,accessToken,accessTokenExp}); };
+const setRevoked=on=>{ try{ on ? localStorage.setItem(REVOKED_KEY,'1') : localStorage.removeItem(REVOKED_KEY); }catch(e){} };
 async function initSecureToken(){
   if(!NativeStore) return;
   try{
+    // Et «Afbryd» der ikke nåede Keychain sidst: slet først. Fejler det igen, kastes der, og det
+    // tilbagekaldte token bliver ALDRIG læst ind (markøren bliver stående til sletningen lykkes).
+    if(localStorage.getItem(REVOKED_KEY)){ await NativeStore.keychainRemove({key:TOKEN_KEY}); setRevoked(false); }
     const legacy=app.state.eloverblik.refreshToken||'';
-    const stored=(await NativeStore.keychainGet({key:TOKEN_KEY})).value||'';
-    if(stored){ app.state.eloverblik.refreshToken=stored; secureToken=true; }
-    else if(legacy){
-      // Flyt et eksisterende token: skriv, læs tilbage, og slip først localStorage-kopien når de er ens.
-      await NativeStore.keychainSet({key:TOKEN_KEY,value:legacy});
-      secureToken=(await NativeStore.keychainGet({key:TOKEN_KEY})).value===legacy;
+    const stored=(await NativeStore.keychainGet({key:TOKEN_KEY})).value;
+    if(stored){
+      const t=JSON.parse(stored);
+      if(t && typeof t.refreshToken==='string' && t.refreshToken){
+        Object.assign(app.state.eloverblik,{ refreshToken:t.refreshToken,
+          accessToken:typeof t.accessToken==='string'?t.accessToken:'', accessTokenExp:Number.isFinite(t.accessTokenExp)?t.accessTokenExp:0 });
+        keychainHasToken=true;
+      }
+      secureToken=true;
+    } else if(legacy){
+      // Flyt eksisterende tokens: skriv, læs tilbage, og slip først localStorage-kopien når de er ens.
+      const blob=tokenBlob();
+      await NativeStore.keychainSet({key:TOKEN_KEY,value:blob});
+      secureToken=keychainHasToken=(await NativeStore.keychainGet({key:TOKEN_KEY})).value===blob;
     } else secureToken=true;
     if(secureToken) saveState();
   }catch(e){ secureToken=false; }
@@ -314,10 +329,17 @@ function saveState(){
   const {theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff}=app.state;
   let eloverblik=app.state.eloverblik;
   if(secureToken){
-    const token=eloverblik.refreshToken||'';
-    eloverblik={...eloverblik, refreshToken:''};
-    (token ? NativeStore.keychainSet({key:TOKEN_KEY,value:token}) : NativeStore.keychainRemove({key:TOKEN_KEY}))
-      .catch(()=>{ secureToken=false; saveState(); });   // Keychain fejlede: fald tilbage til localStorage
+    const has=!!eloverblik.refreshToken, blob=tokenBlob();
+    eloverblik={...eloverblik, refreshToken:'', accessToken:'', accessTokenExp:0};   // ingen tokens i localStorage
+    if(has){
+      setRevoked(false);
+      NativeStore.keychainSet({key:TOKEN_KEY,value:blob}).then(()=>{ keychainHasToken=true; })
+        .catch(()=>{ secureToken=false; saveState(); });   // Keychain fejlede: fald tilbage til localStorage
+    } else if(keychainHasToken || localStorage.getItem(REVOKED_KEY)){
+      // «Afbryd»: markér som tilbagekaldt indtil Keychain har bekræftet sletningen.
+      setRevoked(true);
+      NativeStore.keychainRemove({key:TOKEN_KEY}).then(()=>{ keychainHasToken=false; setRevoked(false); }).catch(()=>{});
+    }
   }
   try{ localStorage.setItem('elpriser_state',JSON.stringify({theme,region,markup,fastpris,bilH,opvaskH,vaskH,dso,customTariff,eloverblik})); }catch(e){}
   shareWidget();   // netselskab/tillæg ændrer prisen widget'en viser
