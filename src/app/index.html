@@ -132,14 +132,15 @@
 <script type="module">
 "use strict";
 import {
-  DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor
-} from './pricing.js?v=9';
+  DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
+  datahubURL, liveFromDatahub
+} from './pricing.js?v=10';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
   dayProfile, weekdayProfile, periodTotals, pctChange, toCSV, co2Footprint, avgIntensity, co2FootprintDaily
 } from './forbrug-analyse.js?v=7';
-import { fetchCO2, dailyAvgCO2 } from './co2.js?v=7';
+import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -242,10 +243,29 @@ const app={
     toast:'' },
   raw:[], loading:true, error:null
 };
+// Live-nettariffer fra DatahubPricelist, cachet pr. netselskab: { [dso]: { ts, periods } }.
+// Den statiske tabel i pricing.js er fallback når cachen mangler eller ikke dækker datoen.
+// Energi Data Service sender ingen CORS-headers: web går via same-origin-proxyen /eds
+// (Caddy), native kalder API'et direkte (CapacitorHttp omgår CORS).
+const EDS_BASE=window.Capacitor?.isNativePlatform() ? EDS : '/eds';
+const LIVE_TARIFF_KEY='elpriser_live_tariff', LIVE_TARIFF_TTL=24*3600*1000;
+let liveTariffs=(()=>{ try{ return JSON.parse(localStorage.getItem(LIVE_TARIFF_KEY)||'{}'); }catch(e){ return {}; } })();
 function currentTariff(){
-  return app.state.dso === 'custom'
-    ? app.state.customTariff
-    : (DSO_TARIFFS[app.state.dso] || DSO_TARIFFS.n1);
+  if(app.state.dso === 'custom') return app.state.customTariff;
+  const key=DSO_TARIFFS[app.state.dso] ? app.state.dso : 'n1', live=liveTariffs[key];
+  return live ? { ...DSO_TARIFFS[key], live: live.periods } : DSO_TARIFFS[key];
+}
+async function refreshLiveTariff(){
+  const key=app.state.dso, url=datahubURL(key, isoDate(addDays(nowDK(),-400)), EDS_BASE);
+  if(!url || (liveTariffs[key] && Date.now()-liveTariffs[key].ts < LIVE_TARIFF_TTL)) return;
+  try{
+    const r=await fetch(url); if(!r.ok) return;
+    const periods=liveFromDatahub((await r.json()).records||[], DSO_TARIFFS[key].datahub.codes);
+    if(!periods.length) return;
+    liveTariffs[key]={ ts:Date.now(), periods };
+    try{ localStorage.setItem(LIVE_TARIFF_KEY, JSON.stringify(liveTariffs)); }catch(e){}
+    render();
+  }catch(e){ /* non-blocking: statisk tabel bruges */ }
 }
 function cfg(){ return { markup: app.state.markup, tariff: currentTariff() }; }
 function loadState(){
@@ -276,7 +296,7 @@ async function fetchDay(d){try{const r=await fetch(dayURL(d),{cache:'no-store'})
 
 async function load(){
   app.loading=true; app.error=null;
-  const today=new Date(), tmr=new Date(); tmr.setDate(tmr.getDate()+1);
+  const today=nowDK(), tmr=nowDK(); tmr.setDate(tmr.getDate()+1);
   try{
     const [a,b]=await Promise.all([fetchDay(today),fetchDay(tmr)]);
     app.raw=[...a,...b];
@@ -285,6 +305,7 @@ async function load(){
   }catch(e){ app.loading=false; app.error=e.message; }
   bumpStreak();
   render();
+  refreshLiveTariff();
   // Forbrugs-hentning er gated på stale-guard'en (se shouldRefreshConsumption) — den hitter
   // IKKE DataHub på hvert load()/visibilitychange, kun hvis cache mangler eller er stale.
   refreshConsumption().then(verifyPending).catch(()=>{});
@@ -295,26 +316,26 @@ function keyOf(d){return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 
 /* ===================== BEREGNINGER ===================== */
 function futurePool(){
-  const now=new Date(), cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours());
+  const now=nowDK(), cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours());
   return app.raw.map(r=>{const t=parseDK(r.time_start);
       return {h:t.h,dayKey:t.dayKey,dow:t.dow,total:totalOf(r,cfg()),dateObj:new Date(t.y,t.monthIdx,t.d,t.h)};})
     .filter(x=>x.dateObj>=cutoff).sort((a,b)=>a.dateObj-b.dateObj);
 }
 function sameDay(r,d){return r.dayKey===keyOf(d);}
-function isTomorrow(r){const d=new Date();d.setDate(d.getDate()+1);return sameDay(r,d);}
+function isTomorrow(r){const d=nowDK();d.setDate(d.getDate()+1);return sameDay(r,d);}
 function winStr(w){if(!w)return '—';return pad(w.from.h)+'–'+pad((w.to.h+1)%24);}
 function whenText(w){if(!w)return '—';
-  const f=w.from;const day=sameDay(f,new Date())?'i dag':(isTomorrow(f)?'i morgen':DAYS[f.dow]);
+  const f=w.from;const day=sameDay(f,nowDK())?'i dag':(isTomorrow(f)?'i morgen':DAYS[f.dow]);
   return day+' '+pad(f.h)+'–'+pad((w.to.h+1)%24);}
 
 const KWH={bil:10,opvask:1.2,vask:1};
 let STREAK=0;
 function bumpStreak(){
   try{
-    const today=keyOf(new Date());
+    const today=keyOf(nowDK());
     const j=JSON.parse(localStorage.getItem('elpriser_streak')||'{}');
     if(j.last===today){STREAK=j.count||1;return;}
-    const y=new Date();y.setDate(y.getDate()-1);
+    const y=nowDK();y.setDate(y.getDate()-1);
     STREAK=(j.last===keyOf(y))?(j.count||0)+1:1;
     localStorage.setItem('elpriser_streak',JSON.stringify({last:today,count:STREAK}));
   }catch(e){STREAK=1;}
@@ -366,7 +387,7 @@ async function refreshConsumption(){
   const ev=app.state.eloverblik;
   if(!ev.refreshToken || !ev.meteringPointId) return;
   const claims=loadClaims();
-  const today=keyOf(new Date());
+  const today=keyOf(nowDK());
   // only fetch for pending claims whose day is in the past (data ~1-2 days delayed)
   const pending=claims.filter(c=>c.status==='pending' && c.dato!==today);
   if(!pending.length) return;
@@ -398,7 +419,7 @@ async function fetchRecentConsumption(force){
   // "needed" = de seneste par dage hvor vi mangler times-data i cachen.
   const cons0=loadConsumption();
   const need=[];
-  for(let i=1;i<=5;i++){ const dk=keyOf(addDays(new Date(),-i)); if(!cons0[dk]) need.push(dk); }
+  for(let i=1;i<=5;i++){ const dk=keyOf(addDays(nowDK(),-i)); if(!cons0[dk]) need.push(dk); }
   if(!shouldRefreshConsumption(force, need.length>0)) return;
   try{
     let access=ev.accessToken;
@@ -406,7 +427,7 @@ async function fetchRecentConsumption(force){
       access=await getAccessToken(ev.refreshToken);
       ev.accessToken=access; ev.accessTokenExp=Date.now()+23*3600*1000; saveState();
     }
-    const today=new Date();
+    const today=nowDK();
     const from=isoDate(addDays(today,-5)), to=isoDate(addDays(today,1));
     const json=await getTimeSeries(access, ev.meteringPointId, from, to);
     const parsed=parseTimeSeries(json);
@@ -433,7 +454,7 @@ const MONTHS_DK=['januar','februar','marts','april','maj','juni','juli','august'
 function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
 function addMonths(d,n){ return new Date(d.getFullYear(),d.getMonth()+n,1); }
 function monthKey(d){ return `${d.getFullYear()}-${d.getMonth()+1}`; }
-function dataLatest(){ const d=new Date(); d.setDate(d.getDate()-1); return startOfDay(d); } // Eloverblik ~1-2 dage forsinket
+function dataLatest(){ const d=nowDK(); d.setDate(d.getDate()-1); return startOfDay(d); } // Eloverblik ~1-2 dage forsinket
 
 // Beregn [from,to]-interval (Date, til er eksklusiv-grænse-dag inkl.) for en periodetype + offset.
 function periodRange(type, fromKey, toKey){
@@ -501,7 +522,7 @@ async function fetchRange(range, agg){
   if(!ev.refreshToken || !ev.meteringPointId) return 'Forbind Eloverblik først.';
   // Eloverblik afviser (400) forespørgsler hvis til-datoen rækker ind i fremtiden.
   // Cap til eksklusiv slutning til i morgen; spring helt over hvis perioden er fremtidig.
-  const tomorrow=addDays(new Date(),1);
+  const tomorrow=addDays(nowDK(),1);
   if(range.from > tomorrow) return null; // perioden er i fremtiden — ingen data endnu
   let toDate=addDays(range.to,1); if(toDate>tomorrow) toDate=tomorrow;
   const from=isoDate(range.from), to=isoDate(toDate); // til eksklusiv
@@ -590,7 +611,7 @@ async function loadCO2ForPeriod(range){
   const region=app.state.region;
   const cache=loadCO2();
   // Saml manglende dag-nøgler i intervallet (afgrænset til ikke-fremtid + maks i dag).
-  const today=startOfDay(new Date());
+  const today=startOfDay(nowDK());
   const need=[];
   for(let d=startOfDay(new Date(range.from)); d<=range.to && d<=today; d=addDays(d,1)){
     const dk=keyOf(d);
@@ -601,7 +622,7 @@ async function loadCO2ForPeriod(range){
   const span0=need[0], span1=need[need.length-1];
   const fromISO=isoDate(span0), toISO=isoDate(addDays(span1,1)); // end er eksklusiv
   try{
-    const parsed=await fetchCO2(region, fromISO, toISO);   // { dayKey: number[24] }
+    const parsed=await fetchCO2(region, fromISO, toISO, EDS_BASE);   // { dayKey: number[24] }
     const c=loadCO2();
     for(const dk of Object.keys(parsed)){ c[co2Key(region, dk)]=parsed[dk]; }
     saveCO2(c);
@@ -619,7 +640,8 @@ async function ensureDayPrice(dayKey){
   try{
     const recs=await fetchDay(dateFromKey(dayKey));
     const list=seriesForDay(recs, dayKey, cfg());
-    if(list.length){ const arr=Array(24).fill(0); list.forEach(x=>{arr[x.h]=x.total;}); dp[dayKey]=arr; saveDayPrices(dp); }
+    // 25-timers dag (sommertid slutter): behold første forekomst af time 02, som computeView/selectedRecord.
+    if(list.length){ const arr=Array(24).fill(0), seen=new Set(); list.forEach(x=>{ if(!seen.has(x.h)){ seen.add(x.h); arr[x.h]=x.total; } }); dp[dayKey]=arr; saveDayPrices(dp); }
   }catch(e){}
 }
 
@@ -688,7 +710,7 @@ function verifyPending(){
 }
 
 function claimsHTML(th){
-  const today=loadClaims().filter(c=>c.dato===keyOf(new Date()));
+  const today=loadClaims().filter(c=>c.dato===keyOf(nowDK()));
   if(!today.length) return '';
   const chip=s=> s==='confirmed'?`<span style="color:#2BC48A;font-weight:700;">✓ bekræftet</span>`
     : s==='unconfirmed'?`<span style="color:${th.muted};">ikke bekræftet</span>`
@@ -701,14 +723,14 @@ function claimsHTML(th){
 
 // Er apparatet allerede sat i gang i DENNE time i dag? (samme id-skema som logClaim).
 function isClaimedNow(apparatKey){
-  const now=new Date();
+  const now=nowDK();
   return loadClaims().some(c=>c.apparat===apparatKey && claimActiveAt(c, keyOf(now), now.getHours()));
 }
 // Stateful pære-knap → «Tænd nu» (slukket/muted pære) skifter til «Tændt» (accent-pære der lyser) når
 // en markering findes. Strøm-metafor: brugeren «tænder» for forbruget. Toggler via logClaim ved tryk,
 // så knappen giver øjeblikkelig feedback. tema-styling via radius.
 function claimBtn(th, apKey, radius){
-  const now=new Date();
+  const now=nowDK();
   const claim=loadClaims().find(c=>c.apparat===apKey && claimActiveAt(c, keyOf(now), now.getHours()));
   const on=!!claim;
   const col=on?th.accent:th.muted;
@@ -724,9 +746,9 @@ function claimBtn(th, apKey, radius){
 }
 
 function computeView(){
-  const now=new Date(), nowH=now.getHours();
+  const now=nowDK(), nowH=now.getHours();
   const todayList=seriesForDay(app.raw, keyOf(now), cfg());
-  const tmr=new Date(); tmr.setDate(tmr.getDate()+1);
+  const tmr=nowDK(); tmr.setDate(tmr.getDate()+1);
   const tmrList=seriesForDay(app.raw, keyOf(tmr), cfg());
   const hasToday=todayList.length>0, hasTmr=tmrList.length>0;
   const todayVals=todayList.map(x=>x.total);
@@ -822,8 +844,8 @@ function ringHTML(list,th,nowH){
 }
 function selectedRecord(V){
   if(app.state.selectedHour==null) return null;
-  const tmr=new Date(); tmr.setDate(tmr.getDate()+1);
-  const dayKey = V.chartList===V.tmrList ? keyOf(tmr) : keyOf(new Date());
+  const tmr=nowDK(); tmr.setDate(tmr.getDate()+1);
+  const dayKey = V.chartList===V.tmrList ? keyOf(tmr) : keyOf(nowDK());
   return app.raw.find(r=>{const t=parseDK(r.time_start); return t.dayKey===dayKey && t.h===app.state.selectedHour;}) || null;
 }
 function detailHTML(V,th){
@@ -835,19 +857,19 @@ function detailHTML(V,th){
   const tier=tierOf(c.total,lo,hi);
   const tierTxt=['Billig','Middel','Dyr'][tier];
   const row=(label,val)=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:${th.muted};padding:3px 0;"><span>${label}</span><span style="color:${th.text};font-weight:600;">${kr(Math.round(val))} kr</span></div>`;
-  const shownTotalOre = Math.round(c.spot)+Math.round(c.elafgift)+Math.round(c.energinet)+Math.round(c.nettarif)+Math.round(c.markup);
   return `<div class="pane" style="margin-top:14px;background:${th.surface};border:1px solid ${th.border};border-radius:18px;padding:16px;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
       <div><span style="font-weight:800;font-size:15px;color:${th.text};">kl ${pad(h)}:00–${pad((h+1)%24)}:00</span>
         <span style="margin-left:8px;font-size:11px;font-weight:800;color:${th.pal[tier]};">${tierTxt}</span></div>
       <button onclick="selectHour(null)" aria-label="Luk" style="border:none;background:transparent;color:${th.muted};font-size:16px;cursor:pointer;padding:0;">✕</button>
     </div>
-    <div style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:30px;color:${th.text};margin-bottom:10px;">${kr(shownTotalOre)} <span style="font-size:13px;font-weight:700;color:${th.muted};">kr/kWh</span></div>
+    <div style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:30px;color:${th.text};margin-bottom:10px;">${kr(c.total)} <span style="font-size:13px;font-weight:700;color:${th.muted};">kr/kWh</span></div>
     ${row('Spotpris (inkl. moms)',c.spot)}
     ${row('Elafgift',c.elafgift)}
     ${row('Energinet-tarif',c.energinet)}
     ${row('Nettarif',c.nettarif)}
     ${row('Elhandler-tillæg',c.markup)}
+    <div style="font-size:11px;color:${th.muted};margin-top:8px;line-height:1.45;">Elafgiften er midlertidigt sat ned til EU's minimum (1,0 øre) til og med 2027. Derfor er der ingen forskel for elvarmekunder lige nu.</div>
   </div>`;
 }
 function tabsHTML(th){
@@ -995,7 +1017,7 @@ function brandFor(th){
 function pointView(V){
   const th=THEMES[app.state.theme];
   const g=loadGamify();
-  const todayKwh=loadConsumption()[keyOf(new Date())];
+  const todayKwh=loadConsumption()[keyOf(nowDK())];
   const smart = (todayKwh && V.hasToday) ? smartScore(todayKwh, V.todayList.map(x=>x.total)) : V.score;
   const stat=(icon,val,lbl,col,icol)=>`<div style="flex:1;min-width:0;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:13px 12px;display:flex;align-items:center;gap:9px;">
     <span style="font-size:22px;width:24px;text-align:center;">${fa(icon,icol||th.accent)}</span>
@@ -1024,7 +1046,7 @@ function pointView(V){
 /* ===================== MERE-FANE ===================== */
 function mereView(){
   const th=THEMES[app.state.theme];
-  const now=new Date();
+  const now=nowDK();
   const card=inner=>`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:14px 16px;margin-top:12px;">${inner}</div>`;
   const linkRow=(href,icon,label,sub)=>`<a href="${href}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:${th.text};">
     <span style="font-size:20px;width:23px;text-align:center;">${fa(icon,th.text)}</span><div style="flex:1;"><div style="font-weight:700;font-size:14px;">${label}</div>${sub?`<div style="font-size:12px;color:${th.muted};">${sub}</div>`:''}</div>
@@ -1247,7 +1269,7 @@ function monthAvgCO2(region, year, monthIdx){
 // kompakt "henter"-linje.
 function co2Card(th, type, range){
   const region=app.state.region;
-  const today=startOfDay(new Date());
+  const today=startOfDay(nowDK());
   const agg=aggForType(type);
   const precise = agg==='Hour';
   let totKg=0, totKwh=0, totG=0, withData=0, inRange=0, unit='dage';
@@ -1604,7 +1626,7 @@ function setRegion(r){app.state.region=r;saveState();load();}
 function setDso(key){
   const region=regionFor(key, app.state.region), changed=region!==app.state.region;
   app.state.dso=key; app.state.region=region; saveState();
-  changed ? load() : render();
+  if(changed) load(); else { render(); refreshLiveTariff(); }
 }
 function adjCustom(seasonKey,band,d){
   const v=app.state.customTariff[seasonKey][band];
@@ -1659,7 +1681,7 @@ function doRefresh(btn){
 }
 function logClaim(apparat){
   const V=app.lastV; if(!V) return;
-  const now=new Date();
+  const now=nowDK();
   const id=`${keyOf(now)}-${apparat}-${now.getHours()}`;
   const existing=loadClaims();
   // Toggle: hvis denne markering allerede findes → fjern den (knappen er on/off).

@@ -16,37 +16,69 @@ export const ENERGINET_PERIODS = [
 // Kilder: jan 2026 fra elforbrug.nu/eloversigt.dk; 2026-10-01 fra Energi Data
 // Service DatahubPricelist (Price × 1,25), verificeret 2026-10-10.
 // `area` er prisområdet netselskabet ligger i (bestemmer spotprisen).
+// `datahub` er live-kilden i DatahubPricelist (ejer + tarifkoder; flere koder
+// summeres). Den statiske tabel her er fallback, når live-data mangler.
 export const DSO_TARIFFS = {
-  n1:       { navn:'N1', area:'DK1', periods:[
+  n1:       { navn:'N1', area:'DK1', datahub:{owner:'N1 A/S - 131', codes:['CD']}, periods:[
     { from:'2026-01-01', winter:{lav:11,hoej:33,spids:99},  summer:{lav:11,hoej:17,spids:43} },
   ]},
-  radius:   { navn:'Radius', area:'DK2', periods:[
+  radius:   { navn:'Radius', area:'DK2', datahub:{owner:'Radius Elnet A/S', codes:['DT_C_01']}, periods:[
     { from:'2026-01-01', winter:{lav:12,hoej:37,spids:110}, summer:{lav:13,hoej:20,spids:52} },
     { from:'2026-10-01', winter:{lav:13.27,hoej:39.82,spids:119.45}, summer:{lav:13.27,hoej:19.91,spids:51.76} },
   ]},
-  cerius:   { navn:'Cerius', area:'DK2', periods:[
+  cerius:   { navn:'Cerius', area:'DK2', datahub:{owner:'Cerius A/S', codes:['30TR_C_ET']}, periods:[
     { from:'2026-01-01', winter:{lav:13,hoej:40,spids:120}, summer:{lav:14,hoej:22,spids:56} },
     { from:'2026-10-01', winter:{lav:14.42,hoej:43.25,spids:129.75}, summer:{lav:14.42,hoej:21.63,spids:56.23} },
   ]},
-  trefor:   { navn:'TREFOR El-net', area:'DK1', periods:[
+  trefor:   { navn:'TREFOR El-net', area:'DK1', datahub:{owner:'TREFOR El-net A/S', codes:['C']}, periods:[
     { from:'2026-01-01', winter:{lav:8, hoej:24,spids:73},  summer:{lav:5, hoej:8, spids:21} },
     { from:'2026-10-01', winter:{lav:5.36,hoej:16.10,spids:48.29}, summer:{lav:5.36,hoej:8.05,spids:20.93} },
   ]},
   // Konstant: bruttotarif C_FBTNTR_B minus rabat C_FBTNTR_R.
-  konstant: { navn:'Konstant', area:'DK1', periods:[
+  konstant: { navn:'Konstant', area:'DK1', datahub:{owner:'Konstant Net A/S - 151', codes:['C_FBTNTR_B','C_FBTNTR_R']}, periods:[
     { from:'2026-01-01', winter:{lav:6, hoej:18,spids:54},  summer:{lav:6, hoej:9, spids:24} },
-    { from:'2026-10-01', winter:{lav:6.18,hoej:18.55,spids:55.66}, summer:{lav:6.18,hoej:9.28,spids:24.11} },
+    { from:'2026-10-01', winter:{lav:6.17,hoej:18.55,spids:55.66}, summer:{lav:6.17,hoej:9.28,spids:24.11} },
   ]},
-  dinel:    { navn:'Dinel', area:'DK1', periods:[
+  dinel:    { navn:'Dinel', area:'DK1', datahub:{owner:'Dinel A/S', codes:['TCL<100_02']}, periods:[
     { from:'2026-01-01', winter:{lav:10,hoej:30,spids:91},  summer:{lav:8, hoej:12,spids:30} },
     { from:'2026-10-01', winter:{lav:7.69,hoej:23.07,spids:69.24}, summer:{lav:7.69,hoej:11.54,spids:30.00} },
   ]},
 };
 
-// Tarif gældende på `date` (YYYY-MM-DD). En egen tarif ({winter, summer}
-// uden perioder) returneres uændret.
+// Tarif gældende på `date` (YYYY-MM-DD). En live-periode der dækker datoen
+// vinder; ellers den statiske tabel. En egen tarif ({winter, summer} uden
+// perioder) returneres uændret.
 export function tariffAt(tariff, date){
+  const live = tariff.live?.find(p => date >= p.from && (!p.to || date < p.to));
+  if (live) return live;
   return tariff.periods ? periodAt(tariff.periods, date) : tariff;
+}
+
+// URL til netselskabets nettariffer (ChargeType D03) med ValidFrom >= `since`.
+export function datahubURL(dso, since, base = 'https://api.energidataservice.dk'){
+  const src = DSO_TARIFFS[dso]?.datahub;
+  if (!src) return null;
+  const filter = JSON.stringify({ ChargeOwner:[src.owner], ChargeTypeCode:src.codes, ChargeType:['D03'] });
+  return base + '/dataset/DatahubPricelist?' +
+    new URLSearchParams({ filter, start:since, sort:'ValidFrom asc', limit:'200' });
+}
+
+// DatahubPricelist-records (kr/kWh ekskl. moms, Price1..Price24) → live-perioder
+// [{from, to, hourly[24]}] i øre inkl. moms. En periode kræver en record for
+// hver kode; flade tariffer har kun Price1.
+export function liveFromDatahub(records, codes){
+  const recs = records.filter(r => r.ChargeType === 'D03' && codes.includes(r.ChargeTypeCode))
+    .map(r => ({ r, from:r.ValidFrom.slice(0, 10), to:r.ValidTo ? r.ValidTo.slice(0, 10) : null }));
+  const out = [];
+  for (const from of [...new Set(recs.map(x => x.from))].sort()){
+    const parts = codes.map(c => recs.find(x => x.r.ChargeTypeCode === c && from >= x.from && (!x.to || from < x.to)));
+    if (parts.some(x => !x)) continue;
+    const ends = [...parts.map(x => x.to), ...recs.map(x => x.from).filter(f => f > from)].filter(Boolean).sort();
+    const hourly = Array.from({ length:24 }, (_, h) =>
+      Math.round(parts.reduce((sum, x) => sum + (x.r['Price' + (h + 1)] ?? x.r.Price1), 0) * 100 * MOMS * 100) / 100);
+    out.push({ from, to:ends[0] ?? null, hourly });
+  }
+  return out;
 }
 
 export const energinetAt = date => periodAt(ENERGINET_PERIODS, date).ore;
@@ -64,6 +96,7 @@ function periodAt(periods, date){
 export const season = monthIdx => (monthIdx >= 3 && monthIdx <= 8) ? 'summer' : 'winter';
 
 export function nettarif(h, monthIdx, tariff){
+  if (tariff.hourly) return tariff.hourly[h];
   const s = tariff[season(monthIdx)];
   if (h < 6) return s.lav;
   if (h >= 17 && h < 21) return s.spids;
@@ -129,4 +162,17 @@ export function seriesForDay(raw, dayKey, cfg){
     if (t.dayKey === dayKey) out.push({ h: t.h, total: totalOf(r, cfg) });
   }
   return out;
+}
+
+// «Nu» som dansk vægur: et Date-objekt hvis lokale felter (getHours, getDate …)
+// viser Europe/Copenhagen-tid uanset enhedens tidszone. Kun til kalender- og
+// time-logik — ikke til absolutte tidsstempler (brug Date.now() til dem).
+const DK_PARTS = new Intl.DateTimeFormat('en-CA', {
+  timeZone:'Europe/Copenhagen', hourCycle:'h23',
+  year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit',
+});
+export function nowDK(at = new Date()){
+  const p = {};
+  for (const { type, value } of DK_PARTS.formatToParts(at)) p[type] = +value;
+  return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
 }

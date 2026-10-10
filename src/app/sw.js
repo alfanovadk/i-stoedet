@@ -1,5 +1,5 @@
 // Service worker til «I stødet»-PWA
-const CACHE = 'istoedet-v11';
+const CACHE = 'istoedet-v13';
 const SHELL = [
   'index.html',
   'pricing.js',
@@ -33,6 +33,7 @@ self.addEventListener('fetch', e => {
   // Priser + CO₂ hentes altid live fra nettet (ingen caching)
   if (url.hostname.includes('elprisenligenu')) return;
   if (url.hostname.includes('energidataservice')) return;
+  if (url.pathname.startsWith('/eds/')) return;   // same-origin-proxy til Energi Data Service
 
   // App-skal: network-first med cache som fallback (virker offline)
   e.respondWith(

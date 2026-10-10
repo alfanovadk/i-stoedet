@@ -1,13 +1,14 @@
-// co2.js — Energi Data Service CO2Emis-klient. Public, ingen auth, CORS-åben.
+// co2.js — Energi Data Service CO2Emis-klient. Public, ingen auth, men IKKE CORS-åben:
+// på web går kaldet via same-origin-proxyen /eds (se Caddy-blokken), på native direkte.
 // Datasættet giver gram CO₂ pr. kWh pr. prisområde i 5-minutters opløsning (Danmarks-tid).
 // Vi aggregerer 5-min-records til et TIME-snit pr. lokal time → { dayKey: number[24] } (g/kWh).
 // Bemærk: dayKey-format er `${y}-${m}-${d}` (IKKE nul-paddet) for at matche resten af appen (keyOf).
-const BASE = 'https://api.energidataservice.dk/dataset/CO2Emis';
+export const EDS = 'https://api.energidataservice.dk';
 
 // Byg dataset-URL. start/end er DANSK lokal-tid (datasættet er i lokal tid), eksklusiv end.
-export function co2Url(priceArea, fromISO, toISO){
+export function co2Url(priceArea, fromISO, toISO, base = EDS){
   const filter = encodeURIComponent(JSON.stringify({ PriceArea: priceArea }));
-  return `${BASE}?start=${fromISO}T00:00&end=${toISO}T00:00&filter=${filter}`;
+  return `${base}/dataset/CO2Emis?start=${fromISO}T00:00&end=${toISO}T00:00&filter=${filter}`;
 }
 
 // Aggregér rå CO2Emis-records → { dayKey: number[24] } (snit-g/kWh pr. lokal time).
@@ -51,8 +52,8 @@ export function dailyAvgCO2(hourlyByDay){
 
 // Hent CO2Emis for [fromISO, toISO) (eksklusiv toISO) for et prisområde, aggregeret til timer.
 // Returnerer { dayKey: number[24] }. Kaster ved netværks-/HTTP-fejl (kalderen beholder cache).
-export async function fetchCO2(priceArea, fromISO, toISO){
-  const r = await fetch(co2Url(priceArea, fromISO, toISO));
+export async function fetchCO2(priceArea, fromISO, toISO, base = EDS){
+  const r = await fetch(co2Url(priceArea, fromISO, toISO, base));
   if(!r.ok) throw new Error('co2:' + r.status);
   const j = await r.json();
   return parseCO2((j && j.records) || []);

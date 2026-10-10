@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, energinetAt, regionFor, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt,
+  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub,
 } from '../src/app/pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -232,4 +232,57 @@ test('regionFor: netselskab bestemmer prisområde, egen tarif beholder valget', 
   for (const k of ['n1', 'trefor', 'konstant', 'dinel']) assert.equal(regionFor(k, 'DK2'), 'DK1');
   assert.equal(regionFor('custom', 'DK2'), 'DK2');
   assert.equal(regionFor('ukendt', 'DK1'), 'DK1');
+});
+
+// nowDK returns a Date whose local fields show Copenhagen wall-clock time,
+// regardless of the device time zone (tests run with whatever TZ the host has).
+test('nowDK: dansk vægur uanset enhedens tidszone', () => {
+  const summer = nowDK(new Date('2026-07-01T22:30:00Z'));   // CEST = UTC+2
+  assert.deepEqual([summer.getFullYear(), summer.getMonth(), summer.getDate(), summer.getHours(), summer.getMinutes()], [2026, 6, 2, 0, 30]);
+  const winter = nowDK(new Date('2026-12-31T23:15:00Z'));   // CET = UTC+1
+  assert.deepEqual([winter.getFullYear(), winter.getMonth(), winter.getDate(), winter.getHours()], [2027, 0, 1, 0]);
+});
+
+// Live tariffs from Energi Data Service DatahubPricelist (prices ekskl. moms, kr/kWh).
+const dh = (code, from, to, lav, hoej, spids) => {
+  const r = { ChargeType: 'D03', ChargeTypeCode: code, ValidFrom: from + 'T00:00:00', ValidTo: to ? to + 'T00:00:00' : null };
+  for (let i = 1; i <= 24; i++) { const h = i - 1; r['Price' + i] = h < 6 ? lav : (h >= 17 && h < 21 ? spids : hoej); }
+  return r;
+};
+
+test('datahubURL: filtrerer på ejer + kode, null for egen tarif', () => {
+  const u = new URL(datahubURL('radius', '2025-09-01'));
+  assert.equal(u.hostname, 'api.energidataservice.dk');
+  assert.deepEqual(JSON.parse(u.searchParams.get('filter')), { ChargeOwner: ['Radius Elnet A/S'], ChargeTypeCode: ['DT_C_01'], ChargeType: ['D03'] });
+  assert.equal(u.searchParams.get('start'), '2025-09-01');
+  assert.equal(datahubURL('custom', '2025-09-01'), null);
+});
+
+test('liveFromDatahub: perioder med 24 timepriser inkl. moms', () => {
+  const live = liveFromDatahub([
+    dh('DT_C_01', '2026-10-01', '2027-04-01', 0.106175, 0.318525, 0.955575),
+    dh('DT_C_01', '2026-04-01', '2026-10-01', 0.106175, 0.15926, 0.41408),
+    { ...dh('DT_C_01', '2026-10-01', null, 9, 9, 9), ChargeType: 'D01' },   // subscription, ignored
+  ], ['DT_C_01']);
+  assert.deepEqual(live.map(p => [p.from, p.to]), [['2026-04-01', '2026-10-01'], ['2026-10-01', '2027-04-01']]);
+  assert.equal(live[1].hourly.length, 24);
+  assert.equal(live[1].hourly[17], 119.45);
+  assert.equal(live[1].hourly[3], 13.27);
+});
+
+test('liveFromDatahub: flere koder summeres (Konstant tarif + rabat), flad pris fra Price1', () => {
+  const flat = { ChargeType: 'D03', ChargeTypeCode: 'R', ValidFrom: '2026-11-01T00:00:00', ValidTo: null, Price1: -0.008 };
+  const live = liveFromDatahub([dh('B', '2026-10-01', '2027-01-01', 0.0605, 0.1816, 0.5449), dh('R', '2026-10-01', '2026-11-01', -0.0111, -0.0332, -0.0996), flat], ['B', 'R']);
+  assert.deepEqual(live.map(p => [p.from, p.to]), [['2026-10-01', '2026-11-01'], ['2026-11-01', '2027-01-01']]);
+  assert.equal(live[0].hourly[17], 55.66);
+  assert.equal(live[1].hourly[17], 67.11);   // (0.5449 - 0.008) * 125
+});
+
+test('tariffAt/componentsOf: live-periode vinder, statisk tabel er fallback uden for dækning', () => {
+  const live = liveFromDatahub([dh('DT_C_01', '2026-10-01', '2026-11-01', 0.1, 0.2, 0.8)], ['DT_C_01']);
+  const tariff = { ...DSO_TARIFFS.radius, live };
+  const net = iso => componentsOf({ DKK_per_kWh: 0.5, time_start: iso }, { markup: 0, tariff }).nettarif;
+  assert.equal(net('2026-10-15T17:00:00+02:00'), 100);       // live
+  assert.equal(net('2026-11-15T17:00:00+01:00'), 119.45);    // after ValidTo -> static
+  assert.equal(net('2026-01-13T18:00:00+01:00'), 110);       // before -> static
 });
