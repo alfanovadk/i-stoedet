@@ -103,7 +103,7 @@ immediately after launch.
 The "Forbrug" tab is optional. It shows the user's own consumption and requires a personal
 API token from eloverblik.dk, the Danish national electricity data hub, which is only
 available to Danish residents with MitID. You can review the rest of the app without it.
-If you want to see this tab with data, please contact us at hej@alfanova.dk and we will
+If you want to see this tab with data, please contact us at hej@i-stødet.dk and we will
 provide a demo token.
 
 Data sources are public: elprisenligenu.dk (spot prices) and Energi Data Service from
@@ -114,7 +114,7 @@ app description and on the support page.
 The app stores settings and consumption data on the device only. Nothing is sent to us.
 ```
 
-Kontakt til review: Johannes Damsgaard-Bruhn, hej@alfanova.dk. Telefonnummer udfyldes i App Store Connect.
+Kontakt til review: Johannes Damsgaard-Bruhn, hej@i-stødet.dk. Telefonnummer udfyldes i App Store Connect.
 
 ## Screenshots
 

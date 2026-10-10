@@ -13,7 +13,9 @@ export default {
   appPath: "/app/",
   // PLADSHOLDER: skal erstattes med den rigtige kontakt-adresse FØR deploy.
   // Bruges på /privatliv/ og /support/ (eneste sted adressen står).
-  contactEmail: "hej@alfanova.dk",
+  contactEmail: "hej@i-stødet.dk",
+  // mailto bruger punycode, så alle mailklienter kan åbne linket
+  contactEmailHref: "mailto:hej@xn--i-stdet-t1a.dk",
   // Dato for seneste indholdsmæssige ændring af privatlivspolitikken.
   privacyUpdated: "10. oktober 2026",
   ogImage: "/assets/img/og-image.png",
