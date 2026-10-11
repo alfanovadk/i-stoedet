@@ -1,9 +1,8 @@
 # App Store Connect · metadata for «I stødet»
 
-Udkast pr. 2026-10-10. Alt her er klar til at blive kopieret ind i App Store Connect.
-Teksterne beskriver kun funktioner, der findes i appen i dag. Notifikationer og widget
-er ikke bygget endnu (beads `elpriser-8gu.1` og `elpriser-psx.7`) og må først nævnes,
-når de er med i det build, der sendes til review.
+Opdateret 2026-10-11 til build 4. Teksterne beskriver kun funktioner, der er med i build 4:
+priser, anbefalinger, prisens dele, Eloverblik-forbrug, point, daglig besked om morgendagens
+pris, widget, og på iPad og Mac historik og det store layout.
 
 ## Grundoplysninger
 
@@ -17,7 +16,7 @@ når de er med i det build, der sendes til review.
 | Sekundær kategori | Livsstil (Lifestyle) | valgfri |
 | Aldersgrænse | 4+ | ingen af indholdstyperne i spørgeskemaet forekommer |
 | Pris | Gratis | |
-| Enheder | iPhone | iPad er slået fra i v1 |
+| Enheder | iPhone, iPad, Mac med Apple-chip | Mac via «Designed for iPad», ingen Catalyst |
 | Privatlivspolitik | https://xn--i-stdet-t1a.dk/privatliv/ | |
 | Support-URL | https://xn--i-stdet-t1a.dk/support/ | |
 | Marketing-URL | https://xn--i-stdet-t1a.dk/ | valgfri |
@@ -49,6 +48,15 @@ DIT EGET FORBRUG
 Forbind Eloverblik, hvis du vil se dit eget forbrug time for time. Appen viser, hvor meget du brugte i de billige, de mellemste og de dyre timer. Du kan også se, hvor meget CO2 dit forbrug har udledt, og sammenligne timepris med en fastpris for den enkelte dag.
 
 Det er valgfrit at forbinde Eloverblik. Priserne virker uden.
+
+BESKED OM MORGENDAGENS PRIS
+Slå en daglig besked til, så får du morgendagens billigste tidsrum og prisen, når priserne er klar. Så kan du planlægge vask, opvask og opladning uden at åbne appen.
+
+PRISEN PÅ HJEMMESKÆRMEN
+Læg widgeten på hjemmeskærmen og se prisen lige nu og det næste billige tidsrum med et blik.
+
+STØRRE SKÆRM, MERE OVERBLIK
+På iPad og Mac får du sidebjælke, større tekst og fanen Historik med priserne time for time de sidste 7 eller 30 dage, dagenes snitpris og det mønster, der går igen.
 
 POINT FOR AT FLYTTE FORBRUG
 Tryk på «Tænd nu», når du starter et apparat. Når dit forbrug er klar hos Eloverblik, tjekker appen det og giver point for det forbrug, du har flyttet til billige timer.
@@ -118,24 +126,22 @@ Kontakt til review: Johannes Damsgaard-Bruhn, hej@i-stødet.dk. Telefonnummer ud
 
 ## Screenshots
 
-Udkast ligger i `docs/app-store/screenshots/`. De er taget fra web-versionen af appen i de
-præcise pixelmål, som App Store kræver, og viser samme skærme som iOS-appen. iOS-appen har
-derudover systemets statuslinje, så de endelige billeder bør tages i simulatoren, når
-projektet kan bygges i Xcode.
+Ligger i `docs/app-store/screenshots/` i de præcise pixelmål. De er renderet fra appens egen
+kode med rigtige spotpriser for 10. oktober 2026 kl. 14:20 (uret frosset, så billig-tiden er
+med), og med eksempel-markeringer på Point-skærmen. Genskab dem med
+`scripts/store-screenshots.js` (se kommentaren øverst i filen).
 
 | Mappe | Mål | Skærm |
 |---|---|---|
-| `6.9/` | 1320 × 2868 | iPhone 6,9" (påkrævet) |
-| `6.5/` | 1284 × 2778 | iPhone 6,5" |
+| `6.9/` | 1320 × 2868 | iPhone 6,9" (påkrævet, Apple skalerer til mindre iPhones) |
+| `ipad-13/` | 2752 × 2064 liggende | iPad 13" (påkrævet, når appen understøtter iPad) |
 
-Rækkefølge: 1 Nu-pris og anbefalinger · 2 Prisens dele for en time · 3 Netselskab og
-indstillinger · 4 Temaet «Bold» · 5 Temaet «Legende» · 6 Point.
+Rækkefølge iPhone: 1 Nu · 2 Prisens dele for en time · 3 Temaet «Bold» · 4 Temaet «Legende» ·
+5 Point · 6 Indstillinger. iPad: samme, men 2 er Historik (30 dage).
 
 ## Før du sender til review
 
-- [ ] Byg og arkivér i Xcode. iOS-ændringerne (kun iPhone, privacy manifest, dansk
-      lokalisering) er ikke bygget endnu.
-- [ ] Beslut om lokale notifikationer skal med i første version. Uden en native funktion er
-      der risiko for afvisning efter guideline 4.2 (minimum functionality).
-- [ ] Tag endelige screenshots i simulatoren.
+- [x] Byg og arkivér i Xcode (build 4, 2026-10-11).
+- [x] Native funktioner med i første version: daglig notifikation, widget, Keychain.
+- [x] Screenshots til iPhone 6,9" og iPad 13".
 - [ ] Hav et demo-token til Eloverblik klar, hvis review beder om det.
