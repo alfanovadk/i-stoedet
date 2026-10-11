@@ -44,7 +44,7 @@
   .spin{animation:spin .7s linear}
   @keyframes spin{to{transform:rotate(360deg)}}
   .bar{transition:height .45s cubic-bezier(.2,.8,.2,1)}
-  .skel{padding:60px 0;text-align:center;color:#7c8a83;font-weight:600}
+  .skel{padding:60px 0;text-align:center;color:#64706a;font-weight:600}
   #sheet-root{position:fixed;inset:0;z-index:60;display:none}
   #sheet-root.open{display:block}
   .sheet-back{position:absolute;inset:0;background:rgba(8,12,18,.5);animation:fadein .2s ease}
@@ -79,8 +79,8 @@
     .wn-bottom{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px;margin-top:14px}
     .chdr > :not(:last-child){display:none!important}   /* brandet står i sidebjælken (Elly har inline display) */
     /* Telefonens mindste etiketter (9-10,5 px: «NU», akser) løftes, så intet bliver under 13 px efter zoom. */
-    .tabcontent [style*="font-size:9px"],.tabcontent [style*="font-size:10px"],.tabcontent [style*="font-size:10.5px"],
-    .sheet [style*="font-size:9px"],.sheet [style*="font-size:10px"],.sheet [style*="font-size:10.5px"]{font-size:11.2px!important}
+    .tabcontent [style*="font-size:9px"],.tabcontent [style*="font-size:9.5px"],.tabcontent [style*="font-size:10px"],.tabcontent [style*="font-size:10.5px"],
+    .sheet [style*="font-size:9px"],.sheet [style*="font-size:9.5px"],.sheet [style*="font-size:10px"],.sheet [style*="font-size:10.5px"]{font-size:11.2px!important}
     .sheet{left:auto;right:0;top:0;bottom:0;transform:none;width:min(470px,100%);max-width:none;max-height:none;
       border-radius:26px 0 0 26px;padding:14px 24px calc(env(safe-area-inset-bottom) + 28px);zoom:1.12;
       animation:slidein .26s cubic-bezier(.2,.9,.2,1)}
@@ -256,18 +256,18 @@ const APP_ICON={ bil:'car', opvask:'utensils', vask:'shirt' };
 
 /* ===================== THEMES ===================== */
 const THEMES={
-  soft:{ bg:'#F3FAF6', sheetBg:'#ffffff', text:'#11352b', muted:'#7c8a83', border:'#e3ede8',
+  soft:{ bg:'#F3FAF6', sheetBg:'#ffffff', text:'#11352b', muted:'#64706a', border:'#e3ede8',
     surface:'#F1F7F4', accent:'#1c7a4d', accentText:'#ffffff', accentSoft:'#E3F7EC',
     pal:['#34B27B','#F4B740','#E5604D'], ring:'#11352b', axis:'rgba(17,53,43,.45)',
-    tab:{track:'#E4F1EA',on:'#11352b',onText:'#fff',off:'#5a7d72'} },
+    tab:{track:'#E4F1EA',on:'#11352b',onText:'#fff',off:'#517167'} },
   bold:{ bg:'#0C1117', sheetBg:'#131A22', text:'#EAF2E9', muted:'#7E8C99', border:'#26323d',
     surface:'#0F1620', accent:'#C6FF3D', accentText:'#0C1117', accentSoft:'#1c2a16',
     pal:['#C6FF3D','#FFD23F','#FF5C7A'], ring:'#C6FF3D', axis:'rgba(234,242,233,.4)',
-    tab:{track:'#1a232e',on:'#C6FF3D',onText:'#0C1117',off:'#6f7d88'} },
-  play:{ bg:'#FBF4FF', sheetBg:'#ffffff', text:'#2a2140', muted:'#948aa8', border:'#efe4f8',
+    tab:{track:'#1a232e',on:'#C6FF3D',onText:'#0C1117',off:'#808d96'} },
+  play:{ bg:'#FBF4FF', sheetBg:'#ffffff', text:'#2a2140', muted:'#6c657b', border:'#efe4f8',
     surface:'#F6F1FC', accent:'#6C4BD8', accentText:'#ffffff', accentSoft:'#EDE7FB',
     pal:['#2BC48A','#FFB020','#FF5470'], ring:'#6C4BD8', axis:'rgba(42,33,64,.4)',
-    tab:{track:'#EFEBFB',on:'#6C4BD8',onText:'#fff',off:'#9a8fc7'} }
+    tab:{track:'#EFEBFB',on:'#6C4BD8',onText:'#fff',off:'#6c648b'} }
 };
 
 /* Elly-mascot state machine — stateClass styres af CSS (se <style>), markup fra volt-animationer.html */
@@ -842,7 +842,7 @@ function verifyPending(){
 function claimsHTML(th){
   const today=loadClaims().filter(c=>c.dato===keyOf(nowDK()));
   if(!today.length) return '';
-  const chip=s=> s==='confirmed'?`<span style="color:#2BC48A;font-weight:700;">✓ bekræftet</span>`
+  const chip=s=> s==='confirmed'?`<span style="color:${app.state.theme==='bold'?th.pal[0]:'#1b7b57'};font-weight:700;">✓ bekræftet</span>`
     : s==='unconfirmed'?`<span style="color:${th.muted};">ikke bekræftet</span>`
     : `<span style="color:${th.muted};">afventer data</span>`;
   const rows=today.map(c=>`<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0;">
@@ -955,7 +955,7 @@ function ringHTML(list,th,nowH){
     ${ringSectors(th)}
     <div style="position:absolute;inset:24%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px;box-shadow:0 10px 30px rgba(108,75,216,.18);">
       <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:30px;color:#2a2140;line-height:1;">${kr(centerVal)}</div>
-      <div style="font-size:11px;font-weight:700;color:#948aa8;">kr/kWh</div></div></div>`;
+      <div style="font-size:11px;font-weight:700;color:#6c657b;">kr/kWh</div></div></div>`;
 }
 function selectedRecord(V){
   if(app.state.selectedHour==null) return null;
@@ -1084,7 +1084,7 @@ function wideNu(V){
     ${compactHeader(th,brandFor(th),regionPillFor(th,V,app.state.theme==='bold'?'bold':undefined)+gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'))}
     <div class="wn-top">
       ${card(`<div style="display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:${th.accentSoft};color:${bcol};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;">${btxt}</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${th.accentSoft};color:${th.text};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:10px;"><span style="font-family:${hf};font-weight:800;font-size:48px;line-height:.9;color:${th.text};">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:${th.muted};">kr/kWh</span></div>
         <p style="margin:10px 0 0;font-size:13px;line-height:1.5;color:${th.muted};">${nowCopy(V)}</p></div>
         ${ellySVG(ellyState(V),96,ink,V.elly)}</div>`)}
@@ -1190,7 +1190,7 @@ function viewSoft(V){
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #e3ede8;border-radius:14px;padding:9px 12px;">
       <span style="font-size:19px;width:22px;text-align:center;">${fa(APP_ICON[ap.key],'#11352b')}</span>
-      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#11352b;">${ap.name}</div><div style="font-size:11.5px;color:#7c8a83;">${ap.when}</div></div>
+      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#11352b;">${ap.name}</div><div style="font-size:11.5px;color:#64706a;">${ap.when}</div></div>
       ${claimBtn(th,ap.key,'99px')}
       <div style="text-align:right;"><div style="font-weight:800;font-size:13px;color:#1c7a4d;background:#E3F7EC;padding:3px 9px;border-radius:99px;">${ap.win}</div></div>
     </div>`).join('');
@@ -1198,8 +1198,8 @@ function viewSoft(V){
     ${compactHeader(th,brand,regionPillFor(th,V)+gearBtn(th,'#fff','50%'))}
     <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px -16px rgba(17,53,43,.4);">
       <div style="flex:1;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:${bcol};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;">${btxt}</div>
-        <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:#6b7d74;">kr/kWh</span></div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:#11352b;font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:#62736b;">kr/kWh</span></div>
         <p style="margin:8px 0 0;font-size:12.5px;line-height:1.45;color:#46554d;">${nowCopy(V)}</p>
       </div>${ellySVG(ellyState(V),66,'#11352b',V.elly)}
     </div>
@@ -1221,7 +1221,7 @@ function viewBold(V){
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#131A22;border:1px solid #222e38;border-radius:12px;padding:9px 12px;">
       <span style="font-size:19px;width:22px;text-align:center;">${fa(APP_ICON[ap.key],'#C6FF3D')}</span>
-      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#EAF2E9;">${ap.name}</div><div style="font-size:11.5px;color:#6b7785;">${ap.when}</div></div>
+      <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13.5px;color:#EAF2E9;">${ap.name}</div><div style="font-size:11.5px;color:#7a8591;">${ap.when}</div></div>
       ${claimBtn(th,ap.key,'8px')}
       <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#C6FF3D;">${ap.win}</div></div>
     </div>`).join('');
@@ -1255,9 +1255,9 @@ function viewPlay(V){
   const aps=V.appliances.map(ap=>`
     <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid #efe4f8;border-radius:14px;padding:8px 12px;">
       <span style="font-size:20px;width:23px;text-align:center;">${fa(APP_ICON[ap.key],'#6C4BD8')}</span>
-      <div style="flex:1;min-width:0;"><div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;color:#2a2140;">${ap.name}</div><div style="font-size:11.5px;color:#948aa8;">${ap.when}</div></div>
+      <div style="flex:1;min-width:0;"><div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;color:#2a2140;">${ap.name}</div><div style="font-size:11.5px;color:#6c657b;">${ap.when}</div></div>
       ${claimBtn(th,ap.key,'99px')}
-      <div style="text-align:right;"><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:#2BC48A;padding:4px 9px;border-radius:99px;">${ap.win}</div></div>
+      <div style="text-align:right;"><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:#1d835c;padding:4px 9px;border-radius:99px;">${ap.win}</div></div>
     </div>`).join('');
   return `<div class="pane">
     ${compactHeader(th,brand,regionPillFor(th,V)+gearBtn(th,'#fff','50%'))}
@@ -1266,7 +1266,7 @@ function viewPlay(V){
       <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
         ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${ellySVG(ellyState(V),52,'#2a2140',V.elly)}</div>`:''}
       </div>
-      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#2BC48A;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+''}</p>
+      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#1b7b57;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+''}</p>
       ${detailHTML(V,th)}
     </div>
     <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;margin:14px 0 9px;">Dagens opgaver ${fa('clipboard-check','#2a2140',15)}</h3>
@@ -1341,7 +1341,7 @@ function widePoint(V,g,smart){
   const badge=([icon,name,got,prog])=>`<div style="text-align:center;background:${got?th.accentSoft:th.surface};border:1.5px ${got?'solid '+th.accent:'dashed '+th.border};border-radius:16px;padding:14px 8px;">
     <div style="height:28px;display:flex;align-items:center;justify-content:center;">${fa(icon,got?th.accent:th.muted,24)}</div>
     <div style="font-weight:800;font-size:13.5px;margin-top:6px;color:${th.text};">${name}</div>
-    <div style="font-size:12px;color:${th.muted};margin-top:2px;">${got?'Opnået':prog}</div></div>`;
+    <div style="font-size:12px;color:${got?th.text:th.muted};margin-top:2px;">${got?'Opnået':prog}</div></div>`;
   // calendar: 5 weeks ending this week (Mon-Sun), shade = confirmed claims that day
   const perDay={}; confirmed.forEach(c=>{ perDay[c.dato]=(perDay[c.dato]||0)+1; });
   const lastSun=addDays(today,(7-today.getDay())%7), first=addDays(lastSun,-34);
@@ -1759,7 +1759,7 @@ function forbrugView(){
 
   if(app.state.analyseLoading){
     return `<div class="pane">${head}${picker}${nav}
-      <div class="skel" style="padding:40px 20px;">${ellySVG('charge',56,th.text)}<div style="margin-top:14px;line-height:1.5;">Henter dit forbrug fra Eloverblik — det kan tage et øjeblik (deres system er nogle gange langsomt)…</div></div></div>`;
+      <div class="skel" style="padding:40px 20px;color:${th.muted};">${ellySVG('charge',56,th.text)}<div style="margin-top:14px;line-height:1.5;">Henter dit forbrug fra Eloverblik — det kan tage et øjeblik (deres system er nogle gange langsomt)…</div></div></div>`;
   }
 
   // Render fra cachen uanset om en frisk hentning lykkedes. Kun når der INTET er i
@@ -1908,7 +1908,7 @@ function forbrugView(){
 // Render fane-indhold (uden skal). app.lastV sættes så logClaim m.fl. virker.
 function tabContent(){
   const th=THEMES[app.state.theme];
-  if(app.loading) return `<div class="skel">${ellySVG('charge',72,th.text)}<div style="margin-top:14px;">Henter elpriser…</div></div>`;
+  if(app.loading) return `<div class="skel" style="color:${th.muted};">${ellySVG('charge',72,th.text)}<div style="margin-top:14px;">Henter elpriser…</div></div>`;
   if(app.error) return `<div style="padding:40px 6px;text-align:center;color:${th.text};">
       <div style="margin-bottom:10px;">${fa('bolt',th.muted,38)}</div>
       <p style="color:${th.muted};line-height:1.6;">Kunne ikke hente priser (${esc(app.error)}).<br>Tjek forbindelsen.</p>
