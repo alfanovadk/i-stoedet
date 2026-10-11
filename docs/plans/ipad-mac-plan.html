@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>I stødet på iPad og Mac</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&family=Baloo+2:wght@600;700;800&family=Unbounded:wght@600;800;900&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: a plan document in one readable column; mockups break out wider and are drawn
+   at true device size, then scaled to fit. Palette is I stødet's own: ink green on mint. */
+:root{
+  --bg:#F3FAF6; --paper:#ffffff; --ink:#11352b; --muted:#5f716a; --line:#d9e7e0;
+  --accent:#1c7a4d; --accent-soft:#e3f4ea; --cheap:#34B27B; --mid:#F4B740; --dear:#E5604D;
+  --display:'Fredoka', 'Figtree', ui-rounded, system-ui, sans-serif;
+  --body:'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --data:'Figtree', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1a15; --paper:#13231d; --ink:#e6f2ec; --muted:#9db3a9; --line:#24392f;
+  --accent:#5fd39a; --accent-soft:#183528; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0d1a15; --paper:#13231d; --ink:#e6f2ec; --muted:#9db3a9; --line:#24392f;
+  --accent:#5fd39a; --accent-soft:#183528; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 80px}
+.col{max-width:720px}
+h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.01em}
+h2{font-size:1.6rem;margin-top:56px;padding-top:24px;border-top:1px solid var(--line)}
+h3{font-size:1.15rem;margin-top:28px}
+p{margin:12px 0 0;max-width:68ch}
+.lead{font-size:1.15rem;color:var(--muted);margin-top:16px}
+.eyebrow{font:700 .75rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:20px;color:var(--muted);font-size:.9rem}
+.meta b{color:var(--ink);font-weight:700}
+ul{margin:12px 0 0;padding-left:1.2em;max-width:68ch}
+li{margin-top:6px}
+code{font:600 .88em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--accent-soft);padding:.1em .35em;border-radius:5px}
+
+/* decisions */
+.decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin-top:20px}
+.decision{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.decision h3{margin:0;font-size:1.05rem}
+.decision p{font-size:.95rem;margin-top:8px}
+.decision .why{color:var(--muted);font-size:.88rem}
+
+/* breakpoints ruler */
+.ruler{margin-top:22px;overflow-x:auto}
+.ruler-inner{min-width:620px;display:grid;grid-template-columns:390fr 434fr 506fr;gap:4px}
+.band{border-radius:10px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);font-size:.9rem;min-width:0}
+.band b{display:block;font-family:var(--display);font-size:1.05rem}
+.band .px{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;font-size:.85rem}
+.band.on{border-color:var(--accent);background:var(--accent-soft)}
+
+/* type scale table */
+.tbl-wrap{overflow-x:auto;margin-top:18px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* timeline */
+.phases{margin-top:22px;display:grid;gap:10px}
+.phase{display:grid;grid-template-columns:120px 1fr auto;gap:16px;align-items:start;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.phase .when{font-variant-numeric:tabular-nums;font-weight:700;font-size:.85rem;color:var(--accent)}
+.phase h3{margin:0;font-size:1.05rem}
+.phase p{margin-top:6px;font-size:.93rem}
+.phase .tok{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.phase .tok b{font-family:var(--display);font-size:1.25rem;display:block}
+.phase .tok span{font-size:.78rem;color:var(--muted)}
+.phase.review{background:var(--accent-soft);border-color:var(--accent)}
+@media (max-width:640px){ .phase{grid-template-columns:1fr} .phase .tok{text-align:left} }
+.total{display:flex;flex-wrap:wrap;gap:12px 32px;margin-top:16px;padding:18px 20px;border-radius:14px;border:2px solid var(--ink)}
+.total div{min-width:0}
+.total b{font-family:var(--display);font-size:1.6rem;display:block;font-variant-numeric:tabular-nums}
+.total span{font-size:.85rem;color:var(--muted)}
+
+/* ===== MOCKUPS ===== */
+.mock{margin-top:34px}
+.mock-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.mock-head h3{margin:0}
+.chip{font:700 .72rem/1 var(--body);letter-spacing:.08em;text-transform:uppercase;padding:6px 9px;border-radius:99px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.mock-note{color:var(--muted);font-size:.92rem;margin-top:6px}
+.stage{margin-top:14px;width:100%;position:relative;overflow:hidden}
+.device{position:absolute;top:0;left:0;transform-origin:0 0}
+.ipad{border-radius:34px;padding:16px;background:#1d2522;box-shadow:0 20px 50px -24px rgba(0,0,0,.45)}
+.ipad > .screen{border-radius:20px;overflow:hidden;width:100%;height:100%}
+.mac{border-radius:12px;overflow:hidden;box-shadow:0 24px 60px -28px rgba(0,0,0,.5);border:1px solid rgba(0,0,0,.18)}
+.mac .chrome{height:38px;display:flex;align-items:center;gap:8px;padding:0 14px;background:#e9ecea;border-bottom:1px solid rgba(0,0,0,.08)}
+.mac .chrome i{width:12px;height:12px;border-radius:50%;display:block}
+.mac .chrome .t{margin-left:14px;font:600 13px var(--body);color:#4b5551}
+.mac > .screen{width:100%;height:calc(100% - 38px)}
+
+/* in-app themes (the app's real THEMES tokens) */
+.app{font-family:'Figtree',system-ui,sans-serif;width:100%;height:100%;display:grid;grid-template-columns:var(--side,240px) 1fr;background:var(--a-bg);color:var(--a-text);font-size:16px;line-height:1.45}
+.t-soft{--a-bg:#F3FAF6;--a-surface:#ffffff;--a-sunk:#F1F7F4;--a-text:#11352b;--a-muted:#5d6e66;--a-border:#e3ede8;--a-accent:#1c7a4d;--a-accent-text:#fff;--a-accent-soft:#E3F7EC;--p0:#34B27B;--p1:#F4B740;--p2:#E5604D;--a-head:'Fredoka',sans-serif;--a-num:'Fredoka',sans-serif}
+.t-bold{--a-bg:#0C1117;--a-surface:#131A22;--a-sunk:#0F1620;--a-text:#EAF2E9;--a-muted:#8b99a6;--a-border:#26323d;--a-accent:#C6FF3D;--a-accent-text:#0C1117;--a-accent-soft:#1c2a16;--p0:#C6FF3D;--p1:#FFD23F;--p2:#FF5C7A;--a-head:'Unbounded',sans-serif;--a-num:'Unbounded',sans-serif}
+.t-play{--a-bg:#FBF4FF;--a-surface:#ffffff;--a-sunk:#F6F1FC;--a-text:#2a2140;--a-muted:#7d7392;--a-border:#efe4f8;--a-accent:#6C4BD8;--a-accent-text:#fff;--a-accent-soft:#EDE7FB;--p0:#2BC48A;--p1:#FFB020;--p2:#FF5470;--a-head:'Baloo 2',sans-serif;--a-num:'Baloo 2',sans-serif}
+.app .side{background:var(--a-sunk);border-right:1px solid var(--a-border);padding:22px 16px;display:flex;flex-direction:column;gap:6px}
+.app .brand{display:flex;align-items:center;gap:10px;font:700 21px var(--a-head);margin:0 6px 18px}
+.t-bold .app .brand{font-size:16px;letter-spacing:-.01em}
+.app .nav{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;font-weight:700;font-size:16px;color:var(--a-muted)}
+.app .nav.on{background:var(--a-accent-soft);color:var(--a-text)}
+.app .nav svg{width:20px;height:20px;fill:currentColor;flex-shrink:0}
+.app .side .foot{margin-top:auto;font-size:13px;color:var(--a-muted);padding:0 8px;line-height:1.5}
+.app .main{padding:26px 28px;overflow:hidden;display:grid;gap:18px;align-content:start;min-width:0}
+.app .top{display:flex;align-items:center;gap:12px}
+.app .top h4{font:700 26px/1.1 var(--a-head);margin:0}
+.t-bold .app .top h4{font-size:21px}
+.app .pill{margin-left:auto;font-weight:800;font-size:13px;letter-spacing:.06em;padding:7px 12px;border-radius:99px;background:var(--a-accent-soft);color:var(--a-text)}
+.card{background:var(--a-surface);border:1px solid var(--a-border);border-radius:20px;padding:20px 22px;min-width:0}
+.t-bold .card{border-radius:14px}
+.lbl{font-size:12.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--a-muted)}
+.big{font:700 64px/1 var(--a-num);letter-spacing:-.02em}
+.t-bold .big{font-size:58px;font-weight:900}
+.unit{font-size:18px;font-weight:700;color:var(--a-muted);margin-left:6px}
+.state{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:13.5px;letter-spacing:.06em;padding:7px 12px;border-radius:99px;background:var(--a-accent-soft)}
+.state i{width:9px;height:9px;border-radius:50%;background:var(--p0);display:block}
+.sub{font-size:16px;color:var(--a-muted);margin-top:8px}
+.sub b{color:var(--a-text)}
+.row{display:grid;gap:18px;min-width:0}
+.ap{display:flex;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--a-border)}
+.ap:first-of-type{border-top:0}
+.ap svg{width:24px;height:24px;fill:var(--a-text);flex-shrink:0}
+.ap .n{font-weight:800;font-size:16px}
+.ap .w{font-size:14px;color:var(--a-muted)}
+.ap .win{margin-left:auto;font:700 16px var(--a-num);padding:6px 12px;border-radius:10px;background:var(--a-accent-soft);color:var(--a-text);white-space:nowrap}
+.ap .save{font-size:13px;color:var(--a-muted);text-align:right;min-width:68px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:var(--h,170px)}
+.bars i{flex:1 1 0;border-radius:5px 5px 2px 2px;display:block;min-width:0;position:relative}
+.bars i.now{box-shadow:0 0 0 2.5px var(--a-text)}
+.bars i.sel{outline:2px solid var(--a-text);outline-offset:2px}
+.axis{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--a-muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.dayhead b{font-size:16px}
+.dayhead span{font-size:13px;color:var(--a-muted)}
+.brk{display:grid;gap:7px;margin-top:12px}
+.brk div{display:flex;justify-content:space-between;font-size:15px;color:var(--a-muted)}
+.brk div b{color:var(--a-text);font-variant-numeric:tabular-nums}
+.brk .tot{border-top:1px solid var(--a-border);padding-top:9px;margin-top:3px;color:var(--a-text);font-weight:800}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi .v{font:700 30px/1.1 var(--a-num);margin-top:6px;font-variant-numeric:tabular-nums}
+.t-bold .kpi .v{font-size:24px}
+.kpi .d{font-size:13.5px;color:var(--a-muted);margin-top:4px}
+.kpi .d.up{color:var(--p2)} .kpi .d.down{color:var(--p0)}
+.heat{display:grid;grid-template-columns:44px repeat(24,1fr);gap:3px;font-size:12px;color:var(--a-muted);font-variant-numeric:tabular-nums}
+.heat i{display:block;height:24px;border-radius:4px}
+.heat span{align-self:center;font-weight:700}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--a-muted);margin-top:10px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:block}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.badge{border-radius:18px;padding:16px 10px;text-align:center;background:var(--a-sunk);border:2px dashed var(--a-border);font-weight:800;font-size:14px;color:var(--a-muted)}
+.badge.got{border:2px solid var(--a-accent);background:var(--a-accent-soft);color:var(--a-text)}
+.badge svg{width:30px;height:30px;fill:currentColor;display:block;margin:0 auto 8px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:12px;text-align:center;color:var(--a-muted)}
+.cal i{display:block;aspect-ratio:1;border-radius:8px;background:var(--a-sunk);border:1px solid var(--a-border)}
+.cal i.h1{background:color-mix(in srgb,var(--p0) 35%,var(--a-surface))}
+.cal i.h2{background:color-mix(in srgb,var(--p0) 70%,var(--a-surface))}
+.cal i.h3{background:var(--p0)}
+.cmp{display:grid;gap:10px;margin-top:12px}
+.cmp .r{display:grid;grid-template-columns:150px 1fr 90px;align-items:center;gap:12px;font-size:15px}
+.cmp .r i{display:block;height:14px;border-radius:7px}
+.cmp .r b{text-align:right;font-variant-numeric:tabular-nums}
+.stack{display:flex;height:22px;border-radius:11px;overflow:hidden;margin-top:12px}
+.stack i{display:block;height:100%}
+.ex{position:absolute;top:12px;left:14px;font:800 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;padding:6px 9px;border-radius:99px;background:rgba(17,53,43,.75);color:#fff;z-index:2}
+.choice{margin-top:22px;padding:18px 20px;border-radius:14px;background:var(--paper);border:1px solid var(--line)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <div class="col">
+    <div class="eyebrow">Plan · i-stødet.dk</div>
+    <h1>I stødet på iPad og Mac</h1>
+    <p class="lead">Appen er i dag bygget til en telefonskærm. På iPad og Mac står den som en smal stribe på 430 punkter midt på skærmen, med tekst ned til 11 punkter. Planen gør den store skærm til et overblik over pris, forbrug og historik, med tekst man kan læse på armslængdes afstand.</p>
+    <div class="meta"><span><b>Én kodebase</b> · samme <code>src/app/</code> til telefon, iPad, Mac og web</span><span><b>Ca. 9 arbejdsdage</b> for en agent</span><span><b>Ca. 5,8 mio. tokens</b></span></div>
+  </div>
+
+  <h2 class="col">Udgangspunkt</h2>
+  <div class="col">
+    <ul>
+      <li>Layoutet er låst til <code>max-width: 430px</code>, både appen, fanelinjen nederst og arkene.</li>
+      <li>Mange tekster er 11 til 13 punkter: tidsakser, undertekster, «inkl. moms» og fodnoter. Det er i orden på en telefon, men for småt på en iPad på et bord eller en Mac på en meters afstand.</li>
+      <li>iOS-projektet er sat til kun iPhone (<code>TARGETED_DEVICE_FAMILY = 1</code>). På en Mac med Apple-chip kører den som «Designed for iPhone» i et telefonformat-vindue.</li>
+      <li>Data, der allerede findes, men kun vises én ting ad gangen: priser i dag og i morgen, prisens dele, forbrug pr. time, dag og måned fra Eloverblik, CO2, point, fastpris-sammenligning.</li>
+    </ul>
+  </div>
+
+  <h2 class="col">Beslutninger</h2>
+  <div class="decisions">
+    <div class="decision"><h3>Samme app, tre layouts</h3><p>Layoutet skifter efter vinduets bredde, ikke efter enhed. Så virker det også i Split View på iPad, i et halvt Mac-vindue og i browseren.</p><p class="why">En særskilt iPad-app ville give tre kodebaser at holde i takt.</p></div>
+    <div class="decision"><h3>Sidebjælke i stedet for faneline</h3><p>Fra 700 punkter flytter navigationen ud i en sidebjælke til venstre. Fanelinjen bliver kun på telefonen.</p><p class="why">Det er sådan iPad- og Mac-apps er bygget, og det giver plads til et vindue, der kan gøres højt.</p></div>
+    <div class="decision"><h3>Mindste tekst 13 punkter</h3><p>På store skærme er brødtekst 16 punkter og intet under 13. Prisen bliver 58 til 64 punkter.</p><p class="why">Apples anbefaling for iPad er 17 punkter brødtekst; 16 holder appens tæthed.</p></div>
+    <div class="decision"><h3>Rigtig Mac-app med Mac Catalyst</h3><p>Samme app bygges som Mac-app med Mac Catalyst (bead <code>elpriser-b2x</code>): et vindue der kan gøres stort og småt, menulinje med Vis-menu og genveje, og den virker også på Intel-Mac'er.</p><p class="why">Besluttet 11. oktober. Ca. 0,9 mio. tokens og en Mac-udgave i App Store Connect.</p></div>
+    <div class="decision"><h3>Historik er det nye</h3><p>Den store skærm får en 7-dages prisoversigt og et forbrugsoverblik, der viser dag, uge og måned på én gang.</p><p class="why">Historiske priser kan hentes fra samme kilde som i dag (elprisenligenu.dk har ældre datoer) og caches på enheden.</p></div>
+    <div class="decision"><h3>Temaerne følger med</h3><p>Blød, Bold og Legende får hver et stort layout. Bold er appens mørke tema; Blød og Legende er lyse.</p><p class="why">Mockups nedenfor viser alle tre.</p></div>
+  </div>
+
+  <h2 class="col">Tre layouts efter vinduesbredde</h2>
+  <div class="ruler" role="img" aria-label="Kompakt under 700 punkter, Regulær 700 til 1099, Bred fra 1100">
+    <div class="ruler-inner">
+      <div class="band"><span class="px">under 700 pt</span><b>Kompakt</b>iPhone, iPad Slide Over. Som i dag: én kolonne og faneline nederst.</div>
+      <div class="band on"><span class="px">700 til 1099 pt</span><b>Regulær</b>iPad på højkant, Split View, halvt Mac-vindue. Sidebjælke og to kolonner.</div>
+      <div class="band on"><span class="px">fra 1100 pt</span><b>Bred</b>iPad på langs, Mac. Sidebjælke og tre kolonner med historik.</div>
+    </div>
+  </div>
+
+  <h3 class="col">Tekststørrelser</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Element</th><th>Telefon i dag</th><th>Regulær og bred</th><th>Eksempel</th></tr></thead>
+      <tbody>
+        <tr><td>Pris lige nu</td><td class="num">44 pt</td><td class="num">58 til 64 pt</td><td>0,93 kr/kWh</td></tr>
+        <tr><td>Overskrifter på kort</td><td class="num">15 pt</td><td class="num">20 pt</td><td>Pris pr. time</td></tr>
+        <tr><td>Brødtekst og knapper</td><td class="num">13 til 14 pt</td><td class="num">16 pt</td><td>Billig indtil kl. 17:00</td></tr>
+        <tr><td>Undertekst</td><td class="num">11,5 til 12,5 pt</td><td class="num">14 pt</td><td>i dag 12–16</td></tr>
+        <tr><td>Akser, etiketter, fodnoter</td><td class="num">9 til 11 pt</td><td class="num">13 pt</td><td>00 · 06 · 12 · 18 · 24</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="col">Mockups</h2>
+  <p class="col mock-note">Fire skærme i appens rigtige farver og skrifttyper. Priser og forbrug er eksempeltal. De er tegnet i fuld størrelse og skaleret ned, så forholdet mellem tekst og skærm er det rigtige.</p>
+
+  <section class="mock" aria-labelledby="m1">
+    <div class="mock-head"><h3 id="m1">Nu · iPad på langs</h3><span class="chip">Blød</span><span class="chip">1194 × 834 pt</span></div>
+    <p class="mock-note">Prisen, de anbefalede tider og i dag og i morgen ved siden af hinanden. Prisens dele står fremme for den valgte time i stedet for i et ark.</p>
+    <div class="stage" data-w="1226" data-h="866"><div class="device ipad" style="width:1226px;height:866px"><div class="screen"><div id="mock1" class="t-soft" style="width:100%;height:100%"></div></div></div></div>
+  </section>
+
+  <section class="mock" aria-labelledby="m2">
+    <div class="mock-head"><h3 id="m2">Historik · Mac</h3><span class="chip">Bold</span><span class="chip">1440 × 900 pt</span></div>
+    <p class="mock-note">Prisoversigt for de sidste 7 dage time for time, så mønsteret står frem: billige nætter og dyre aftener. Under den nøgletal for ugen.</p>
+    <div class="stage" data-w="1440" data-h="900"><div class="device mac" style="width:1440px;height:900px"><div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">I stødet</span></div><div class="screen"><div id="mock2" class="t-bold" style="width:100%;height:100%"></div></div></div></div>
+  </section>
+
+  <section class="mock" aria-labelledby="m3">
+    <div class="mock-head"><h3 id="m3">Forbrug · Mac</h3><span class="chip">Blød</span><span class="chip">1440 × 900 pt</span></div>
+    <p class="mock-note">Dag, uge og måned på én skærm: hvornår strømmen blev brugt, hvor meget der lå i billige timer, CO2 og hvad en fastpris ville have kostet.</p>
+    <div class="stage" data-w="1440" data-h="900"><div class="device mac" style="width:1440px;height:900px"><div class="chrome"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">I stødet</span></div><div class="screen"><div id="mock3" class="t-soft" style="width:100%;height:100%"></div></div></div></div>
+  </section>
+
+  <section class="mock" aria-labelledby="m4">
+    <div class="mock-head"><h3 id="m4">Point · iPad på højkant</h3><span class="chip">Legende</span><span class="chip">834 × 1194 pt</span></div>
+    <p class="mock-note">Regulært layout: sidebjælken bliver smal, og indholdet står i to kolonner. Badges, en kalender over de dage du flyttede forbrug, og ugens besparelse.</p>
+    <div class="stage" data-w="866" data-h="1226"><div class="device ipad" style="width:866px;height:1226px"><div class="screen"><div id="mock4" class="t-play" style="width:100%;height:100%"></div></div></div></div>
+  </section>
+
+  <h2 class="col">Tidsplan og tokens</h2>
+  <p class="col">Tokens er input og output for agenten inklusive læsning af kode, tests og browser-tjek, skønnet ud fra hvad lignende opgaver brugte i denne uge. Regn med ±40 %. Dage er agentens arbejdstid; dine gennemsyn kommer oveni.</p>
+  <div class="phases">
+    <div class="phase"><div class="when">Dag 1</div><div><h3>Skal og typografi</h3><p>Tre layouts efter bredde, sidebjælke, ny tekstskala, ark bliver til sidepanel på store skærme. Telefonen må ikke ændre sig: screenshot-sammenligning ved 390 pt.</p></div><div class="tok"><b>0,6 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 2</div><div><h3>Nu-skærmen</h3><p>To kolonner med pris, anbefalinger, i dag og i morgen ved siden af hinanden og prisens dele altid synlige. Tastatur: 1 til 4 skifter fane, piletaster flytter valgt time.</p></div><div class="tok"><b>0,6 M</b><span>tokens</span></div></div>
+    <div class="phase review"><div class="when">Gennemsyn</div><div><h3>Du ser Nu-skærmen på iPad</h3><p>Byg fra Xcode til en iPad eller iPad-simulatoren. Retter vi retningen her, er det billigt.</p></div><div class="tok"><b>0,1 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 3 til 4</div><div><h3>Historik og forbrug</h3><p>Hent og cache 7 til 30 dages priser, prisoversigt time for time, forbrugsoverblik med dag, uge og måned, billige timer, CO2 og fastpris på ét sted. Nye rene moduler med tests.</p></div><div class="tok"><b>1,2 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 5</div><div><h3>Point og indstillinger</h3><p>Badges og kalender i to kolonner, indstillinger som sidepanel, Eloverblik-opsætning i et bredere format.</p></div><div class="tok"><b>0,5 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 6</div><div><h3>Temaerne</h3><p>Blød, Bold og Legende gennemgået på alle tre bredder. Bold er mørkt; Blød og Legende tjekkes også med systemets mørke tilstand.</p></div><div class="tok"><b>0,5 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 7</div><div><h3>iPad og Mac i Xcode</h3><p>iPad slås til igen (<code>TARGETED_DEVICE_FAMILY = 1,2</code>), alle retninger på iPad, Split View og Slide Over, «Designed for iPad» på Mac. Widget'en i iPad-størrelser.</p></div><div class="tok"><b>0,5 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 8</div><div><h3>Mac Catalyst</h3><p>Catalyst slået til på App-targetet, menulinje (Vis-menu, ⌘1 til ⌘4, ⌘R for opdatér), mindste vinduesstørrelse, signering, tjek af Capacitor-plugins og widget på Mac.</p></div><div class="tok"><b>0,9 M</b><span>tokens</span></div></div>
+    <div class="phase"><div class="when">Dag 9</div><div><h3>Test og App Store</h3><p>Visuelt tjek på 390, 834, 1194 og 1440 pt i alle temaer, iPad-screenshots i 13" og Mac-screenshots til App Store Connect, TestFlight-build til iPhone, iPad og Mac.</p></div><div class="tok"><b>0,7 M</b><span>tokens</span></div></div>
+    <div class="phase review"><div class="when">Gennemsyn</div><div><h3>Du tester build i TestFlight</h3><p>På iPad og Mac. Rettelser derefter er typisk 0,1 til 0,3 M tokens pr. runde.</p></div><div class="tok"><b>0,2 M</b><span>tokens</span></div></div>
+  </div>
+  <div class="total">
+    <div><b>Ca. 9 dage</b><span>agentens arbejdstid, plus to gennemsyn</span></div>
+    <div><b>Ca. 5,8 M</b><span>tokens i alt inkl. Mac Catalyst, ±40 %</span></div>
+    
+  </div>
+
+  <h2 class="col">Risici</h2>
+  <div class="col">
+    <ul>
+      <li><b>Telefonen må ikke blive dårligere.</b> Alt nyt ligger bag breddegrænsen på 700 punkter, og hver fase tjekkes ved 390 punkter mod et screenshot fra før.</li>
+      <li><b>Historiske priser er ekstra kald.</b> 30 dage er 30 kald til elprisenligenu.dk første gang; derefter ét om dagen fra cachen. Fejler et kald, vises de dage, der er hentet.</li>
+      <li><b>iPad betyder flere screenshots og mere review.</b> App Store kræver iPad-screenshots i 13", og Apple tester appen på iPad, når den er slået til.</li>
+      <li><b>Mac Catalyst og plugins.</b> Notifikationer, Keychain og widget skal tjekkes på Mac. Virker et plugin ikke, skjules funktionen på Mac i stedet for at blokere udgivelsen.</li>
+    </ul>
+  </div>
+
+  <div class="choice col">
+    <div class="eyebrow">Næste skridt</div>
+    <p>Beads er oprettet under <code>elpriser-kpd</code>, og dag 1 (skal og typografi) er i gang.</p>
+  </div>
+</div>
+
+<script>
+// ---------- sample data (example figures, kr/kWh incl. everything) ----------
+const TODAY=[0.78,0.74,0.72,0.70,0.71,0.76,0.98,1.32,1.41,1.18,0.96,0.88,0.84,0.86,0.93,1.12,1.58,2.31,2.52,2.44,2.08,1.64,1.29,1.02];
+const TMR  =[0.92,0.85,0.81,0.79,0.80,0.88,1.14,1.46,1.52,1.21,0.88,0.69,0.62,0.66,0.79,1.05,1.61,2.18,2.36,2.29,1.88,1.47,1.18,0.97];
+const NOW=14;
+const kr=v=>v.toFixed(2).replace('.',',');
+const tier=(v,arr)=>{const lo=Math.min(...arr),hi=Math.max(...arr),f=(v-lo)/(hi-lo);return f<.34?0:(f<.67?1:2);};
+const pal=i=>`var(--p${i})`;
+const bars=(arr,{now=-1,sel=-1,h=170}={})=>{const mx=Math.max(...arr);
+  return `<div class="bars" style="--h:${h}px">${arr.map((v,i)=>`<i class="${i===now?'now':''} ${i===sel?'sel':''}" style="height:${Math.max(7,v/mx*100)}%;background:${pal(tier(v,arr))}"></i>`).join('')}</div>
+  <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>`;};
+// Elly, same geometry as src/app/elly.js
+const elly=(size,{fill='#34B27B',ink='#11352b',glow='#34B27B',mood=1}={})=>{const my=(56+(mood*2-1)*8).toFixed(1);
+  return `<svg viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true" style="display:block;overflow:visible;flex-shrink:0">
+  <defs><radialGradient id="g${size}${fill.slice(1)}"><stop offset="35%" stop-color="${glow}" stop-opacity=".55"/><stop offset="100%" stop-color="${glow}" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="62" cy="60" r="52" fill="url(#g${size}${fill.slice(1)})"/>
+  <path d="M70 6 L30 62 L56 62 L46 114 L94 48 L66 48 Z" fill="${fill}" stroke="${ink}" stroke-width="4.5" stroke-linejoin="round"/>
+  <circle cx="55" cy="44" r="8" fill="#fff" stroke="${ink}" stroke-width="2"/><circle cx="73" cy="44" r="8" fill="#fff" stroke="${ink}" stroke-width="2"/>
+  <circle cx="57" cy="46" r="3.4" fill="${ink}"/><circle cx="75" cy="46" r="3.4" fill="${ink}"/>
+  <path d="M54 56 Q64 ${my} 74 56" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;};
+const ICON={
+  bolt:'<svg viewBox="0 0 448 512"><path d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288H175.5L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7H272.5L349.4 44.6z"/></svg>',
+  chart:'<svg viewBox="0 0 512 512"><path d="M32 32c17.7 0 32 14.3 32 32V400c0 8.8 7.2 16 16 16H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H80c-44.2 0-80-35.8-80-80V64C0 46.3 14.3 32 32 32zM160 224c17.7 0 32 14.3 32 32v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm128-64V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V160c0-17.7 14.3-32 32-32s32 14.3 32 32zm64 32c17.7 0 32 14.3 32 32v96c0 17.7-14.3 32-32 32s-32-14.3-32-32V224c0-17.7 14.3-32 32-32zM480 96V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V96c0-17.7 14.3-32 32-32s32 14.3 32 32z"/></svg>',
+  hist:'<svg viewBox="0 0 512 512"><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg>',
+  trophy:'<svg viewBox="0 0 576 512"><path d="M400 0H176c-26.5 0-48.1 21.8-47.1 48.2c.2 5.3 .4 10.6 .7 15.8H24C10.7 64 0 74.7 0 88c0 92.6 33.5 157 78.5 200.7c44.3 43.1 98.3 64.8 138.1 75.8c23.4 6.5 39.4 26 39.4 45.6c0 20.9-17 37.9-37.9 37.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32H384c17.7 0 32-14.3 32-32s-14.3-32-32-32H357.9C337 448 320 431 320 410.1c0-19.6 15.9-39.2 39.4-45.6c39.9-11 93.9-32.7 138.2-75.8C542.5 245 576 180.6 576 88c0-13.3-10.7-24-24-24H446.4c.3-5.2 .5-10.4 .7-15.8C448.1 21.8 426.5 0 400 0z"/></svg>',
+  gear:'<svg viewBox="0 0 512 512"><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></svg>',
+  car:'<svg viewBox="0 0 512 512"><path d="M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32H346.6c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/></svg>',
+  dish:'<svg viewBox="0 0 448 512"><path d="M416 0C400 0 288 32 288 176V288c0 35.3 28.7 64 64 64h32V480c0 17.7 14.3 32 32 32s32-14.3 32-32V352 240 32c0-17.7-14.3-32-32-32zM64 16C64 7.8 57.9 1 49.7 .1S34.2 4.6 32.4 12.5L2.1 148.8C.7 155.1 0 161.5 0 167.9c0 45.9 35.1 83.6 80 87.7V480c0 17.7 14.3 32 32 32s32-14.3 32-32V255.6c44.9-4.1 80-41.8 80-87.7c0-6.4-.7-12.8-2.1-19.1L191.6 12.5c-1.8-8-9.3-13.3-17.4-12.4S160 7.8 160 16V150.2c0 5.4-4.4 9.8-9.8 9.8c-5.1 0-9.3-3.9-9.8-9L127.9 14.6C127.2 6.3 120.3 0 112 0s-15.2 6.3-15.9 14.6L83.7 151c-.5 5.1-4.7 9-9.8 9c-5.4 0-9.8-4.4-9.8-9.8V16zm48.3 152l-.3 0-.3 0 .3-.7 .3 .7z"/></svg>',
+  shirt:'<svg viewBox="0 0 640 512"><path d="M211.8 0c7.8 0 14.3 5.7 16.7 13.2C240.8 51.9 277.1 80 320 80s79.2-28.1 91.5-66.8C413.9 5.7 420.4 0 428.2 0h12.6c22.5 0 44.2 7.9 61.5 22.3L628.5 127.4c6.6 5.5 10.7 13.5 11.4 22.1s-2.1 17.1-7.8 23.6l-56 64c-11.4 13.1-31.2 14.6-44.6 3.5L480 197.7V448c0 35.3-28.7 64-64 64H224c-35.3 0-64-28.7-64-64V197.7l-51.5 42.9c-13.3 11.1-33.1 9.6-44.6-3.5l-56-64c-5.7-6.5-8.5-15-7.8-23.6s4.8-16.6 11.4-22.1L137.7 22.3C155 7.9 176.7 0 199.2 0h12.6z"/></svg>',
+  moon:'<svg viewBox="0 0 384 512"><path d="M223.5 32C100 32 0 132.3 0 256S100 480 223.5 480c60.6 0 115.5-24.2 155.8-63.4c5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6c-96.9 0-175.5-78.8-175.5-176c0-65.8 36-123.1 89.3-153.3c6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z"/></svg>',
+  star:'<svg viewBox="0 0 576 512"><path d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.2 12.9 31.3s23 8 33.8 2.3l128.3-68.5 128.3 68.5c10.8 5.7 23.9 4.9 33.8-2.3s14.9-19.3 12.9-31.3L438.5 329 542.7 225.9c8.6-8.5 11.7-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.2 150.3 316.9 18z"/></svg>',
+  leaf:'<svg viewBox="0 0 512 512"><path d="M272 96c-78.6 0-145.1 51.5-167.7 122.5c33.6-17 71.5-26.5 111.7-26.5h88c8.8 0 16 7.2 16 16s-7.2 16-16 16H288 216s0 0 0 0c-16.6 0-32.7 1.9-48.3 5.4c-25.9 5.9-49.9 16.4-71.4 30.7c0 0 0 0 0 0C38.3 298.8 0 364.9 0 440v16c0 13.3 10.7 24 24 24s24-10.7 24-24V440c0-48.7 20.7-92.5 53.8-123.2C121.6 392.3 190.3 448 272 448l1 0c132.1-.7 239-130.9 239-291.4c0-42.6-7.5-83.1-21.1-119.6c-2.6-6.9-12.7-6.6-16.2-.1C455.9 72.1 418.7 96 376 96L272 96z"/></svg>',
+  money:'<svg viewBox="0 0 576 512"><path d="M64 64C28.7 64 0 92.7 0 128V384c0 35.3 28.7 64 64 64H512c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm64 320H64V320c35.3 0 64 28.7 64 64zM64 192V128h64c0 35.3-28.7 64-64 64zM448 384c0-35.3 28.7-64 64-64v64H448zm64-192c-35.3 0-64-28.7-64-64h64v64zM288 160a96 96 0 1 1 0 192 96 96 0 1 1 0-192z"/></svg>'
+};
+const side=(on,brand,{narrow=false}={})=>{const items=[['bolt','Nu'],['chart','Forbrug'],['hist','Historik'],['trophy','Point'],['gear','Indstillinger']];
+  return `<aside class="side">${narrow?`<div style="display:flex;justify-content:center;margin-bottom:14px">${brand}</div>`:`<div class="brand">${brand}</div>`}
+  ${items.map(([ic,n])=>`<div class="nav ${n===on?'on':''}" ${narrow?'style="justify-content:center;padding:13px 0"':''}>${ICON[ic]}${narrow?'':n}</div>`).join('')}
+  ${narrow?'':`<div class="foot">Spotpris fra elprisenligenu.dk<br>Opdateret lør. 14.02</div>`}</aside>`;};
+const ap=(ic,n,w,win,save)=>`<div class="ap">${ICON[ic]}<div><div class="n">${n}</div><div class="w">${w}</div></div><div class="win">${win}</div><div class="save">${save}</div></div>`;
+
+// ---------- 1: iPad landscape, Soft, Nu ----------
+document.getElementById('mock1').innerHTML=`<div class="app" style="--side:232px">${side('Nu',elly(30,{fill:'#FFD23F',glow:'transparent'})+'I stødet')}
+<main class="main">
+  <div class="top"><h4>Lørdag 10. oktober</h4><span class="pill">DK1 · VEST · N1</span></div>
+  <div class="row" style="grid-template-columns:1.05fr 1fr">
+    <div class="card" style="display:flex;gap:18px;align-items:center">
+      <div style="flex:1;min-width:0"><span class="state"><i></i>BILLIG LIGE NU</span>
+        <div style="margin-top:14px"><span class="big">${kr(TODAY[NOW])}</span><span class="unit">kr/kWh</span></div>
+        <div class="sub">Billig indtil <b>kl. 17:00</b>. Kør de store apparater nu.</div></div>
+      ${elly(116)}</div>
+    <div class="card"><div class="lbl">Hvornår skal vi tænde for</div>
+      ${ap('car','Elbilen','4 timers ladning','12–16','ca. 9 kr')}
+      ${ap('dish','Opvask','2 timers program','12–14','ca. 1 kr')}
+      ${ap('shirt','Vasketøj','3 timers program','12–15','ca. 1 kr')}</div>
+  </div>
+  <div class="card"><div class="split">
+    <div><div class="dayhead"><b>I dag</b><span>billigst 03–04 · dyrest 18–19</span></div>${bars(TODAY,{now:NOW,sel:18,h:112})}</div>
+    <div><div class="dayhead"><b>I morgen</b><span>billigst 12–13 · dyrest 18–19</span></div>${bars(TMR,{h:112})}</div>
+  </div></div>
+  <div class="row" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><div class="lbl">Kl. 18–19 i dag</div><div style="margin-top:8px"><span class="big" style="font-size:40px">${kr(TODAY[18])}</span><span class="unit">kr/kWh</span></div>
+      <div class="brk"><div>Spotpris inkl. moms<b>1,37 kr</b></div><div>Nettarif (N1)<b>0,99 kr</b></div><div>Energinet<b>0,14 kr</b></div><div>Afgift og tillæg<b>0,02 kr</b></div></div></div>
+    <div class="card"><div class="lbl">Dagen i tal</div>
+      <div class="brk"><div>Gennemsnit<b>1,26 kr</b></div><div>Billigste time<b>0,70 kr</b></div><div>Dyreste time<b>2,52 kr</b></div><div>Forskel<b>1,82 kr</b></div><div class="tot">Bedste 3 timer i morgen<b>kl. 12–15</b></div></div></div>
+    <div class="card"><div class="lbl">Næste besked</div><div style="font:700 22px/1.25 var(--a-head);margin-top:10px">I dag kl. 14:00</div>
+      <div class="sub" style="font-size:15px">I morgen er strømmen billigst kl. 12–15, ca. 0,66 kr/kWh.</div></div>
+  </div>
+</main></div>`;
+
+// ---------- 2: Mac, Bold, Historik ----------
+const DAYS=['Søn 4.','Man 5.','Tir 6.','Ons 7.','Tor 8.','Fre 9.','Lør 10.'];
+const weekRow=d=>TODAY.map((v,h)=>{const wobble=1+Math.sin((d+1)*1.7+h*.45)*.14+(d===2?.18:0)+(d===5?-.12:0);return Math.max(.5,v*wobble);});
+const WEEK=DAYS.map((_,d)=>weekRow(d));
+const flat=WEEK.flat();
+const hcol=v=>{const t=tier(v,flat);return t===0?'var(--p0)':(t===1?'var(--p1)':'var(--p2)');};
+const heat=`<div class="heat"><span></span>${Array.from({length:24},(_,h)=>`<span style="text-align:center;font-weight:600">${h%3===0?String(h).padStart(2,'0'):''}</span>`).join('')}
+  ${WEEK.map((row,d)=>`<span>${DAYS[d]}</span>${row.map(v=>`<i style="background:${hcol(v)}"></i>`).join('')}`).join('')}</div>`;
+document.getElementById('mock2').innerHTML=`<div class="app" style="--side:250px">${side('Historik',elly(28,{fill:'#C6FF3D',ink:'#0C1117',glow:'transparent'})+'I STØDET')}
+<main class="main" style="padding:28px 32px">
+  <div class="top"><h4>Historik</h4><span class="pill">SIDSTE 7 DAGE</span><span class="pill" style="margin-left:0">30 DAGE</span></div>
+  <div class="row kpis">
+    <div class="card kpi"><div class="lbl">Snitpris</div><div class="v">1,24 kr</div><div class="d down">▼ 6 % mod ugen før</div></div>
+    <div class="card kpi"><div class="lbl">Billigste time</div><div class="v">0,61 kr</div><div class="d">fre. kl. 03–04</div></div>
+    <div class="card kpi"><div class="lbl">Dyreste time</div><div class="v">2,97 kr</div><div class="d">tir. kl. 18–19</div></div>
+    <div class="card kpi"><div class="lbl">Billig strøm</div><div class="v">38 %</div><div class="d">af ugens timer</div></div>
+  </div>
+  <div class="card"><div class="dayhead"><b style="font-size:18px">Pris time for time</b><span>Hver firkant er én time</span></div>${heat}
+    <div class="legend"><span><i style="background:var(--p0)"></i>Billig</span><span><i style="background:var(--p1)"></i>Middel</span><span><i style="background:var(--p2)"></i>Dyr</span><span>Alle priser inkl. afgifter og tarif for Radius</span></div></div>
+  <div class="row" style="grid-template-columns:1.4fr 1fr">
+    <div class="card"><div class="dayhead"><b style="font-size:18px">Snitpris pr. dag</b><span>kr/kWh</span></div>
+      <div class="bars" style="--h:130px;gap:16px">${WEEK.map(r=>{const a=r.reduce((x,y)=>x+y,0)/24;return `<i style="height:${a/1.6*100}%;background:${a<1.2?'var(--p0)':(a<1.35?'var(--p1)':'var(--p2)')}"></i>`;}).join('')}</div>
+      <div class="axis" style="justify-content:space-around">${DAYS.map(d=>`<span>${d}</span>`).join('')}</div></div>
+    <div class="card"><div class="lbl">Mønster for ugen</div><div class="brk" style="margin-top:14px">
+      <div>Billigste tidsrum<b>kl. 01–05</b></div><div>Dyreste tidsrum<b>kl. 17–21</b></div><div>Billigste dag<b>fredag</b></div><div>Dyreste dag<b>tirsdag</b></div>
+      <div class="tot">Flytter du 10 kWh fra aften til nat<b>ca. 16 kr/uge</b></div></div></div>
+  </div>
+</main></div>`;
+
+// ---------- 3: Mac, Soft, Forbrug ----------
+const USE=[0.21,0.18,0.17,0.16,0.18,0.22,0.41,0.62,0.48,0.33,0.29,0.31,0.44,0.38,1.82,2.05,1.94,0.58,0.71,0.66,0.52,0.47,0.36,0.26];
+const ubars=USE.map((v,h)=>`<i style="height:${Math.max(6,v/2.05*100)}%;background:${pal(tier(TODAY[h],TODAY))}"></i>`).join('');
+const MONTH=[11.2,9.8,12.4,10.1,14.6,13.9,9.2,10.7,11.8,12.2,9.4,15.1,13.3,10.6,10.9,11.6,12.9,9.7,14.2,13.1,10.2,11.4,12.6,10.8,9.9,13.7,12.8,11.1,10.4,12.3];
+document.getElementById('mock3').innerHTML=`<div class="app" style="--side:250px">${side('Forbrug',elly(30,{fill:'#FFD23F',glow:'transparent'})+'I stødet')}
+<main class="main" style="padding:28px 32px">
+  <div class="top"><h4>Dit forbrug</h4><span class="pill">FREDAG 9. OKTOBER</span></div>
+  <div class="row" style="grid-template-columns:1.5fr 1fr 1fr">
+    <div class="card"><div class="dayhead"><b style="font-size:18px">Fredag, time for time</b><span>14,2 kWh · farvet efter prisen i timen</span></div>
+      <div class="bars" style="--h:150px">${ubars}</div><div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      <div class="legend"><span><i style="background:var(--p0)"></i>Billig time</span><span><i style="background:var(--p1)"></i>Middel</span><span><i style="background:var(--p2)"></i>Dyr</span><span>Elbilen ladede kl. 14–17</span></div></div>
+    <div class="card"><div class="lbl">Hvornår brugte du strømmen</div>
+      <div class="stack"><i style="width:61%;background:var(--p0)"></i><i style="width:24%;background:var(--p1)"></i><i style="width:15%;background:var(--p2)"></i></div>
+      <div class="brk" style="margin-top:14px"><div>Billige timer<b>8,7 kWh · 61 %</b></div><div>Middel<b>3,4 kWh · 24 %</b></div><div>Dyre timer<b>2,1 kWh · 15 %</b></div></div></div>
+    <div class="card"><div class="lbl">CO2</div><div style="margin-top:10px"><span class="big" style="font-size:40px">1,9</span><span class="unit">kg</span></div>
+      <div class="sub" style="font-size:15px">134 g pr. kWh i snit. Landsgennemsnittet i DK1 var 158 g.</div><div class="sub" style="font-size:15px"><b>15 % under snittet</b>, fordi elbilen ladede i en vindrig time.</div></div>
+  </div>
+  <div class="row" style="grid-template-columns:1.5fr 1fr">
+    <div class="card"><div class="dayhead"><b style="font-size:18px">Oktober og september</b><span>kWh pr. dag</span></div>
+      <div class="bars" style="--h:120px;gap:5px">${MONTH.map(v=>`<i style="height:${v/15.1*100}%;background:var(--a-accent);opacity:.8"></i>`).join('')}</div>
+      <div class="axis"><span>10. sep.</span><span>20. sep.</span><span>30. sep.</span><span>9. okt.</span></div>
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+        <div class="kpi"><div class="lbl">30 dage</div><div class="v">351 kWh</div><div class="d down">▼ 8 % mod sidste år</div></div>
+        <div class="kpi"><div class="lbl">Snit pr. dag</div><div class="v">11,7 kWh</div><div class="d">højest fredag 2. okt.</div></div>
+        <div class="kpi"><div class="lbl">Betalt i snit</div><div class="v">1,08 kr</div><div class="d">pr. kWh inkl. alt</div></div></div></div>
+    <div class="card"><div class="lbl">Timepris eller fastpris, 30 dage</div>
+      <div class="cmp">
+        <div class="r"><span>Timepris, som du brugte den</span><i style="background:var(--p0);width:82%"></i><b>379 kr</b></div>
+        <div class="r"><span>Fastpris 1,35 kr/kWh</span><i style="background:var(--p2);width:100%"></i><b>474 kr</b></div></div>
+      <div class="sub" style="font-size:15px;margin-top:16px"><b>Timepris var 95 kr billigere.</b> Abonnement er ikke med.</div></div>
+  </div>
+</main></div>`;
+
+// ---------- 4: iPad portrait, Play, Point ----------
+const cal=Array.from({length:35},(_,i)=>{const lv=[0,1,2,3,1,2,0,2,3,3,1,0,2,1,3,2,2,0,1,3,3,1,2,2,0,3,2,1,3,2,1,0,0,0,0][i];return `<i class="${lv?'h'+lv:''}"${i>30?' style="opacity:.35"':''}></i>`;}).join('');
+document.getElementById('mock4').innerHTML=`<div class="app" style="--side:88px">${side('Point',elly(34,{fill:'#FFD23F',ink:'#2a2140',glow:'transparent'}),{narrow:true})}
+<main class="main" style="padding:26px 24px">
+  <div class="top"><h4>Point</h4><span class="pill">UGE 41</span></div>
+  <div class="row" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card kpi"><div class="lbl">Point</div><div class="v">1.240</div><div class="d down">+180 denne uge</div></div>
+    <div class="card kpi"><div class="lbl">Dages stime</div><div class="v">12</div><div class="d">rekord 19</div></div>
+    <div class="card kpi"><div class="lbl">Smart-score</div><div class="v">82</div><div class="d">af 100</div></div>
+  </div>
+  <div class="card" style="display:flex;gap:18px;align-items:center;background:var(--a-accent);color:var(--a-accent-text);border-color:var(--a-accent)">
+    ${elly(92,{fill:'#2BC48A',ink:'#2a2140',glow:'#ffffff'})}
+    <div><div style="font:800 15px var(--a-head);letter-spacing:.06em;opacity:.85">UGENS BESPARELSE</div><div style="font:800 46px/1 var(--a-num);margin-top:4px">31 kr</div>
+    <div style="font-size:16px;margin-top:6px;opacity:.92">Du flyttede 18 kWh til billige timer. Det er 3 mere end sidste uge.</div></div></div>
+  <div class="row" style="grid-template-columns:1fr 1fr">
+    <div class="card"><div class="lbl">Badges</div><div class="badges" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
+      <div class="badge got">${ICON.moon}Natteravn</div><div class="badge got">${ICON.money}Sparefugl</div>
+      <div class="badge">${ICON.star}30 dage<br><span style="font-weight:600;font-size:12.5px">18 af 30</span></div><div class="badge">${ICON.leaf}Grøn uge<br><span style="font-weight:600;font-size:12.5px">5 af 7</span></div></div></div>
+    <div class="card"><div class="lbl">Dage du flyttede forbrug</div>
+      <div class="cal" style="margin-top:12px"><span>M</span><span>T</span><span>O</span><span>T</span><span>F</span><span>L</span><span>S</span>${cal}</div>
+      <div class="legend"><span><i style="background:var(--a-sunk);border:1px solid var(--a-border)"></i>Ingen</span><span><i style="background:var(--p0)"></i>Meget</span></div></div>
+  </div>
+  <div class="card"><div class="lbl">Seneste</div>
+    ${ap('car','Elbilen','fre. kl. 01–05 · bekræftet af Eloverblik','+60','point')}
+    ${ap('shirt','Vasketøj','tor. kl. 12–15 · bekræftet','+20','point')}
+    ${ap('dish','Opvask','tor. kl. 22–24 · venter på forbrug','…','1–2 dage')}</div>
+</main></div>`;
+
+// ---------- scale devices to fit ----------
+function fit(){document.querySelectorAll('.stage').forEach(st=>{const w=+st.dataset.w,h=+st.dataset.h,s=Math.min(1,st.clientWidth/w);
+  st.style.height=(h*s)+'px';st.querySelector('.device').style.transform=`scale(${s})`;});}
+fit();addEventListener('resize',fit);
+document.querySelectorAll('.stage').forEach(st=>{const b=document.createElement('span');b.className='ex';b.textContent='Eksempeltal';st.appendChild(b);});
+</script>
+
+</html>

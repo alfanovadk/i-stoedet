@@ -52,6 +52,45 @@
     max-height:92%;overflow-y:auto;border-radius:28px 28px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 28px);
     animation:slideup .28s cubic-bezier(.2,.9,.2,1)}
 
+  /* ===== Store skærme (iPad, Mac, bred browser) =====
+     Kompakt < 700 px: telefon-layoutet ovenfor, uændret.
+     Regulær 700-1099: sidebjælke med ikoner + bredere indholdskolonne.
+     Bred ≥ 1100: sidebjælke med tekst.
+     Indholdet zoomes 1,18 ×, så telefonens mindste tekst (11 px) bliver 13 px og brødtekst 16 px. */
+  .sidebar{display:none}
+  @keyframes slidein{0%{transform:translateX(100%)}100%{transform:translateX(0)}}
+  @media (min-width:700px){
+    #app{max-width:none;display:grid;grid-template-columns:var(--side-w,88px) minmax(0,1fr);align-items:start}
+    .tabbar{display:none}
+    .sidebar{display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100dvh;overflow-y:auto;
+      padding:calc(env(safe-area-inset-top) + 20px) 14px calc(env(safe-area-inset-bottom) + 18px);
+      background:var(--sb-bg);border-right:1px solid var(--sb-border)}
+    .sb-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px}
+    .sb-brand > span{display:none}
+    .sb-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 0;border:none;border-radius:13px;
+      background:transparent;font:inherit;font-weight:700;font-size:16px;cursor:pointer;text-align:left}
+    .sb-btn .lbl{display:none}
+    .sb-foot{display:none}
+    .tabcontent{zoom:1.18;width:100%;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 24px 32px}
+    .chdr > :not(:last-child){display:none!important}   /* brandet står i sidebjælken (Elly har inline display) */
+    /* Telefonens mindste etiketter (9-10,5 px: «NU», akser) løftes, så intet bliver under 13 px efter zoom. */
+    .tabcontent [style*="font-size:9px"],.tabcontent [style*="font-size:10px"],.tabcontent [style*="font-size:10.5px"],
+    .sheet [style*="font-size:9px"],.sheet [style*="font-size:10px"],.sheet [style*="font-size:10.5px"]{font-size:11.2px!important}
+    .sheet{left:auto;right:0;top:0;bottom:0;transform:none;width:min(470px,100%);max-width:none;max-height:none;
+      border-radius:26px 0 0 26px;padding:14px 24px calc(env(safe-area-inset-bottom) + 28px);zoom:1.12;
+      animation:slidein .26s cubic-bezier(.2,.9,.2,1)}
+  }
+  @media (min-width:1100px){
+    #app{--side-w:236px}
+    .sidebar{padding-inline:16px}
+    .sb-brand{justify-content:flex-start;margin-left:8px}
+    .sb-brand > span{display:inline}
+    .sb-btn{justify-content:flex-start;padding:11px 14px}
+    .sb-btn .lbl{display:inline}
+    .sb-foot{display:block;margin-top:auto;padding:0 10px;font-size:13px;line-height:1.5}
+    .tabcontent{max-width:620px}
+  }
+
   /* ===== ELLY MASCOT — base + statisk tilstand (altid, også reduced-motion) ===== */
   .char{transform-box:fill-box;transform-origin:center}
   .bolt{transform-box:fill-box;transform-origin:center}
@@ -956,8 +995,19 @@ function tabBar(th){
   return `<nav class="tabbar" style="--tb-bg:${th.sheetBg};--tb-border:${th.border};">${btns}</nav>`;
 }
 // kompakt header pr. fane — brand + valgfri højre-knapper
+// Sidebjælke på store skærme (skjult under 700 px, se CSS). Samme faner som fanelinjen + Indstillinger.
+function sideBar(th){
+  const btn=(on,onclick,ic,lbl)=>`<button class="sb-btn" onclick="${onclick}" aria-label="${lbl}" title="${lbl}" ${on?'aria-current="page"':''}
+    style="color:${on?th.text:th.muted};background:${on?th.accentSoft:'transparent'};"><span style="display:flex;width:22px;justify-content:center;">${fa(ic,on?th.accent:th.muted,20)}</span><span class="lbl">${lbl}</span></button>`;
+  return `<nav class="sidebar" aria-label="Hovedmenu" style="--sb-bg:${th.sheetBg};--sb-border:${th.border};">
+    <div class="sb-brand">${brandFor(th)}</div>
+    ${TABS.map(([k,ic,lbl])=>btn(app.state.tab===k,`setTab('${k}')`,ic,lbl)).join('')}
+    ${btn(app.state.sheet==='settings','openSettings()','gear','Indstillinger')}
+    <div class="sb-foot" style="color:${th.muted};">Spotpris fra elprisenligenu.dk<br>Tariffer fra Energi Data Service</div>
+  </nav>`;
+}
 function compactHeader(th,brandHTML,rightHTML){
-  return `<div style="display:flex;align-items:center;gap:9px;padding:4px 0 12px;">${brandHTML}
+  return `<div class="chdr" style="display:flex;align-items:center;gap:9px;padding:4px 0 12px;">${brandHTML}
     <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">${rightHTML||''}</span></div>`;
 }
 function gearBtn(th,bg,radius){
@@ -1668,7 +1718,7 @@ function render(){
   document.body.style.background=th.bg;
   document.getElementById('theme-color').setAttribute('content',th.bg);
   const root=document.getElementById('app');
-  root.innerHTML=`<div class="tabcontent">${staleHTML(th)}${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
+  root.innerHTML=`${sideBar(th)}<div class="tabcontent">${staleHTML(th)}${tabContent()}</div>${tabBar(th)}${toastHTML(th)}`;
   const sr=document.getElementById('sheet-root');
   const sheet=document.getElementById('sheet');
   if(app.state.sheet){
