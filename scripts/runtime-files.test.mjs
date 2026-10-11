@@ -7,8 +7,8 @@ import { APP_DIR, RUNTIME_FILES } from './runtime-files.mjs';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-test('RUNTIME_FILES indeholder de 23 filer', () => {
-  assert.equal(RUNTIME_FILES.length, 23);
+test('RUNTIME_FILES indeholder de 24 filer', () => {
+  assert.equal(RUNTIME_FILES.length, 24);
 });
 
 test('alle runtime-filer findes i src/app/', () => {

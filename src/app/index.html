@@ -73,6 +73,7 @@
     .sb-foot{display:none}
     .tabcontent{zoom:1.18;width:100%;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 24px 32px}
     .tabcontent:has(.wide-nu){max-width:1000px}
+    .hist-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important}
     .wn-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
     .wn-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:22px}
     .wn-bottom{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px;margin-top:14px}
@@ -93,6 +94,7 @@
     .sb-btn .lbl{display:inline}
     .sb-foot{display:block;margin-top:auto;padding:0 10px;font-size:13px;line-height:1.5}
     .tabcontent{max-width:620px}
+    .hist-kpi{grid-template-columns:repeat(4,minmax(0,1fr))!important}
   }
 
   /* ===== ELLY MASCOT — base + statisk tilstand (altid, også reduced-motion) ===== */
@@ -203,6 +205,7 @@ import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
 import { ellySVG } from './elly.js?v=3';
 import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=3';
 import { planDaily, DAILY_IDS } from './notifications.js?v=1';
+import { historyKeys, historyRows, historyStats, pruneHistory } from './history.js?v=1';
 
 /* ===================== PRIS-MOTOR (rigtige data) ===================== */
 const DAYS=['søndag','mandag','tirsdag','onsdag','torsdag','fredag','lørdag'];
@@ -761,6 +764,7 @@ async function loadCO2ForPeriod(range){
 }
 
 async function ensureDayPrice(dayKey){
+  dayKey=keyOf(dateFromKey(dayKey));   // kaldes også med «2026-10-09»; cachen og parseDK bruger «2026-10-9»
   const dp=loadDayPrices();
   if(dp[dayKey]) return;
   try{
@@ -991,6 +995,8 @@ function tabsHTML(th){
 }
 /* ===================== TAB-SKAL ===================== */
 const TABS=[['nu','bolt','Nu'],['forbrug','chart-column','Forbrug'],['point','trophy','Point'],['mere','ellipsis','Mere']];
+// Sidebjælken på store skærme har også Historik (kræver plads; ikke på telefonens faneline).
+const SIDE_TABS=[TABS[0],TABS[1],['historik','chart-line','Historik'],TABS[2],TABS[3]];
 function tabBar(th){
   const t=th.tab;
   const btns=TABS.map(([k,ic,lbl])=>{const on=app.state.tab===k;
@@ -1006,7 +1012,7 @@ function sideBar(th){
     style="color:${on?th.text:th.muted};background:${on?th.accentSoft:'transparent'};"><span style="display:flex;width:22px;justify-content:center;">${fa(ic,on?th.accent:th.muted,20)}</span><span class="lbl">${lbl}</span></button>`;
   return `<nav class="sidebar" aria-label="Hovedmenu" style="--sb-bg:${th.sheetBg};--sb-border:${th.border};">
     <div class="sb-brand">${brandFor(th)}</div>
-    ${TABS.map(([k,ic,lbl])=>btn(app.state.tab===k,`setTab('${k}')`,ic,lbl)).join('')}
+    ${SIDE_TABS.map(([k,ic,lbl])=>btn(app.state.tab===k,`setTab('${k}')`,ic,lbl)).join('')}
     ${btn(app.state.sheet==='settings','openSettings()','gear','Indstillinger')}
     <div class="sb-foot" style="color:${th.muted};">Spotpris fra elprisenligenu.dk<br>Tariffer fra Energi Data Service</div>
   </nav>`;
@@ -1097,11 +1103,11 @@ function wideNu(V){
     </div>
   </div>`;
 }
-// Tastatur på store skærme: 1-4 skifter fane, ← → flytter den valgte time på Nu.
+// Tastatur på store skærme: 1-5 skifter fane, ← → flytter den valgte time på Nu.
 document.addEventListener('keydown',e=>{
   if(!isLarge() || app.state.sheet || e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName||'')) return;
-  const n=['1','2','3','4'].indexOf(e.key);
-  if(n>=0){ setTab(TABS[n][0]); return; }
+  const n=['1','2','3','4','5'].indexOf(e.key);
+  if(n>=0){ setTab(SIDE_TABS[n][0]); return; }
   if(app.state.tab==='nu' && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
     const V=app.lastV; if(!V) return;
     const list=app.state.chartTab==='tomorrow'&&V.hasTmr?V.tmrList:V.todayList; if(!list.length) return;
@@ -1111,6 +1117,72 @@ document.addEventListener('keydown',e=>{
   }
 });
 LARGE_MQ.addEventListener('change',()=>render());
+// ===== Historik (kun store skærme) =====
+const HIST_KEY='elpriser_hist', HIST_KEEP=40;
+function loadHist(){ try{ const c=JSON.parse(localStorage.getItem(HIST_KEY)||'null'); return c&&typeof c.days==='object'?c:{region:app.state.region,days:{}}; }catch(e){ return {region:app.state.region,days:{}}; } }
+function saveHist(c){ try{ localStorage.setItem(HIST_KEY,JSON.stringify(pruneHistory(c,HIST_KEEP))); }catch(e){} }
+let histLoading=null;   // { done, total } mens der hentes
+// Hent de dage der mangler (én forespørgsel pr. dag, i rækkefølge, maks. 30), og vis løbende.
+async function ensureHistory(n){
+  if(histLoading) return;
+  let cache=loadHist();
+  if(cache.region!==app.state.region) cache={region:app.state.region,days:{}};
+  const today=keyOf(nowDK());
+  const missing=historyKeys(nowDK(),n).filter(k=>k!==today && !(Array.isArray(cache.days[k])&&cache.days[k].length>=23));
+  if(!missing.length) return;
+  histLoading={done:0,total:missing.length}; render();
+  for(const k of missing){
+    const recs=await fetchDay(dateFromKey(k));
+    if(recs.length){ cache.days[k]=recs; saveHist(cache); }
+    histLoading.done++;
+    if(histLoading.done%5===0 || histLoading.done===histLoading.total) render();
+  }
+  histLoading=null; render();
+}
+function setHistDays(n){ app.state.histDays=n; render(); ensureHistory(n); }
+function historyView(){
+  const th=THEMES[app.state.theme], hf=HEAD_FONT[app.state.theme];
+  const n=app.state.histDays===30?30:7;
+  setTimeout(()=>ensureHistory(n),0);
+  const cache=loadHist(), keys=historyKeys(nowDK(),n), today=keyOf(nowDK());
+  const days={...(cache.region===app.state.region?cache.days:{})};
+  days[today]=app.raw.filter(r=>parseDK(r.time_start).dayKey===today);   // dagens priser har appen allerede
+  const rows=historyRows({region:app.state.region,days},app.state.region,keys,cfg());
+  const s=historyStats(rows);
+  const card=(inner,extra='')=>`<div style="background:${th.sheetBg};color:${th.text};border:1px solid ${th.border};border-radius:20px;padding:18px 20px;min-width:0;${extra}">${inner}</div>`;
+  const lbl=t=>`<div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:${th.muted};">${t}</div>`;
+  const row=(k,v,strong)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13.5px;padding:3px 0;color:${strong?th.text:th.muted};${strong?'font-weight:800;border-top:1px solid '+th.border+';margin-top:4px;padding-top:8px;':''}"><span>${k}</span><b style="color:${th.text};font-variant-numeric:tabular-nums;white-space:nowrap;">${v}</b></div>`;
+  const kpi=(t,v,sub)=>card(`${lbl(t)}<div style="font-family:${hf};font-weight:800;font-size:24px;margin-top:6px;font-variant-numeric:tabular-nums;">${v}</div><div style="font-size:12px;color:${th.muted};margin-top:2px;">${sub}</div>`);
+  const range=`<div style="display:flex;gap:6px;">${[7,30].map(d=>`<button onclick="setHistDays(${d})" aria-pressed="${n===d}" style="border:1px solid ${n===d?th.accent:th.border};background:${n===d?th.accentSoft:th.sheetBg};color:${th.text};font:inherit;font-weight:800;font-size:12px;letter-spacing:.06em;padding:6px 12px;border-radius:99px;cursor:pointer;">${d} DAGE</button>`).join('')}</div>`;
+  const head=`<div style="display:flex;align-items:center;gap:12px;margin:4px 0 14px;"><h2 style="margin:0;font-family:${hf};font-weight:800;font-size:22px;color:${th.text};">Historik</h2><span style="margin-left:auto;"></span>${range}</div>`;
+  const prog=histLoading?`<div role="status" style="font-size:12.5px;color:${th.muted};margin:-6px 0 12px;">Henter priser … ${histLoading.done} af ${histLoading.total} dage</div>`:'';
+  if(!s) return `<div class="pane wide-nu">${head}${prog}${card(`<p style="margin:0;color:${th.muted};font-size:13.5px;">Der er ingen priser at vise endnu.</p>`)}</div>`;
+  const tierCol=v=>v==null?th.border:th.pal[v<s.lo+(s.hi-s.lo)/3?0:(v<s.lo+2*(s.hi-s.lo)/3?1:2)];
+  const cell=n===30?11:20;
+  const heat=`<div style="display:grid;grid-template-columns:52px repeat(24,minmax(0,1fr));gap:3px;font-size:11px;color:${th.muted};font-variant-numeric:tabular-nums;">
+      <span></span>${Array.from({length:24},(_,h)=>`<span style="text-align:center;font-weight:600;">${h%3===0?pad(h):''}</span>`).join('')}
+      ${rows.map(r=>`<span style="align-self:center;font-weight:700;white-space:nowrap;">${r.label}</span>${Array.from({length:24},(_,h)=>{const v=r.hours?r.hours[h]:null;
+        return `<i title="${r.label} kl. ${pad(h)}${v!=null?': '+kr(v)+' kr':''}" style="display:block;height:${cell}px;border-radius:4px;background:${tierCol(v)};${v==null?'opacity:.45;':''}"></i>`;}).join('')}`).join('')}</div>`;
+  const legend=`<div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:${th.muted};margin-top:10px;">${['Billig','Middel','Dyr'].map((t,i)=>`<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:11px;height:11px;border-radius:3px;background:${th.pal[i]};display:block;"></i>${t}</span>`).join('')}<span>Grå er timer uden pris endnu. Priser inkl. afgifter og tarif for ${esc(currentTariff().navn||'din egen tarif')}.</span></div>`;
+  const mx=Math.max(...s.dayAvgs.map(d=>d.avg)), dmn=Math.min(...s.dayAvgs.map(d=>d.avg));
+  const dayCol=v=>th.pal[mx-dmn<1e-9?0:Math.min(2,Math.floor((v-dmn)/(mx-dmn)*3))];   // thirds of the day-average range
+  const dayBars=`<div style="display:flex;align-items:flex-end;gap:${n===30?3:12}px;height:120px;">${s.dayAvgs.map(d=>`<i title="${d.label}: ${kr(d.avg)} kr" style="flex:1 1 0;display:block;border-radius:5px 5px 2px 2px;height:${Math.max(6,d.avg/mx*100)}%;background:${dayCol(d.avg)};"></i>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:${th.muted};">${n===30?`<span>${s.dayAvgs[0].label}</span><span>${s.dayAvgs[s.dayAvgs.length-1].label}</span>`:s.dayAvgs.map(d=>`<span>${d.label}</span>`).join('')}</div>`;
+  const span=x=>x?`kl. ${pad(x.from)}–${pad(x.to%24)}`:'–';
+  return `<div class="pane wide-nu">${head}${prog}
+    <div class="wn-bottom hist-kpi" style="margin-top:0;">
+      ${kpi('SNITPRIS',kr(s.avg)+' kr',`${s.days} dage`)}
+      ${kpi('BILLIGSTE TIME',kr(s.lo)+' kr',`${s.min.label} kl. ${pad(s.min.h)}`)}
+      ${kpi('DYRESTE TIME',kr(s.hi)+' kr',`${s.max.label} kl. ${pad(s.max.h)}`)}
+      ${kpi('BILLIG STRØM',Math.round(s.cheapShare*100)+' %','af timerne')}
+    </div>
+    ${card(`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px;"><span style="font-family:${hf};font-weight:700;font-size:15px;">Pris time for time</span><span style="font-size:11.5px;color:${th.muted};">hver firkant er én time</span></div>${heat}${legend}`,'margin-top:14px;')}
+    <div class="wn-top" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));">
+      ${card(`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family:${hf};font-weight:700;font-size:15px;">Snitpris pr. dag</span><span style="font-size:11.5px;color:${th.muted};">kr/kWh</span></div>${dayBars}`)}
+      ${card(`${lbl('MØNSTERET')}<div style="margin-top:8px;">${row('Billigste tidsrum',span(s.cheapSpan))}${row('Dyreste tidsrum',span(s.dearSpan))}${row('Billigste dag',s.cheapestDay.label)}${row('Dyreste dag',s.dearestDay.label)}
+        ${row(`Flyt ${s.shiftKwhDay} kWh om dagen fra ${span(s.dearSpan)} til ${span(s.cheapSpan)}`,`ca. ${Math.round(s.shiftSavingWeek)} kr/uge`,true)}</div>`)}
+    </div></div>`;
+}
 function viewSoft(V){
   const th=THEMES.soft;
   const [btxt,bcol]=badgeFor(V,th);
@@ -1767,6 +1839,7 @@ function tabContent(){
   app.lastV=V;
   if(app.state.tab==='point') return pointView(V);
   if(app.state.tab==='mere')  return mereView();
+  if(app.state.tab==='historik' && isLarge()) return historyView();
   if(isLarge()) return wideNu(V);
   // 'nu' (default) — pr. tema
   return app.state.theme==='bold'?viewBold(V):(app.state.theme==='play'?viewPlay(V):viewSoft(V));
@@ -2044,7 +2117,7 @@ window.logClaim=logClaim;
 window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.setDailyOn=setDailyOn;window.acceptNotifIntro=acceptNotifIntro;window.dismissNotifIntro=dismissNotifIntro;window.adjDailyHour=adjDailyHour;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
-window.selectHour=selectHour;window.pickToday=pickToday;window.pickTomorrow=pickTomorrow;
+window.selectHour=selectHour;window.setHistDays=setHistDays;window.pickToday=pickToday;window.pickTomorrow=pickTomorrow;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
