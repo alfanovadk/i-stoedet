@@ -60,7 +60,8 @@ console.log("VERIFY_RESULT " + JSON.stringify(out));
 
 let raw;
 try {
-  raw = execFileSync(DEV_BROWSER, ["--browser", "istoedet-verify"], { input: SCRIPT, encoding: "utf8" });
+  // Headless: no browser window pops up on the operator's screen during deploy.
+  raw = execFileSync(DEV_BROWSER, ["--headless", "--browser", "istoedet-verify-headless", "--idle-timeout", "2m"], { input: SCRIPT, encoding: "utf8" });
 } catch (e) {
   console.error("[verify-live] dev-browser fejlede:", String(e.stdout || e.message).slice(0, 400));
   process.exit(1);
