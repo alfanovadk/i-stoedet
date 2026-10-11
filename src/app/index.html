@@ -72,6 +72,10 @@
     .sb-btn .lbl{display:none}
     .sb-foot{display:none}
     .tabcontent{zoom:1.18;width:100%;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 24px 32px}
+    .tabcontent:has(.wide-nu){max-width:1000px}
+    .wn-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+    .wn-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:22px}
+    .wn-bottom{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px;margin-top:14px}
     .chdr > :not(:last-child){display:none!important}   /* brandet står i sidebjælken (Elly har inline display) */
     /* Telefonens mindste etiketter (9-10,5 px: «NU», akser) løftes, så intet bliver under 13 px efter zoom. */
     .tabcontent [style*="font-size:9px"],.tabcontent [style*="font-size:10px"],.tabcontent [style*="font-size:10.5px"],
@@ -901,12 +905,13 @@ function chartHTML(list,th,nowH,opts){
   const vals=list.map(x=>x.total);
   const [lo,hi]=[Math.min(...vals),Math.max(...vals)];
   const max=hi, H=opts.h||128, gap=opts.gap||2.5;
+  const selH=('sel' in opts)?opts.sel:app.state.selectedHour, pick=opts.pick||'selectHour';
   const bars=list.map(({h:hr,total:p})=>{
     const h=Math.max(7,Math.round(p/max*100));
     const col=th.pal[tierOf(p,lo,hi)];
     const isNow=hr===nowH;
-    const isSel=hr===app.state.selectedHour;
-    return `<button type="button" class="bar" onclick="selectHour(${hr})" aria-pressed="${isSel}" aria-label="kl ${pad(hr)}: ${kr(p)} kr${isNow?', nu':''}" title="kl ${pad(hr)}:00 · ${kr(p)} kr" style="border:0;padding:0;font:inherit;flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;cursor:pointer;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}${isSel?'outline:2px solid '+th.ring+';outline-offset:1px;':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</button>`;
+    const isSel=hr===selH;
+    return `<button type="button" class="bar" onclick="${pick}(${hr})" aria-pressed="${isSel}" aria-label="kl ${pad(hr)}: ${kr(p)} kr${isNow?', nu':''}" title="kl ${pad(hr)}:00 · ${kr(p)} kr" style="border:0;padding:0;font:inherit;flex:1 1 0;min-width:0;height:${h}%;background:${col};border-radius:5px 5px 2px 2px;position:relative;cursor:pointer;${isNow?'box-shadow:0 0 0 2.5px '+th.ring+';':''}${isSel?'outline:2px solid '+th.ring+';outline-offset:1px;':''}">${isNow?`<span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.04em;color:${th.ring}">NU</span>`:''}</button>`;
   }).join('');
   return `<div><div style="display:flex;align-items:flex-end;gap:${gap}px;height:${H}px;padding-top:14px;">${bars}</div>
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;font-weight:600;color:${th.axis};">
@@ -1034,6 +1039,78 @@ function pointTeaser(th){
 }
 
 /* ===================== TEMA-LAYOUTS ===================== */
+// ===== Nu-skærmen på store skærme (≥ 700 px, se CSS «Store skærme») =====
+const LARGE_MQ=window.matchMedia('(min-width:700px)');
+const isLarge=()=>LARGE_MQ.matches;
+const HEAD_FONT={soft:"'Fredoka',sans-serif",bold:"'Unbounded',sans-serif",play:"'Baloo 2',sans-serif"};
+const STROKE={soft:'#11352b',bold:'#0C1117',play:'#2a2140'};
+// Valgt time i et af de to dagsdiagrammer (I dag / I morgen ligger side om side).
+function pickToday(h){ app.state.chartTab='today'; app.state.selectedHour=h; render(); }
+function pickTomorrow(h){ app.state.chartTab='tomorrow'; app.state.selectedHour=h; render(); }
+function wideNu(V){
+  const th=THEMES[app.state.theme], hf=HEAD_FONT[app.state.theme], ink=STROKE[app.state.theme];
+  const card=(inner,extra='')=>`<div style="background:${th.sheetBg};color:${th.text};border:1px solid ${th.border};border-radius:20px;padding:18px 20px;min-width:0;${extra}">${inner}</div>`;
+  const lbl=t=>`<div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:${th.muted};">${t}</div>`;
+  const row=(k,v,strong)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13.5px;padding:3px 0;color:${strong?th.text:th.muted};${strong?'font-weight:800;border-top:1px solid '+th.border+';margin-top:4px;padding-top:8px;':''}"><span>${k}</span><b style="color:${th.text};font-variant-numeric:tabular-nums;white-space:nowrap;">${v}</b></div>`;
+  const [btxt,bcol]=badgeFor(V,th);
+  // Valgt time: den der er klikket på, ellers timen lige nu.
+  const day=app.state.chartTab==='tomorrow'&&V.hasTmr?'tomorrow':'today';
+  const list=day==='tomorrow'?V.tmrList:V.todayList;
+  const selH=app.state.selectedHour!=null?app.state.selectedHour:(day==='today'?V.nowH:(list[0]?list[0].h:0));
+  const dk=keyOf(day==='tomorrow'?new Date(nowDK().getFullYear(),nowDK().getMonth(),nowDK().getDate()+1):nowDK());
+  const rec=app.raw.find(r=>{const t=parseDK(r.time_start);return t.dayKey===dk&&t.h===selH;});
+  const c=rec?componentsOf(rec,cfg()):null;
+  const stats=l=>{const v=l.map(x=>x.total);if(!v.length)return null;const lo=Math.min(...v),hi=Math.max(...v);
+    const at=x=>pad(l.find(e=>e.total===x).h);return {avg:v.reduce((a,b)=>a+b,0)/v.length,lo,hi,loH:at(lo),hiH:at(hi)};};
+  const sT=stats(V.todayList), sM=stats(V.tmrList);
+  const best=V.hasTmr?bestWindow(V.tmrList,3):null;
+  const dayChart=(title,l,s,nowH,isSel,pick)=>`<div style="min-width:0;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px;">
+        <span style="font-family:${hf};font-weight:700;font-size:15px;color:${th.text};">${title}</span>
+        <span style="font-size:11.5px;color:${th.muted};">${s?`billigst ${s.loH} · dyrest ${s.hiH}`:''}</span></div>
+      ${chartHTML(l,th,nowH,{h:120,sel:isSel?selH:-1,pick})}</div>`;
+  const aps=V.appliances.map(ap=>`<div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid ${th.border};">
+      <span style="width:22px;text-align:center;">${fa(APP_ICON[ap.key],th.text,19)}</span>
+      <div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:13.5px;">${ap.name}</div><div style="font-size:11.5px;color:${th.muted};">${ap.when}</div></div>
+      ${claimBtn(th,ap.key,'99px')}
+      <div style="font-weight:800;font-size:13px;color:${th.accent};background:${th.accentSoft};padding:4px 10px;border-radius:99px;white-space:nowrap;">${ap.win}</div></div>`).join('');
+  return `<div class="pane wide-nu">
+    ${compactHeader(th,brandFor(th),regionPillFor(th,V,app.state.theme==='bold'?'bold':undefined)+gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'))}
+    <div class="wn-top">
+      ${card(`<div style="display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:${th.accentSoft};color:${bcol};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;">${btxt}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:10px;"><span style="font-family:${hf};font-weight:800;font-size:48px;line-height:.9;color:${th.text};">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:${th.muted};">kr/kWh</span></div>
+        <p style="margin:10px 0 0;font-size:13px;line-height:1.5;color:${th.muted};">${nowCopy(V)}</p></div>
+        ${ellySVG(ellyState(V),96,ink,V.elly)}</div>`)}
+      ${card(`${lbl('HVORNÅR SKAL VI TÆNDE FOR')}<div style="margin-top:6px;">${aps}</div>`)}
+    </div>
+    ${card(`<div class="wn-days">${dayChart('I dag',V.todayList,sT,V.nowH,day==='today','pickToday')}${dayChart('I morgen',V.tmrList,sM,-1,day==='tomorrow','pickTomorrow')}</div>`,'margin-top:14px;')}
+    <div class="wn-bottom">
+      ${card(c?`${lbl(`KL. ${pad(selH)}–${pad((selH+1)%24)} ${day==='tomorrow'?'I MORGEN':'I DAG'}`)}
+        <div style="display:flex;align-items:baseline;gap:6px;margin:8px 0 6px;"><span style="font-family:${hf};font-weight:800;font-size:32px;color:${th.text};">${kr(c.total)}</span><span style="font-weight:700;font-size:13px;color:${th.muted};">kr/kWh</span></div>
+        ${row('Spotpris inkl. moms',kr(c.spot)+' kr')}${row('Nettarif',kr(c.nettarif)+' kr')}${row('Energinet',kr(c.energinet)+' kr')}${row('Elafgift og tillæg',kr(c.elafgift+c.markup)+' kr')}
+        <div style="font-size:11px;color:${th.muted};margin-top:8px;">Klik på en time i diagrammet for at se dens pris.</div>`:`${lbl('PRISENS DELE')}<p style="font-size:13px;color:${th.muted};">Klik på en time i diagrammet.</p>`)}
+      ${card(`${lbl('DAGEN I TAL')}<div style="margin-top:8px;">${sT?row('Gennemsnit',kr(sT.avg)+' kr')+row('Billigste time',kr(sT.lo)+' kr')+row('Dyreste time',kr(sT.hi)+' kr')+row('Forskel',kr(sT.hi-sT.lo)+' kr'):''}
+        ${best?row('Bedste 3 timer i morgen',`kl. ${pad(best.from.h)}–${pad((best.to.h+1)%24)}`,true):row('I morgen','priser efter kl. 13',true)}</div>`)}
+      ${card(`${lbl('I MORGEN')}<div style="margin-top:8px;">${sM?row('Gennemsnit',kr(sM.avg)+' kr')+row('Billigste time',`kl. ${sM.loH} · ${kr(sM.lo)} kr`)+row('Dyreste time',`kl. ${sM.hiH} · ${kr(sM.hi)} kr`)
+        +(sT?row('Mod i dag',`${sM.avg<=sT.avg?'▼':'▲'} ${Math.abs(Math.round((sM.avg/sT.avg-1)*100))} %`,true):''):`<p style="font-size:13px;color:${th.muted};margin:6px 0 0;">Morgendagens priser kommer ved 13-tiden.</p>`}</div>`)}
+    </div>
+  </div>`;
+}
+// Tastatur på store skærme: 1-4 skifter fane, ← → flytter den valgte time på Nu.
+document.addEventListener('keydown',e=>{
+  if(!isLarge() || app.state.sheet || e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName||'')) return;
+  const n=['1','2','3','4'].indexOf(e.key);
+  if(n>=0){ setTab(TABS[n][0]); return; }
+  if(app.state.tab==='nu' && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
+    const V=app.lastV; if(!V) return;
+    const list=app.state.chartTab==='tomorrow'&&V.hasTmr?V.tmrList:V.todayList; if(!list.length) return;
+    const cur=app.state.selectedHour!=null?app.state.selectedHour:(app.state.chartTab==='tomorrow'?list[0].h:V.nowH);
+    const i=Math.max(0,Math.min(list.length-1,list.findIndex(x=>x.h===cur)+(e.key==='ArrowRight'?1:-1)));
+    e.preventDefault(); app.state.selectedHour=list[i].h; render();
+  }
+});
+LARGE_MQ.addEventListener('change',()=>render());
 function viewSoft(V){
   const th=THEMES.soft;
   const [btxt,bcol]=badgeFor(V,th);
@@ -1690,6 +1767,7 @@ function tabContent(){
   app.lastV=V;
   if(app.state.tab==='point') return pointView(V);
   if(app.state.tab==='mere')  return mereView();
+  if(isLarge()) return wideNu(V);
   // 'nu' (default) — pr. tema
   return app.state.theme==='bold'?viewBold(V):(app.state.theme==='play'?viewPlay(V):viewSoft(V));
 }
@@ -1966,7 +2044,7 @@ window.logClaim=logClaim;
 window.openSettings=openSettings;window.openPointInfo=openPointInfo;window.closeSettings=closeSettings;window.setTheme=setTheme;
 window.setRegion=setRegion;window.setChartTab=setChartTab;window.adjMarkup=adjMarkup;window.adjFastpris=adjFastpris;window.setDailyOn=setDailyOn;window.acceptNotifIntro=acceptNotifIntro;window.dismissNotifIntro=dismissNotifIntro;window.adjDailyHour=adjDailyHour;window.adjAp=adjAp;
 window.setDso=setDso;window.adjCustom=adjCustom;
-window.selectHour=selectHour;
+window.selectHour=selectHour;window.pickToday=pickToday;window.pickTomorrow=pickTomorrow;
 window.wizardNext=wizardNext; window.testEloverblik=testEloverblik;
 window.pickMeteringPoint=pickMeteringPoint; window.disconnectEloverblik=disconnectEloverblik;
 window.doRefresh=doRefresh;window.load=load;
