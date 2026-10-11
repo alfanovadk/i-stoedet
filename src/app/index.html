@@ -884,7 +884,7 @@ function computeView(){
   const nextCheap=nextCheapH>=0?pad(nextCheapH)+':00':(tmrMin?pad(tmrMin.h)+':00':'');
   const cheapUntil = nowTier===0?cheapEnd:nextCheap;
   // Full phrase incl. «kl.», e.g. «kl. 14:00» or «i morgen kl. 03:00».
-  const cheapWhen = nowTier===0||nextCheapH>=0 ? `kl. ${cheapUntil}` : (tmrMin?`i morgen kl. ${nextCheap}`:'i morgen');
+  const cheapWhen = nowTier===0||nextCheapH>=0 ? `kl.\u00a0${cheapUntil}` : (tmrMin?`i morgen kl.\u00a0${nextCheap}`:'i morgen');
 
   const pool=futurePool();
   const mkAp=(key,name,verb,len,kwh)=>{const w=bestWindow(pool,len);
@@ -1229,7 +1229,7 @@ function viewBold(V){
       ${claimBtn(th,ap.key,'8px')}
       <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#C6FF3D;">${ap.win}</div></div>
     </div>`).join('');
-  const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapWhen.replace('kl. ','')}`;
+  const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapWhen.replace('kl.\u00a0','')}`;
   return `<div class="pane">
     ${compactHeader(th,brand,regionPillFor(th,V,'bold')+gearBtn(th,'#131A22','10px'))}
     <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:22px;padding:16px 18px 15px;">
