@@ -1285,6 +1285,7 @@ function pointView(V){
   const g=loadGamify();
   const todayKwh=loadConsumption()[keyOf(nowDK())];
   const smart = (todayKwh && V.hasToday) ? smartScore(todayKwh, V.todayList.map(x=>x.total)) : V.score;
+  if(isLarge()) return widePoint(V,g,smart);
   const stat=(icon,val,lbl,col,icol)=>`<div style="flex:1;min-width:0;background:${th.surface};border:1px solid ${th.border};border-radius:16px;padding:13px 12px;display:flex;align-items:center;gap:9px;">
     <span style="font-size:22px;width:24px;text-align:center;">${fa(icon,icol||th.accent)}</span>
     <div style="min-width:0;"><div style="font-weight:800;font-size:20px;color:${th.text};line-height:1;">${val}</div><div style="font-size:10.5px;font-weight:700;letter-spacing:.04em;color:${col||th.muted};margin-top:3px;">${lbl}</div></div></div>`;
@@ -1306,6 +1307,72 @@ function pointView(V){
     <h3 style="font-weight:700;font-size:14px;color:${th.text};margin:16px 0 9px;">Badges</h3>
     <div style="display:flex;gap:8px;">${badge('moon','Natteravn',g.badges?.natteravn)}${badge('money-bill','Sparefugl',g.badges?.sparefugl)}${badge('star','30 dage',g.badges?.dage30)}${badge('wand-magic-sparkles','Sandsiger',g.badges?.sandsiger)}</div>
     ${claimsHTML(th)}
+  </div>`;
+}
+
+// Point på store skærme (mockup 4): nøgletal, dagens besparelse, badges med fremskridt,
+// kalender over dage med bekræftet flyttet forbrug, og de seneste markeringer.
+const AP_NAME={ bil:'Elbilen', opvask:'Opvask', vask:'Vasketøj' };
+function widePoint(V,g,smart){
+  const th=THEMES[app.state.theme], hf=HEAD_FONT[app.state.theme];
+  const claims=loadClaims(), confirmed=claims.filter(c=>c.status==='confirmed');
+  const today=startOfDay(nowDK()), weekAgo=addDays(today,-6);
+  const weekPts=confirmed.filter(c=>dateFromKey(c.dato)>=weekAgo).reduce((a,c)=>a+(+c.point||0),0);
+  const streak=g.streak||STREAK||0;
+  const card=(inner,extra='')=>`<div style="background:${th.sheetBg};color:${th.text};border:1px solid ${th.border};border-radius:20px;padding:18px 20px;min-width:0;${extra}">${inner}</div>`;
+  const lbl=t=>`<div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:${th.muted};">${t}</div>`;
+  const kpi=(t,v,sub)=>card(`${lbl(t)}<div style="font-family:${hf};font-weight:800;font-size:28px;margin-top:6px;font-variant-numeric:tabular-nums;">${v}</div><div style="font-size:12.5px;color:${th.muted};margin-top:2px;">${sub}</div>`);
+  // ISO week number
+  const th4=new Date(today.getFullYear(),today.getMonth(),today.getDate()+3-((today.getDay()+6)%7)), w1=new Date(th4.getFullYear(),0,4);
+  const week=1+Math.round(((th4-w1)/864e5-3+((w1.getDay()+6)%7))/7);
+  const head=`<div style="display:flex;align-items:center;gap:12px;margin:4px 0 14px;"><h2 style="margin:0;font-family:${hf};font-weight:800;font-size:22px;color:${th.text};">Point</h2>
+    <span style="margin-left:auto;font-size:12px;font-weight:800;letter-spacing:.06em;color:${th.muted};border:1px solid ${th.border};border-radius:99px;padding:5px 11px;">UGE ${week}</span></div>`;
+  const save=`<div style="display:flex;gap:20px;align-items:center;background:${th.accent};color:${th.accentText};border-radius:20px;padding:18px 22px;margin-top:14px;">
+    ${ellySVG(V.nowTier===0?'charge':'blink',64,th.accentText)}
+    <div style="min-width:0;"><div style="font-size:12px;font-weight:800;letter-spacing:.1em;opacity:.85;">SPAR I DAG</div>
+      <div style="font-family:${hf};font-weight:800;font-size:34px;line-height:1.05;margin-top:2px;">op til ${V.savedToday} kr</div>
+      <div style="font-size:14px;margin-top:4px;opacity:.92;line-height:1.4;">ved at flytte bil, vask og opvask til de billige timer.</div></div></div>`;
+  // badge progress mirrors badgeUpdates() in gamify.js
+  const night=confirmed.some(c=>c.startHour<6);
+  const badges=[['moon','Natteravn',night,night?'':'Flyt forbrug til før kl. 06'],
+    ['money-bill','Sparefugl',confirmed.length>=5,`${Math.min(confirmed.length,5)} af 5`],
+    ['star','30 dage',streak>=30,`${Math.min(streak,30)} af 30`],
+    ['wand-magic-sparkles','Sandsiger',confirmed.length>=10,`${Math.min(confirmed.length,10)} af 10`]];
+  const badge=([icon,name,got,prog])=>`<div style="text-align:center;background:${got?th.accentSoft:th.surface};border:1.5px ${got?'solid '+th.accent:'dashed '+th.border};border-radius:16px;padding:14px 8px;">
+    <div style="height:28px;display:flex;align-items:center;justify-content:center;">${fa(icon,got?th.accent:th.muted,24)}</div>
+    <div style="font-weight:800;font-size:13.5px;margin-top:6px;color:${th.text};">${name}</div>
+    <div style="font-size:12px;color:${th.muted};margin-top:2px;">${got?'Opnået':prog}</div></div>`;
+  // calendar: 5 weeks ending this week (Mon-Sun), shade = confirmed claims that day
+  const perDay={}; confirmed.forEach(c=>{ perDay[c.dato]=(perDay[c.dato]||0)+1; });
+  const lastSun=addDays(today,(7-today.getDay())%7), first=addDays(lastSun,-34);
+  const cells=Array.from({length:35},(_,i)=>{ const d=addDays(first,i), k=keyOf(d), n=perDay[k]||0, future=d>today;
+    const bg=n?th.pal[0]:th.surface, op=n===1?.45:(n===2?.7:1);
+    return `<i title="${d.getDate()}/${d.getMonth()+1}: ${n} bekræftet" style="display:block;aspect-ratio:1;border-radius:6px;background:${bg};${n?`opacity:${op};`:`border:1px solid ${th.border};`}${future?'visibility:hidden;':''}${k===keyOf(today)?`outline:2px solid ${th.accent};outline-offset:1px;`:''}"></i>`; }).join('');
+  const cal=`<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:12px;max-width:320px;">
+    ${['M','T','O','T','F','L','S'].map(d=>`<span style="text-align:center;font-size:11px;font-weight:700;color:${th.muted};">${d}</span>`).join('')}${cells}</div>
+    <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;color:${th.muted};"><span style="display:inline-flex;align-items:center;gap:6px;"><i style="display:block;width:11px;height:11px;border-radius:3px;border:1px solid ${th.border};background:${th.surface};"></i>Ingen</span><span style="display:inline-flex;align-items:center;gap:6px;"><i style="display:block;width:11px;height:11px;border-radius:3px;background:${th.pal[0]};"></i>Bekræftet flytning</span></div>`;
+  const status=c=>c.status==='confirmed'?[`bekræftet af Eloverblik`,`+${c.point||0}`,'point']:(c.status==='unconfirmed'?['ikke bekræftet','0','point']:['venter på forbrug','…','1–2 dage']);
+  const recent=[...claims].sort((a,b)=>dateFromKey(b.dato)-dateFromKey(a.dato)||b.startHour-a.startHour).slice(0,6);
+  const recentRows=recent.length?recent.map(c=>{ const [st,v,u]=status(c), d=dateFromKey(c.dato);
+    return `<div style="display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid ${th.border};">
+      <span style="width:26px;text-align:center;">${fa(APP_ICON[c.apparat]||'bolt',th.accent,20)}</span>
+      <div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:14.5px;">${AP_NAME[c.apparat]||c.apparat}</div>
+        <div style="font-size:12.5px;color:${th.muted};">${d.toLocaleDateString('da-DK',{weekday:'short',day:'numeric',month:'short'})} kl. ${pad(c.startHour)}–${pad(claimEndHour(c))} · ${st}</div></div>
+      <div style="text-align:right;"><div style="font-family:${hf};font-weight:800;font-size:17px;color:${c.status==='confirmed'?th.accent:th.muted};">${v}</div><div style="font-size:11.5px;color:${th.muted};">${u}</div></div></div>`; }).join('')
+    : `<p style="margin:10px 0 0;font-size:13.5px;line-height:1.5;color:${th.muted};">Ingen markeringer endnu. Tryk «Tænd nu» på Nu-skærmen, når du starter et apparat i en billig time.</p>`;
+  return `<div class="pane wide-nu">${head}
+    <div class="wn-bottom" style="margin-top:0;grid-template-columns:repeat(3,minmax(0,1fr));">
+      ${kpi('POINT',(g.totalPoint||0).toLocaleString('da-DK'),`+${weekPts} de sidste 7 dage`)}
+      ${kpi('DAGES STIME',streak,streak===1?'dag i træk':'dage i træk')}
+      ${kpi('SMART-SCORE',smart,'af 100')}
+    </div>
+    ${save}
+    <div class="wn-top" style="margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));">
+      ${card(`${lbl('BADGES')}<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;">${badges.map(badge).join('')}</div>`)}
+      ${card(`${lbl('DAGE DU FLYTTEDE FORBRUG')}${cal}`)}
+    </div>
+    ${card(`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;">${lbl('SENESTE')}
+      <button onclick="openPointInfo()" style="border:none;background:none;padding:0;font:inherit;font-weight:700;font-size:13px;color:${th.accent};cursor:pointer;">Sådan virker point →</button></div>${recentRows}`,'margin-top:14px;')}
   </div>`;
 }
 
