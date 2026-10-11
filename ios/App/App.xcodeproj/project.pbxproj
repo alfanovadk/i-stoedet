@@ -22,6 +22,7 @@
 		B4A1E5F32EA9D00100C0FFEE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */; };
 		B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */; };
 		B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */; };
+		B4A1E5F92EA9D00100C0FFEE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F82EA9D00100C0FFEE /* SceneDelegate.swift */; };
 		EE07BD50E8184C16D5455B41 /* IStoedetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -70,6 +71,7 @@
 		B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IStoedetPlugin.swift; sourceTree = "<group>"; };
 		B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		B4A1E5F82EA9D00100C0FFEE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		CA063540EA33EEFA17219A5E /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStore.swift; sourceTree = "<group>"; };
 		F0F199469FA5C7D5EEDEAB9B /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
@@ -123,6 +125,7 @@
 				B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */,
 				B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */,
 				B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */,
+				B4A1E5F82EA9D00100C0FFEE /* SceneDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -278,6 +281,7 @@
 				B4A1E5F32EA9D00100C0FFEE /* KeychainStore.swift in Sources */,
 				B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */,
 				B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */,
+				B4A1E5F92EA9D00100C0FFEE /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,7 +466,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -484,7 +488,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -511,7 +515,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -539,7 +543,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
