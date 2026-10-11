@@ -1532,7 +1532,7 @@ function profileBars(values, th, labels){
   const max=Math.max(...values,0.001);
   const bars=values.map((v,i)=>{
     const ht=Math.max(3,Math.round(v/max*100));
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+    return `<div style="flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;">
       <div title="${esc(labels[i])}: ${v.toFixed(2)} kWh" style="width:100%;height:${ht}%;background:${th.accent};border-radius:3px 3px 1px 1px;"></div>
     </div>`;
   }).join('');
@@ -1738,7 +1738,7 @@ function forbrugView(){
   const maxLabel = maxRow ? (agg==='Hour'?`kl ${maxRow.key}`:(agg==='Month'?MONTHS_DK[maxRow.date.getMonth()]:maxRow.date.toLocaleDateString('da-DK',{day:'numeric',month:'short'}))) : '—';
   const unitName = agg==='Hour'?'time':(agg==='Month'?'måned':'dag');
   const countLabel = agg==='Hour'?'Timer m. data':(agg==='Month'?'Mdr. m. data':'Dage m. data');
-  const stats=`<div style="display:flex;gap:8px;margin-top:16px;">
+  const stats=`<div style="display:flex;gap:8px;margin-top:${isLarge()?0:16}px;">
     ${statCard(th,'Total',`${total.toFixed(total<100?1:0)} kWh`)}
     ${statCard(th,'Snit/'+unitName,`${totals.avgPerDay.toFixed(totals.avgPerDay<10?2:1)} kWh`)}
   </div>
@@ -1811,6 +1811,18 @@ function forbrugView(){
   const showMore=app.state.showProfiles;
   const toggle=`<button onclick="toggleProfiles()" style="width:100%;margin-top:12px;padding:10px;border:1px solid ${th.border};background:${th.surface};color:${th.text};font:inherit;font-weight:700;font-size:13px;border-radius:13px;cursor:pointer;">${showMore?'Skjul detaljer ▲':'Sammenlign & profiler ▼'}</button>`;
   const more = showMore ? `${custom}${yoy}${profiles}${klima}${csvBtn}` : '';
+  const chartCard=mt=>`<div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:14px 16px;margin-top:${mt}px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-weight:800;font-size:14px;color:${th.text};">Forbrug</span>
+        <span style="font-weight:800;font-size:16px;color:${th.accent};">${total.toFixed(total<100?1:0)} kWh</span></div>
+      ${graph}${axisLbl}${legendRow}
+    </div>`;
+  // Store skærme: alt på én gang i to kolonner, ingen «Sammenlign & profiler»-fold.
+  if(isLarge()) return `<div class="pane wide-nu">${head}
+    <div style="display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap;"><div style="flex:1 1 360px;max-width:480px;">${picker}</div><div style="flex:1 1 260px;margin-top:-14px;">${nav}</div></div>
+    ${a.periodeType==='custom'?'':custom}${staleNote}
+    <div class="wn-top" style="margin-top:14px;align-items:start;"><div>${chartCard(0)}${profiles}</div><div>${stats}${yoy}${klima}</div></div>
+    ${csvBtn}</div>`;
   return `<div class="pane">${head}
     ${picker}${nav}${staleNote}
     <div style="background:${th.surface};border:1px solid ${th.border};border-radius:20px;padding:14px 16px;margin-top:14px;">
