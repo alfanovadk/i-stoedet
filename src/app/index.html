@@ -879,8 +879,12 @@ function computeView(){
   const now=nowDK();
   const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,peak,cheapEndH,nextCheapH,dayAvg,score,mood,look}=viewCore(app.raw,cfg(),now);
   const cheapEnd=pad(Math.min(cheapEndH,24))+':00';
-  const nextCheap=nextCheapH>=0?pad(nextCheapH)+':00':'i morgen';
+  // No cheap hour left today: point to tomorrow's cheapest hour when its prices are out.
+  const tmrMin=tmrList.reduce((m,x)=>!m||x.total<m.total?x:m,null);
+  const nextCheap=nextCheapH>=0?pad(nextCheapH)+':00':(tmrMin?pad(tmrMin.h)+':00':'');
   const cheapUntil = nowTier===0?cheapEnd:nextCheap;
+  // Full phrase incl. «kl.», e.g. «kl. 14:00» or «i morgen kl. 03:00».
+  const cheapWhen = nowTier===0||nextCheapH>=0 ? `kl. ${cheapUntil}` : (tmrMin?`i morgen kl. ${nextCheap}`:'i morgen');
 
   const pool=futurePool();
   const mkAp=(key,name,verb,len,kwh)=>{const w=bestWindow(pool,len);
@@ -894,7 +898,7 @@ function computeView(){
   const savedToday=Math.round(appliances.reduce((a,b)=>a+(+b.save),0));
 
   const showToday=app.state.chartTab==='today';
-  return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapEnd,nextCheap,
+  return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapWhen,cheapEnd,nextCheap,
     appliances,savedToday,score,streak:STREAK,elly:{mood,look},
     todayList,tmrList,hasToday,hasTmr,
     chartList:showToday?todayList:tmrList,chartNowH:showToday?nowH:-1,
@@ -1033,9 +1037,9 @@ function regionPillFor(th,V,style){
   return `<span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:${th.text};background:${bg};padding:5px 10px;border-radius:99px;">${V.regionLabel}</span>`;
 }
 function nowCopy(V){
-  if(V.nowTier===0)return `Billig indtil <strong>kl. ${V.cheapUntil}</strong> — kør endelig de store apparater nu.`;
-  if(V.nowTier===1)return `Middelpris nu. Billigst igen <strong>kl. ${V.cheapUntil}</strong>.`;
-  return `Dyrt lige nu — vent til <strong>kl. ${V.cheapUntil}</strong> med bil, vask og opvask.`;
+  if(V.nowTier===0)return `Billig indtil <strong>${V.cheapWhen}</strong> — kør endelig de store apparater nu.`;
+  if(V.nowTier===1)return `Middelpris nu. Billigst igen <strong>${V.cheapWhen}</strong>.`;
+  return `Dyrt lige nu — vent til <strong>${V.cheapWhen}</strong> med bil, vask og opvask.`;
 }
 function badgeFor(V,th){return [['● BILLIG LIGE NU',th.pal[0]],['○ MIDDEL PRIS',th.pal[1]],['▲ DYR LIGE NU',th.pal[2]]][V.nowTier];}
 
@@ -1225,7 +1229,7 @@ function viewBold(V){
       ${claimBtn(th,ap.key,'8px')}
       <div style="text-align:right;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#C6FF3D;">${ap.win}</div></div>
     </div>`).join('');
-  const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapUntil}`;
+  const cheapTag=V.nowTier===0?`↓ til ${V.cheapEnd}`:`billigst ${V.cheapWhen.replace('kl. ','')}`;
   return `<div class="pane">
     ${compactHeader(th,brand,regionPillFor(th,V,'bold')+gearBtn(th,'#131A22','10px'))}
     <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:22px;padding:16px 18px 15px;">
@@ -1266,7 +1270,7 @@ function viewPlay(V){
       <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
         ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${ellySVG(ellyState(V),52,'#2a2140',V.elly)}</div>`:''}
       </div>
-      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#1b7b57;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst kl. '+V.cheapUntil+''}</p>
+      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#1b7b57;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst '+V.cheapWhen+''}</p>
       ${detailHTML(V,th)}
     </div>
     <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;margin:14px 0 9px;">Dagens opgaver ${fa('clipboard-check','#2a2140',15)}</h3>
