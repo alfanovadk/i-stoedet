@@ -6,7 +6,8 @@ import WidgetKit
 ///  - keychainGet / keychainSet / keychainRemove keep the Eloverblik refresh
 ///    token in the Keychain instead of the web view's localStorage.
 ///  - setWidgetData hands the latest prices to the home-screen widget through
-///    the shared App Group and asks WidgetKit to refresh.
+///    the shared App Group, asks WidgetKit to refresh, and passes them on to the
+///    watch app (WatchBridge).
 /// Registered in MainViewController.capacitorDidLoad().
 @objc(IStoedetPlugin)
 public class IStoedetPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -56,6 +57,7 @@ public class IStoedetPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let json = call.getString("json") else { call.reject("json mangler"); return }
         UserDefaults(suiteName: IStoedetPlugin.appGroup)?.set(json, forKey: IStoedetPlugin.widgetKey)
         WidgetCenter.shared.reloadAllTimelines()
+        WatchBridge.shared.send(json)
         call.resolve()
     }
 }

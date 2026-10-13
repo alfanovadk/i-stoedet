@@ -7,9 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0749325192E016ADF49D8D3E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3071F571FEB2ED91C97AA6DF /* Foundation.framework */; };
+		0A129102F518454ED955B130 /* WatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91515735A2E4B045AC455663 /* WatchStore.swift */; };
 		0DE0055A4E357E16E52A7E8A /* PriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */; };
+		102AA96833F8721DEB1636EF /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3071F571FEB2ED91C97AA6DF /* Foundation.framework */; };
+		12855B9F9A64C3F4A2751A62 /* IStoedetWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E19CA343C8805E6969B62A80 /* IStoedetWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1D518AD2D58A0B910CBA6051 /* Complications.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3D2F728061574D01A9AB79 /* Complications.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		49643AE909CF397318FEAE7C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2209357ABE6EE1E17869C886 /* Foundation.framework */; };
+		4A92D751489B12B7606EEAC8 /* PriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -17,16 +23,37 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		86DFF25142166545B8F52A91 /* WatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B9F863A05D0E5DB03D6A02 /* WatchBridge.swift */; };
+		97253E1830791753457FF4BA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF6354A402D6E613520E5965 /* Assets.xcassets */; };
+		9770210D7136A8165BA83F85 /* PriceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */; };
+		A4F3EC5971F9D1F1A7350997 /* IStoedetWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 63DFDDB9BA8E002ECADDB575 /* IStoedetWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A6A07AA1C653DE48673D3A1E /* IStoedetWatchWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02370E427974999E70BB344 /* IStoedetWatchWidget.swift */; };
 		A8D3A1A7CBDA36FF6F4E3DF4 /* IStoedetWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B94EDF38C2667C0EF9FF489 /* IStoedetWidget.swift */; };
+		AD052817782204313A8D0862 /* IStoedetWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1DC26B6FA36364B425FBC36 /* IStoedetWatchApp.swift */; };
 		B4A1E5F12EA9D00100C0FFEE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B4A1E5F02EA9D00100C0FFEE /* PrivacyInfo.xcprivacy */; };
 		B4A1E5F32EA9D00100C0FFEE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */; };
 		B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */; };
 		B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */; };
 		B4A1E5F92EA9D00100C0FFEE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A1E5F82EA9D00100C0FFEE /* SceneDelegate.swift */; };
+		D0285CEB2D122EB7634BB8F8 /* Complications.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB3D2F728061574D01A9AB79 /* Complications.swift */; };
 		EE07BD50E8184C16D5455B41 /* IStoedetWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		04E98D11291C04A64E2C3906 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CF44A2AE671F1DC8F025CCE9;
+			remoteInfo = IStoedetWatchWidget;
+		};
+		1FBD4926F24E32DB06CD9ACD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7CD184670EE5BC15521DB28E;
+			remoteInfo = IStoedetWatch;
+		};
 		D06A8C349428A28B3B83E7B2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -37,6 +64,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		11BE03C24359121992E8ADDC /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				12855B9F9A64C3F4A2751A62 /* IStoedetWatchWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A51260B4FE4AD302CE788474 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -48,13 +86,27 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1E16BE1DEFEA9D53587752A /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				A4F3EC5971F9D1F1A7350997 /* IStoedetWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0712219A1DC478E2370CCBEE /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		165A69F7561CF5D06A4A38EA /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2209357ABE6EE1E17869C886 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IStoedetWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		3071F571FEB2ED91C97AA6DF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		324E3C8192E304E9CAC8A603 /* IStoedetWatchWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = IStoedetWatchWidget.entitlements; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -63,17 +115,27 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		62B9F863A05D0E5DB03D6A02 /* WatchBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchBridge.swift; sourceTree = "<group>"; };
+		63DFDDB9BA8E002ECADDB575 /* IStoedetWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IStoedetWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8330C7423E1817A96263030B /* PriceStoreCheck.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStoreCheck.swift; sourceTree = "<group>"; };
 		8B94EDF38C2667C0EF9FF489 /* IStoedetWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IStoedetWidget.swift; sourceTree = "<group>"; };
+		91515735A2E4B045AC455663 /* WatchStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchStore.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		95ACA7C7F30E39D4A5DCE50C /* IStoedetWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = IStoedetWidget.entitlements; sourceTree = "<group>"; };
+		A1DC26B6FA36364B425FBC36 /* IStoedetWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IStoedetWatchApp.swift; sourceTree = "<group>"; };
+		AA24E5ACC00E30C117950D1F /* IStoedetWatch.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = IStoedetWatch.entitlements; sourceTree = "<group>"; };
+		AF6354A402D6E613520E5965 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B4A1E5F02EA9D00100C0FFEE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B4A1E5F22EA9D00100C0FFEE /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		B4A1E5F42EA9D00100C0FFEE /* IStoedetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IStoedetPlugin.swift; sourceTree = "<group>"; };
 		B4A1E5F62EA9D00100C0FFEE /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		B4A1E5F82EA9D00100C0FFEE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		CA063540EA33EEFA17219A5E /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		D02370E427974999E70BB344 /* IStoedetWatchWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IStoedetWatchWidget.swift; sourceTree = "<group>"; };
 		D8D69B7A8C57CC70CB7E69CE /* PriceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PriceStore.swift; sourceTree = "<group>"; };
+		E19CA343C8805E6969B62A80 /* IStoedetWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IStoedetWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E53DD7A11C1B6D886FD0574D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EB3D2F728061574D01A9AB79 /* Complications.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Complications.swift; sourceTree = "<group>"; };
 		F0F199469FA5C7D5EEDEAB9B /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -86,6 +148,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		34D5076D1DA19C307B257113 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0749325192E016ADF49D8D3E /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -94,9 +164,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0F02DE9A0FF22D21901720D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				102AA96833F8721DEB1636EF /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1C0548177E208B4559500564 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				3071F571FEB2ED91C97AA6DF /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
+		274485DD4B5E5FD9942595C3 /* IStoedetWatch */ = {
+			isa = PBXGroup;
+			children = (
+				A1DC26B6FA36364B425FBC36 /* IStoedetWatchApp.swift */,
+				91515735A2E4B045AC455663 /* WatchStore.swift */,
+				AF6354A402D6E613520E5965 /* Assets.xcassets */,
+				E53DD7A11C1B6D886FD0574D /* Info.plist */,
+				AA24E5ACC00E30C117950D1F /* IStoedetWatch.entitlements */,
+			);
+			name = IStoedetWatch;
+			path = IStoedetWatch;
+			sourceTree = "<group>";
+		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
@@ -105,6 +204,8 @@
 				504EC3051FED79650016851F /* Products */,
 				5CE8EB1E5EF97E1B413C4EFC /* Frameworks */,
 				6C229CAE67C4F33B29A13A2E /* IStoedetWidget */,
+				274485DD4B5E5FD9942595C3 /* IStoedetWatch */,
+				763EE06A2A3D03D3DAE12158 /* IStoedetWatchWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -113,6 +214,8 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */,
+				63DFDDB9BA8E002ECADDB575 /* IStoedetWatch.app */,
+				E19CA343C8805E6969B62A80 /* IStoedetWatchWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,6 +237,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				F0F199469FA5C7D5EEDEAB9B /* App.entitlements */,
+				62B9F863A05D0E5DB03D6A02 /* WatchBridge.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -142,6 +246,7 @@
 			isa = PBXGroup;
 			children = (
 				BF0F4F4F1DAEF56F8590202E /* iOS */,
+				1C0548177E208B4559500564 /* watchOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -157,6 +262,18 @@
 				8330C7423E1817A96263030B /* PriceStoreCheck.swift */,
 			);
 			path = IStoedetWidget;
+			sourceTree = "<group>";
+		};
+		763EE06A2A3D03D3DAE12158 /* IStoedetWatchWidget */ = {
+			isa = PBXGroup;
+			children = (
+				D02370E427974999E70BB344 /* IStoedetWatchWidget.swift */,
+				EB3D2F728061574D01A9AB79 /* Complications.swift */,
+				165A69F7561CF5D06A4A38EA /* Info.plist */,
+				324E3C8192E304E9CAC8A603 /* IStoedetWatchWidget.entitlements */,
+			);
+			name = IStoedetWatchWidget;
+			path = IStoedetWatchWidget;
 			sourceTree = "<group>";
 		};
 		BF0F4F4F1DAEF56F8590202E /* iOS */ = {
@@ -178,11 +295,13 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				A51260B4FE4AD302CE788474 /* Embed Foundation Extensions */,
+				C1E16BE1DEFEA9D53587752A /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				429F1E206A465B3E10D73E08 /* PBXTargetDependency */,
+				707DFB7BA9F6EEE80D9C4C1B /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -190,6 +309,25 @@
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7CD184670EE5BC15521DB28E /* IStoedetWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 616C92442C0700DE46498529 /* Build configuration list for PBXNativeTarget "IStoedetWatch" */;
+			buildPhases = (
+				D26D05A47963CE189DDBCA62 /* Sources */,
+				34D5076D1DA19C307B257113 /* Frameworks */,
+				4178A4AB65AA5217C7DB1893 /* Resources */,
+				11BE03C24359121992E8ADDC /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6094D36235390FD7BA91E60A /* PBXTargetDependency */,
+			);
+			name = IStoedetWatch;
+			productName = IStoedetWatch;
+			productReference = 63DFDDB9BA8E002ECADDB575 /* IStoedetWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */ = {
@@ -207,6 +345,23 @@
 			name = IStoedetWidget;
 			productName = IStoedetWidget;
 			productReference = 2B859655BC6B0AFDB272E166 /* IStoedetWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		CF44A2AE671F1DC8F025CCE9 /* IStoedetWatchWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1ED5618B3ACDF02576D2277 /* Build configuration list for PBXNativeTarget "IStoedetWatchWidget" */;
+			buildPhases = (
+				F46A512608A19B365AC983A9 /* Sources */,
+				C0F02DE9A0FF22D21901720D /* Frameworks */,
+				DD43908D76E7FB72D8BB3860 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = IStoedetWatchWidget;
+			productName = IStoedetWatchWidget;
+			productReference = E19CA343C8805E6969B62A80 /* IStoedetWatchWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -244,6 +399,8 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */,
+				7CD184670EE5BC15521DB28E /* IStoedetWatch */,
+				CF44A2AE671F1DC8F025CCE9 /* IStoedetWatchWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -253,6 +410,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4178A4AB65AA5217C7DB1893 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				97253E1830791753457FF4BA /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +435,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD43908D76E7FB72D8BB3860 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -282,6 +454,7 @@
 				B4A1E5F52EA9D00100C0FFEE /* IStoedetPlugin.swift in Sources */,
 				B4A1E5F72EA9D00100C0FFEE /* MainViewController.swift in Sources */,
 				B4A1E5F92EA9D00100C0FFEE /* SceneDelegate.swift in Sources */,
+				86DFF25142166545B8F52A91 /* WatchBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,6 +467,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D26D05A47963CE189DDBCA62 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AD052817782204313A8D0862 /* IStoedetWatchApp.swift in Sources */,
+				0A129102F518454ED955B130 /* WatchStore.swift in Sources */,
+				1D518AD2D58A0B910CBA6051 /* Complications.swift in Sources */,
+				9770210D7136A8165BA83F85 /* PriceStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F46A512608A19B365AC983A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6A07AA1C653DE48673D3A1E /* IStoedetWatchWidget.swift in Sources */,
+				D0285CEB2D122EB7634BB8F8 /* Complications.swift in Sources */,
+				4A92D751489B12B7606EEAC8 /* PriceStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -302,6 +496,18 @@
 			name = IStoedetWidget;
 			target = CAB36D6BDD7E07B0EBA53ABB /* IStoedetWidget */;
 			targetProxy = D06A8C349428A28B3B83E7B2 /* PBXContainerItemProxy */;
+		};
+		6094D36235390FD7BA91E60A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = IStoedetWatchWidget;
+			target = CF44A2AE671F1DC8F025CCE9 /* IStoedetWatchWidget */;
+			targetProxy = 04E98D11291C04A64E2C3906 /* PBXContainerItemProxy */;
+		};
+		707DFB7BA9F6EEE80D9C4C1B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = IStoedetWatch;
+			target = 7CD184670EE5BC15521DB28E /* IStoedetWatch */;
+			targetProxy = 1FBD4926F24E32DB06CD9ACD /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -325,6 +531,34 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		1760D4723F9371B62FEAEB92 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IStoedetWatchWidget/IStoedetWatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		504EC3141FED79650016851F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
@@ -520,6 +754,98 @@
 			};
 			name = Release;
 		};
+		9A3F513E00819E8BAC8B635F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IStoedetWatch/IStoedetWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = dk.alfanova.istoedet;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		A55E665A43BDC4B9431F796F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = IStoedetWatchWidget/IStoedetWatchWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		DD662E28A4A5EE7AC5A7FDF1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IStoedetWatch/IStoedetWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 7HP79DYM29;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IStoedetWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "I stødet";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = dk.alfanova.istoedet;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dk.alfanova.istoedet.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		E4C998DD06A64E2385DBB910 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -564,6 +890,24 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		616C92442C0700DE46498529 /* Build configuration list for PBXNativeTarget "IStoedetWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD662E28A4A5EE7AC5A7FDF1 /* Release */,
+				9A3F513E00819E8BAC8B635F /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1ED5618B3ACDF02576D2277 /* Build configuration list for PBXNativeTarget "IStoedetWatchWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1760D4723F9371B62FEAEB92 /* Release */,
+				A55E665A43BDC4B9431F796F /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

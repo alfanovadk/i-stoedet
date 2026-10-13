@@ -44,6 +44,14 @@ enum PriceStoreCheck {
         let decoded = try? JSONDecoder().decode(WidgetData.self, from: Data(json.utf8))
         check(decoded?.hours.first?.p == 95.4 && decoded?.cheapFrom == nil, "decodes the JSON the app writes")
 
+        check(PriceStore.decode(json)?.hours.count == 1, "decode helper reads the same JSON")
+
+        check([99.9, 100, 224.9, 225].map(PriceStore.level) == [0, 1, 1, 2], "fixed scale matches PRICE_LEVELS in pricing.js")
+        check(PriceStore.goTier(0, 2) == 1 && PriceStore.goTier(2, 0) == 1 && PriceStore.goTier(0, 0) == 0, "goTier matches pricing.js")
+        check(e.first?.level == 1 && e.dropFirst().first?.level == 2, "entries carry the fixed level")
+        check(e.first?.bars.count == 4 && e.first?.bars.first?.price == 150, "bars start at the current hour")
+        check(e.last?.bars.count == 1, "bars shrink towards the end of the data")
+
         print(failures == 0 ? "PriceStore: all checks passed" : "PriceStore: \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

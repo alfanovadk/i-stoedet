@@ -8,7 +8,7 @@ import SwiftUI
 
 struct PriceProvider: TimelineProvider {
     func placeholder(in context: Context) -> PriceEntry {
-        PriceEntry(date: Date(), price: 95, tier: 0, cheapFrom: nil, cheapTo: nil, area: "DK1")
+        PriceEntry(date: Date(), price: 95, tier: 0, level: 0, cheapFrom: nil, cheapTo: nil, area: "DK1")
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PriceEntry) -> Void) {
@@ -34,7 +34,8 @@ struct PriceWidgetView: View {
         Color(red: 0xF5 / 255, green: 0xB8 / 255, blue: 0x41 / 255),
         Color(red: 0xE5 / 255, green: 0x60 / 255, blue: 0x4D / 255)
     ]
-    private static let tierLabels = ["Billig lige nu", "Middel lige nu", "Dyr lige nu"]
+    private static let tierLabels = ["Billigt i dag", "Middel i dag", "Dyrt i dag"]
+    private static let levelLabels = ["lav pris", "normal pris", "høj pris"]
 
     private static let hourFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -58,9 +59,10 @@ struct PriceWidgetView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Circle().fill(Self.tierColors[entry.tier]).frame(width: 8, height: 8)
-                Text(entry.price == nil ? "I stødet" : Self.tierLabels[entry.tier])
+                Circle().fill(Self.tierColors[entry.go]).frame(width: 8, height: 8)
+                Text(entry.price == nil ? "I stødet" : "\(Self.tierLabels[entry.tier]) · \(Self.levelLabels[entry.level])")
                     .font(.caption2.weight(.bold))
+                    .lineLimit(1).minimumScaleFactor(0.8)
                     .foregroundColor(Self.ink.opacity(0.7))
             }
             Spacer(minLength: 0)
