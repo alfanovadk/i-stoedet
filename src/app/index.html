@@ -195,7 +195,7 @@
 import {
   DSO_TARIFFS, parseDK, totalOf, tierOf, loHi, bestWindow, seriesForDay, tierClass, componentsOf, regionFor, nowDK,
   datahubURL, liveFromDatahub, pickPrices, validRecords, validLive, liveSource
-} from './pricing.js?v=13';
+} from './pricing.js?v=14';
 import { getAccessToken, getMeteringPoints, getTimeSeries, parseTimeSeries, parseBuckets } from './eloverblik.js?v=7';
 import { verifyClaim, pointsFor, smartScore, badgeUpdates, claimActiveAt, claimEndHour } from './gamify.js?v=7';
 import {
@@ -203,7 +203,7 @@ import {
 } from './forbrug-analyse.js?v=8';
 import { fetchCO2, dailyAvgCO2, EDS } from './co2.js?v=8';
 import { ellySVG } from './elly.js?v=3';
-import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=3';
+import { futurePool as poolFrom, viewCore, keyOf, widgetPayload } from './view.js?v=4';
 import { planDaily, DAILY_IDS } from './notifications.js?v=1';
 import { historyKeys, historyRows, historyStats, pruneHistory } from './history.js?v=1';
 
@@ -271,7 +271,7 @@ const THEMES={
 };
 
 /* Elly-mascot state machine — stateClass styres af CSS (se <style>), markup fra volt-animationer.html */
-function ellyState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'cheer'; return app.loading ? 'charge' : tierClass(V.nowTier); }
+function ellyState(V){ if(app.cheerUntil && Date.now()<app.cheerUntil) return 'cheer'; return app.loading ? 'charge' : tierClass(V.goTier); }
 
 /* ===================== APP STATE ===================== */
 const app={
@@ -877,7 +877,7 @@ function claimBtn(th, apKey, radius){
 
 function computeView(){
   const now=nowDK();
-  const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,peak,cheapEndH,nextCheapH,dayAvg,score,mood,look}=viewCore(app.raw,cfg(),now);
+  const {nowH,todayList,tmrList,hasToday,hasTmr,loT,nowTotal,nowTier,nowLevel,goTier,peak,cheapEndH,nextCheapH,dayAvg,score,mood,look}=viewCore(app.raw,cfg(),now);
   const cheapEnd=pad(Math.min(cheapEndH,24))+':00';
   // No cheap hour left today: point to tomorrow's cheapest hour when its prices are out.
   const tmrMin=tmrList.reduce((m,x)=>!m||x.total<m.total?x:m,null);
@@ -898,7 +898,7 @@ function computeView(){
   const savedToday=Math.round(appliances.reduce((a,b)=>a+(+b.save),0));
 
   const showToday=app.state.chartTab==='today';
-  return {now,nowH,nowTotal,nowTier,peak,cheapUntil,cheapWhen,cheapEnd,nextCheap,
+  return {now,nowH,nowTotal,nowTier,nowLevel,goTier,peak,cheapUntil,cheapWhen,cheapEnd,nextCheap,
     appliances,savedToday,score,streak:STREAK,elly:{mood,look},
     todayList,tmrList,hasToday,hasTmr,
     chartList:showToday?todayList:tmrList,chartNowH:showToday?nowH:-1,
@@ -1036,12 +1036,22 @@ function regionPillFor(th,V,style){
   const bg=app.state.theme==='play'?'#EDE7FB':'#DDEFE6';
   return `<span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:${th.text};background:${bg};padding:5px 10px;border-radius:99px;">${V.regionLabel}</span>`;
 }
+// Two separate questions: where the hour sits in today's prices (nowTier) and
+// whether the price itself is low or high (nowLevel, fixed scale in pricing.js).
 function nowCopy(V){
-  if(V.nowTier===0)return `Billig indtil <strong>${V.cheapWhen}</strong> — kør endelig de store apparater nu.`;
-  if(V.nowTier===1)return `Middelpris nu. Billigst igen <strong>${V.cheapWhen}</strong>.`;
-  return `Dyrt lige nu — vent til <strong>${V.cheapWhen}</strong> med bil, vask og opvask.`;
+  const w=`<strong>${V.cheapWhen}</strong>`, L=V.nowLevel;
+  if(V.nowTier===0)return L===2?`Dagens billigste timer, men prisen er høj. Kør kun det, der ikke kan vente.`
+    :`Billig indtil ${w} — kør endelig de store apparater nu.`;
+  if(V.nowTier===1)return L===0?`Lav pris nu, selvom det bliver billigere ${w}.`
+    :`${L===2?'Høj':'Middel'}pris nu. Billigst igen ${w}.`;
+  return L===0?`Dyrere end resten af dagen, men stadig en lav pris. Billigst ${w}.`
+    :`Dyrt lige nu — vent til ${w} med bil, vask og opvask.`;
 }
-function badgeFor(V,th){return [['● BILLIG LIGE NU',th.pal[0]],['○ MIDDEL PRIS',th.pal[1]],['▲ DYR LIGE NU',th.pal[2]]][V.nowTier];}
+function badgeFor(V,th){return [['● BILLIGT I DAG',th.pal[0]],['○ MIDDEL I DAG',th.pal[1]],['▲ DYRT I DAG',th.pal[2]]][V.nowTier];}
+const LEVEL_WORD=['LAV PRIS','NORMAL PRIS','HØJ PRIS'];
+function levelChip(V,th,bg,fg){
+  return `<span style="display:inline-flex;align-items:center;gap:6px;background:${bg};color:${fg};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;white-space:nowrap;"><span style="color:${th.pal[V.nowLevel]};">●</span>${LEVEL_WORD[V.nowLevel]}</span>`;
+}
 
 // Diskret teaser under apparat-overskriften — forklarer point + link til «Sådan virker det»-modal.
 function pointTeaser(th){
@@ -1088,7 +1098,7 @@ function wideNu(V){
     ${compactHeader(th,brandFor(th),regionPillFor(th,V,app.state.theme==='bold'?'bold':undefined)+gearBtn(th,th.sheetBg,app.state.theme==='bold'?'10px':'50%'))}
     <div class="wn-top">
       ${card(`<div style="display:flex;align-items:center;gap:14px;"><div style="flex:1;min-width:0;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:${th.accentSoft};color:${th.text};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"><div style="display:inline-flex;align-items:center;gap:6px;background:${th.accentSoft};color:${th.text};font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>${levelChip(V,th,th.accentSoft,th.text)}</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:10px;"><span style="font-family:${hf};font-weight:800;font-size:48px;line-height:.9;color:${th.text};">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:${th.muted};">kr/kWh</span></div>
         <p style="margin:10px 0 0;font-size:13px;line-height:1.5;color:${th.muted};">${nowCopy(V)}</p></div>
         ${ellySVG(ellyState(V),96,ink,V.elly)}</div>`)}
@@ -1202,7 +1212,7 @@ function viewSoft(V){
     ${compactHeader(th,brand,regionPillFor(th,V)+gearBtn(th,'#fff','50%'))}
     <div style="background:#fff;border:1px solid #e3ede8;border-radius:22px;padding:16px;display:flex;gap:6px;align-items:center;box-shadow:0 8px 24px -16px rgba(17,53,43,.4);">
       <div style="flex:1;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:#11352b;font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;"><div style="display:inline-flex;align-items:center;gap:6px;background:#E3F7EC;color:#11352b;font-weight:800;font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:99px;"><span style="color:${bcol};">${btxt[0]}</span>${btxt.slice(1)}</div>${levelChip(V,th,'#E3F7EC','#11352b')}</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-top:8px;"><span style="font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;line-height:.9;color:#11352b;">${V.nowKr}</span><span style="font-weight:700;font-size:14px;color:#62736b;">kr/kWh</span></div>
         <p style="margin:8px 0 0;font-size:12.5px;line-height:1.45;color:#46554d;">${nowCopy(V)}</p>
       </div>${ellySVG(ellyState(V),66,'#11352b',V.elly)}
@@ -1234,7 +1244,7 @@ function viewBold(V){
     ${compactHeader(th,brand,regionPillFor(th,V,'bold')+gearBtn(th,'#131A22','10px'))}
     <div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 80% 0%, #1c2a16 0%, #0f1620 55%);border:1px solid #25313c;border-radius:22px;padding:16px 18px 15px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:12px;color:#C6FF3D;letter-spacing:.1em;">${V.nowTier===0?'BILLIGT NU':(V.nowTier===1?'MIDDEL NU':'DYRT NU')}</span>
+        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:12px;color:#C6FF3D;letter-spacing:.1em;">${['BILLIGT','MIDDEL','DYRT'][V.nowTier]} I DAG · ${LEVEL_WORD[V.nowLevel]}</span>
         ${ellySVG(ellyState(V),40,'#0C1117',V.elly)}
       </div>
       <div style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:60px;line-height:.82;color:#EAF2E9;margin:10px 0 0;letter-spacing:-.04em;">${V.nowKr}</div>
@@ -1270,7 +1280,7 @@ function viewPlay(V){
       <div style="position:relative;">${ringHTML(V.chartList,th,V.chartNowH)}
         ${V.chartList.length?`<div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);">${ellySVG(ellyState(V),52,'#2a2140',V.elly)}</div>`:''}
       </div>
-      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">Elly siger: ${V.nowTier===0?'<strong style="color:#1b7b57;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd+'':'<strong style="color:#FF5470;">vent lidt</strong> — billigst '+V.cheapWhen+''}</p>
+      <p style="text-align:center;font-size:12px;color:#6b6480;margin:4px 0 10px;line-height:1.4;">${levelChip(V,th,'#F3EEFC','#2a2140')}<br><span style="display:inline-block;margin-top:6px;">Elly siger: ${V.goTier===0?'<strong style="color:#1b7b57;">tænd nu!</strong> Billigt til kl. '+V.cheapEnd:(V.nowTier===0?'<strong style="color:#b54708;">dyr dag</strong> — billigst nu, men kun det der ikke kan vente':'<strong style="color:#FF5470;">vent lidt</strong> — billigst '+V.cheapWhen)}</span></p>
       ${detailHTML(V,th)}
     </div>
     <h3 style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#2a2140;margin:14px 0 9px;">Dagens opgaver ${fa('clipboard-check','#2a2140',15)}</h3>
@@ -1332,7 +1342,7 @@ function widePoint(V,g,smart){
   const head=`<div style="display:flex;align-items:center;gap:12px;margin:4px 0 14px;"><h2 style="margin:0;font-family:${hf};font-weight:800;font-size:22px;color:${th.text};">Point</h2>
     <span style="margin-left:auto;font-size:12px;font-weight:800;letter-spacing:.06em;color:${th.muted};border:1px solid ${th.border};border-radius:99px;padding:5px 11px;">UGE ${week}</span></div>`;
   const save=`<div style="display:flex;gap:20px;align-items:center;background:${th.accent};color:${th.accentText};border-radius:20px;padding:18px 22px;margin-top:14px;">
-    ${ellySVG(V.nowTier===0?'charge':'blink',64,th.accentText)}
+    ${ellySVG(V.goTier===0?'charge':'blink',64,th.accentText)}
     <div style="min-width:0;"><div style="font-size:12px;font-weight:800;letter-spacing:.1em;opacity:.85;">SPAR I DAG</div>
       <div style="font-family:${hf};font-weight:800;font-size:34px;line-height:1.05;margin-top:2px;">op til ${V.savedToday} kr</div>
       <div style="font-size:14px;margin-top:4px;opacity:.92;line-height:1.4;">ved at flytte bil, vask og opvask til de billige timer.</div></div></div>`;

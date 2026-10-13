@@ -92,3 +92,14 @@ test('widgetPayload: kommende timer i rigtig tid + billigste 3-timers vindue', (
 test('widgetPayload: uden data er der ingen timer og intet vindue', () => {
   assert.deepEqual(widgetPayload([], CFG, at(14), 'DK2', 1), { updated: 1, area: 'DK2', hours: [], cheapFrom: null, cheapTo: null });
 });
+
+test('viewCore: prisniveau følger den faste skala, ikke dagens spænd', () => {
+  assert.equal(viewCore(TODAY, CFG, at(3)).nowLevel, 0);
+  // Dyr dag: nattens time er dagens billigste, men over 2,25 kr.
+  const DEAR = day(2026, 10, 10, h => (h < 6 ? 2.0 : 3.0));
+  const v = viewCore(DEAR, CFG, at(3));
+  assert.equal(v.nowTier, 0);
+  assert.equal(v.nowLevel, 2);
+  assert.equal(v.goTier, 1);
+  assert.equal(v.mood, 0.5);
+});

@@ -1,7 +1,7 @@
 // view.js — ren visnings-logik for «Nu»-fanen. Ingen DOM, ingen global state:
 // alt afhænger af (raw, cfg, now), så det kan testes med falsk tid.
 // `now` er dansk vægur (nowDK() fra pricing.js). `cfg` er { markup, tariff }.
-import { parseDK, totalOf, seriesForDay, loHi, tierOf, bestWindow } from './pricing.js';
+import { parseDK, totalOf, seriesForDay, loHi, tierOf, levelOf, goTier, bestWindow } from './pricing.js?v=14';
 
 export const keyOf = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const addDay = d => { const x = new Date(d); x.setDate(x.getDate() + 1); return x; };
@@ -30,6 +30,7 @@ export function viewCore(raw, cfg, now){
   const nowEntry = byHour(nowH);
   const nowTotal = nowEntry ? nowEntry.total : (todayVals[0] ?? 0);
   const nowTier = tierOf(nowTotal, loT, hiT);
+  const nowLevel = hasToday ? levelOf(nowTotal) : 1;
   const peak = hasToday ? Math.max(...todayVals) : 0;
   const cheapAt = h => { const e = byHour(h); return !!e && tierOf(e.total, loT, hiT) === 0; };
 
@@ -40,9 +41,11 @@ export function viewCore(raw, cfg, now){
   const score = hasToday ? Math.round(Math.max(0, Math.min(100, (peak - nowTotal) / Math.max(1, peak - loT) * 100))) : 0;
   // Ellys udtryk: mood 1 = dagens billigste time, 0 = dagens dyreste. look er hvor langt
   // fremme den næste billige time ligger (0 = nu, 1 = 8+ timer eller først i morgen).
-  const mood = hasToday ? 1 - Math.max(0, Math.min(1, (nowTotal - loT) / Math.max(1, hiT - loT))) : 1;
+  // The fixed price level caps it: never a big smile at a high price, never a frown at a low one.
+  const dayMood = hasToday ? 1 - Math.max(0, Math.min(1, (nowTotal - loT) / Math.max(1, hiT - loT))) : 1;
+  const mood = nowLevel === 2 ? Math.min(dayMood, 0.5) : (nowLevel === 0 ? Math.max(dayMood, 0.5) : dayMood);
   const look = !hasToday || nowTier === 0 ? 0 : (nextCheapH < 0 ? 1 : Math.min(1, (nextCheapH - nowH) / 8));
-  return { nowH, todayList, tmrList, hasToday, hasTmr, loT, hiT, nowTotal, nowTier, peak, cheapEndH, nextCheapH, dayAvg, score, mood, look };
+  return { nowH, todayList, tmrList, hasToday, hasTmr, loT, hiT, nowTotal, nowTier, nowLevel, goTier: goTier(nowTier, nowLevel), peak, cheapEndH, nextCheapH, dayAvg, score, mood, look };
 }
 
 // Data til iOS-widget'en (læses af ios/App/IStoedetWidget/PriceStore.swift): de

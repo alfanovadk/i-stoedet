@@ -147,6 +147,26 @@ export function tierOf(p, lo, hi){
   return f < .34 ? 0 : (f < .67 ? 1 : 2);
 }
 
+// Fast prisskala, øre/kWh inkl. alt: hvad der er billig eller dyr strøm uanset
+// resten af dagen. tierOf siger kun, hvor en time ligger i forhold til dagens
+// andre timer. Sat ud fra 120 dages totalpriser (jun–okt 2026, N1/TREFOR/Radius,
+// uden tillæg): median ca. 160, 25 % under ca. 110, 10 % over ca. 235.
+// Gennemgås årligt sammen med tarifferne. Spejles i ios/App/IStoedetWidget/PriceStore.swift.
+export const PRICE_LEVELS = { lav: 100, hoej: 225 };
+
+export function levelOf(p){
+  if (p == null) return 1;
+  return p < PRICE_LEVELS.lav ? 0 : (p < PRICE_LEVELS.hoej ? 1 : 2);
+}
+
+// Hvad appen skal råde til: dagens billigste time er ikke en god tid, hvis
+// strømmen stadig er dyr, og dagens dyreste time er ikke slem, hvis den er billig.
+export function goTier(tier, level){
+  if (tier === 0 && level === 2) return 1;
+  if (tier === 2 && level === 0) return 1;
+  return tier;
+}
+
 // Pris-tier (0=billig,1=middel,2=dyr) → Elly-maskottens tilstandsklasse.
 export function tierClass(tier){
   return tier === 0 ? 'cheap' : (tier === 2 ? 'expensive' : 'mid');

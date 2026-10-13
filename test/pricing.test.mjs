@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   season, nettarif, DSO_TARIFFS, parseDK,
   componentsOf, totalOf, ELAFGIFT, energinetAt, regionFor, MOMS,
-  tierOf, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub, pickPrices, validRecords, validLive,
+  tierOf, levelOf, goTier, PRICE_LEVELS, loHi, bestWindow, seriesForDay, tierClass, tariffAt, nowDK, datahubURL, liveFromDatahub, pickPrices, validRecords, validLive,
 } from '../src/app/pricing.js';
 
 test('season: oktober-marts er vinter, april-september er sommer', () => {
@@ -333,4 +333,21 @@ test('pickPrices: misdannet cache giver tom visning i stedet for en exception', 
 test('liveFromDatahub: records uden gyldige priser giver ingen periode', () => {
   const junk = { ChargeType: 'D03', ChargeTypeCode: 'X', ValidFrom: '2026-10-01T00:00:00', ValidTo: null, Price1: 'abc' };
   assert.deepEqual(liveFromDatahub([junk, null, { ChargeType: 'D03', ChargeTypeCode: 'X' }], ['X']), []);
+});
+
+test('levelOf: fast skala uafhængig af resten af dagen', () => {
+  assert.equal(levelOf(null), 1);
+  assert.equal(levelOf(99.9), 0);
+  assert.equal(levelOf(100), 1);
+  assert.equal(levelOf(224.9), 1);
+  assert.equal(levelOf(225), 2);
+  assert.ok(PRICE_LEVELS.lav < PRICE_LEVELS.hoej);
+});
+
+test('goTier: høj pris fejres ikke, lav pris skældes ikke ud', () => {
+  assert.equal(goTier(0, 0), 0);
+  assert.equal(goTier(0, 2), 1);   // dagens billigste, men stadig dyr strøm
+  assert.equal(goTier(2, 0), 1);   // dagens dyreste, men stadig billig strøm
+  assert.equal(goTier(2, 1), 2);
+  assert.equal(goTier(1, 2), 1);
 });
